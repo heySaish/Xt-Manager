@@ -1,0 +1,189 @@
+package com.xtmanager.core.filesystem
+
+import com.xtmanager.core.model.FileEntry
+import com.xtmanager.core.model.FileType
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.IOException
+
+class LocalFileSystem : FileSystem {
+
+    override suspend fun list(path: String): List<FileEntry> = withContext(Dispatchers.IO) {
+        val directory = File(path)
+        if (!directory.exists() || !directory.isDirectory) {
+            return@withContext emptyList()
+        }
+
+        val files = directory.listFiles() ?: return@withContext emptyList()
+        return@withContext files.map { file ->
+            val type = when {
+                file.isDirectory -> FileType.DIRECTORY
+                isArchiveFile(file.name) -> FileType.ARCHIVE
+                else -> FileType.FILE
+            }
+            FileEntry(
+                name = file.name,
+                path = file.absolutePath,
+                isDirectory = file.isDirectory,
+                size = if (file.isDirectory) 0L else file.length(),
+                lastModified = file.lastModified(),
+                type = type
+            )
+        }.sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase() }))
+    }
+
+    override suspend fun copy(
+        source: String,
+        destination: String,
+        onProgress: (processed: Long, total: Long, currentFile: String) -> Unit
+    ) = withContext(Dispatchers.IO) {
+        val srcFile = File(source)
+        val destFile = File(destination)
+
+        val totalBytes = calculateTotalBytes(srcFile)
+        var processedBytes = 0L
+
+        copyRecursive(srcFile, destFile, totalBytes) { bytesCopied, currentFile ->
+            processedBytes += bytesCopied
+            onProgress(processedBytes, totalBytes, currentFile)
+        }
+    }
+
+    override suspend fun move(
+        source: String,
+        destination: String,
+        onProgress: (processed: Long, total: Long, currentFile: String) -> Unit
+    ) = withContext(Dispatchers.IO) {
+        val srcFile = File(source)
+        val destFile = File(destination)
+
+        // Try direct rename first (works on same mount point)
+        if (srcFile.renameTo(destFile)) {
+            val totalBytes = calculateTotalBytes(destFile)
+            onProgress(totalBytes, totalBytes, destFile.name)
+            return@withContext
+        }
+
+        // If rename fails, copy and delete
+        copy(source, destination, onProgress)
+        delete(source)
+    }
+
+    override suspend fun delete(
+        path: String,
+        onProgress: (processed: Long, total: Long, currentFile: String) -> Unit
+    ) = withContext(Dispatchers.IO) {
+        val file = File(path)
+        val totalFiles = countFiles(file)
+        var deletedFiles = 0L
+
+        deleteRecursive(file) { currentFile ->
+            deletedFiles++
+            onProgress(deletedFiles, totalFiles, currentFile)
+        }
+    }
+
+    override suspend fun mkdir(path: String) {
+        withContext(Dispatchers.IO) {
+            val directory = File(path)
+            if (!directory.exists()) {
+                if (!directory.mkdirs()) {
+                    throw IOException("Failed to create directory: $path")
+                }
+            }
+        }
+    }
+
+    override suspend fun rename(source: String, destination: String) {
+        withContext(Dispatchers.IO) {
+            val srcFile = File(source)
+            val destFile = File(destination)
+            if (destFile.exists()) {
+                throw IOException("Destination file already exists: $destination")
+            }
+            if (!srcFile.renameTo(destFile)) {
+                throw IOException("Failed to rename $source to $destination")
+            }
+        }
+    }
+
+    private fun isArchiveFile(fileName: String): Boolean {
+        val archiveExtensions = listOf(".zip", ".tar", ".gz", ".xz", ".bz2", ".7z", ".rar", ".tgz")
+        return archiveExtensions.any { fileName.lowercase().endsWith(it) }
+    }
+
+    private fun calculateTotalBytes(file: File): Long {
+        if (!file.exists()) return 0L
+        if (file.isFile) return file.length()
+        var total = 0L
+        val children = file.listFiles() ?: return 0L
+        for (child in children) {
+            total += calculateTotalBytes(child)
+        }
+        return total
+    }
+
+    private fun countFiles(file: File): Long {
+        if (!file.exists()) return 0L
+        if (file.isFile) return 1L
+        var count = 1L // counting the directory itself
+        val children = file.listFiles() ?: return count
+        for (child in children) {
+            count += countFiles(child)
+        }
+        return count
+    }
+
+    private fun copyRecursive(
+        src: File,
+        dest: File,
+        totalBytes: Long,
+        onProgressUpdate: (bytesCopied: Long, currentFile: String) -> Unit
+    ) {
+        if (src.isDirectory) {
+            if (!dest.exists()) {
+                dest.mkdirs()
+            }
+            val children = src.listFiles() ?: return
+            for (child in children) {
+                copyRecursive(child, File(dest, child.name), totalBytes, onProgressUpdate)
+            }
+        } else {
+            // Copy file content with buffer and progress callbacks
+            val parent = dest.parentFile
+            if (parent != null && !parent.exists()) {
+                parent.mkdirs()
+            }
+
+            FileInputStream(src).use { input ->
+                FileOutputStream(dest).use { output ->
+                    val buffer = ByteArray(8192)
+                    var bytesRead: Int
+                    while (input.read(buffer).also { bytesRead = it } != -1) {
+                        output.write(buffer, 0, bytesRead)
+                        onProgressUpdate(bytesRead.toLong(), src.name)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun deleteRecursive(file: File, onDeletedItem: (itemName: String) -> Unit) {
+        if (file.isDirectory) {
+            val children = file.listFiles()
+            if (children != null) {
+                for (child in children) {
+                    deleteRecursive(child, onDeletedItem)
+                }
+            }
+        }
+        val name = file.name
+        if (file.exists() && !file.delete()) {
+            throw IOException("Failed to delete: ${file.absolutePath}")
+        }
+        onDeletedItem(name)
+    }
+}
