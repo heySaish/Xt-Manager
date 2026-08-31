@@ -117,7 +117,7 @@ fun TerminalDialog(
         val argsList = arrayOf(
             shellPath,
             "-c",
-            "source ${prootManager.filesDir.absolutePath}/init-sandbox.sh"
+            ". ${prootManager.filesDir.absolutePath}/init-sandbox.sh"
         )
 
         val envMap = System.getenv().toMutableMap()

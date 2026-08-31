@@ -219,7 +219,7 @@ class AlpineManager(
 
     private fun runConfigureScript(): Boolean {
         return try {
-            val pb = ProcessBuilder("sh", "-c", "source ${context.filesDir.absolutePath}/init-sandbox.sh --installing")
+            val pb = ProcessBuilder("sh", "-c", ". ${context.filesDir.absolutePath}/init-sandbox.sh --installing")
                 .directory(context.filesDir)
             
             pb.environment()["PREFIX"] = context.filesDir.absolutePath

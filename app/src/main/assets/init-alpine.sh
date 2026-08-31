@@ -187,7 +187,7 @@ if [ ! -e "$PREFIX/alpine/initrc" ]; then
 # Source rc files if they exist
 
 if [ -f "/etc/profile" ]; then
-    source "/etc/profile"
+    . "/etc/profile"
 fi
 
 # Environment setup
@@ -330,11 +330,11 @@ alias clear='reset'
 
 # Source user configs AFTER defaults (so user can override everything)
 if [ -f /etc/bash/bashrc ]; then
-    source /etc/bash/bashrc
+    . /etc/bash/bashrc
 fi
 
 if [ -f "$HOME/.bashrc" ]; then
-    source "$HOME/.bashrc"
+    . "$HOME/.bashrc"
 fi
 
 EOF

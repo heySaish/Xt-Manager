@@ -13,7 +13,7 @@ class ProotExecutor(private val prootManager: ProotManager) {
             val filesDir = prootManager.filesDir
             val nativeDir = prootManager.prootBinary.parentFile?.absolutePath ?: ""
             
-            val xcmd = "source ${filesDir.absolutePath}/init-sandbox.sh $command"
+            val xcmd = ". ${filesDir.absolutePath}/init-sandbox.sh $command"
             val processBuilder = ProcessBuilder("sh", "-c", xcmd)
             
             val env = processBuilder.environment()
