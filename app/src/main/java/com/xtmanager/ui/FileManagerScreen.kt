@@ -68,6 +68,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.xtmanager.archive.ArchiveFormat
 import com.xtmanager.core.model.FileEntry
@@ -87,6 +88,8 @@ import java.io.File
 @Composable
 fun FileManagerScreen(
     viewModel: FileManagerViewModel,
+    isPermissionGranted: Boolean,
+    onRequestPermission: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -232,7 +235,14 @@ fun FileManagerScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Xt-manager") },
+                    title = {
+                        Text(
+                            text = if (isPermissionGranted) activeState.path else "Xt-manager",
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(Icons.Default.Menu, contentDescription = "Menu")
@@ -299,8 +309,8 @@ fun FileManagerScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
             },
@@ -341,13 +351,21 @@ fun FileManagerScreen(
                 )
             }
         ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
-                    .padding(4.dp)
-            ) {
+            if (!isPermissionGranted) {
+                PermissionRequestScreen(
+                    onRequestPermission = onRequestPermission,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+                        .padding(4.dp)
+                ) {
                 // Split Pane Layout
                 Row(
                     modifier = Modifier
@@ -406,6 +424,7 @@ fun FileManagerScreen(
                 }
             }
         }
+    }
     }
 
     // --- DIALOGS IMPLEMENTATION ---
@@ -673,5 +692,53 @@ fun FileManagerScreen(
             initialPath = activeState.path,
             onDismiss = { showTerminalDialog = false }
         )
+    }
+}
+
+@Composable
+fun PermissionRequestScreen(
+    onRequestPermission: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.fillMaxSize().padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                imageVector = Icons.Default.FolderOpen,
+                contentDescription = "Storage Access Required",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(96.dp)
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Storage Access Required",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Xt-manager needs storage permissions to list, manage, and execute file operations on your device storage. Please grant the permission to proceed.",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+            Button(
+                onClick = onRequestPermission,
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth().height(48.dp)
+            ) {
+                Icon(Icons.Default.Storage, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Grant Storage Access")
+            }
+        }
     }
 }

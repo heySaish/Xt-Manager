@@ -64,15 +64,6 @@ fun FilePane(
         tonalElevation = if (isActive) 1.dp else 0.dp
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Path Bar
-            PathBar(
-                path = paneState.path,
-                onPathClick = onPathClick,
-                modifier = Modifier.fillMaxWidth()
-            )
-            
-            Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-            
             Box(modifier = Modifier.weight(1f)) {
                 if (paneState.files.isEmpty()) {
                     Box(
@@ -99,20 +90,20 @@ fun FilePane(
                                                 onPathClick(parentFile)
                                             }
                                         }
-                                        .padding(vertical = 8.dp, horizontal = 12.dp),
+                                        .padding(vertical = 4.dp, horizontal = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.ArrowUpward,
                                         contentDescription = "Go up",
                                         tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(24.dp)
+                                        modifier = Modifier.size(20.dp)
                                     )
                                     Text(
                                         text = "..",
-                                        style = MaterialTheme.typography.bodyLarge,
+                                        style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(start = 12.dp)
+                                        modifier = Modifier.padding(start = 8.dp)
                                     )
                                 }
                                 Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))

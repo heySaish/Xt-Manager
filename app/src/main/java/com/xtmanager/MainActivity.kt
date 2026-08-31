@@ -17,6 +17,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import com.xtmanager.archive.LocalArchiveManager
 import com.xtmanager.core.filesystem.LocalFileSystem
 import com.xtmanager.core.operations.OperationManager
@@ -26,11 +29,13 @@ import com.xtmanager.viewmodel.FileManagerViewModel
 class MainActivity : ComponentActivity() {
 
     private lateinit var viewModel: FileManagerViewModel
+    private var isPermissionGranted by mutableStateOf(false)
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val granted = permissions.entries.all { it.value }
+        isPermissionGranted = granted
         if (granted) {
             viewModel.refreshPane(com.xtmanager.core.model.PaneType.LEFT)
             viewModel.refreshPane(com.xtmanager.core.model.PaneType.RIGHT)
@@ -52,8 +57,7 @@ class MainActivity : ComponentActivity() {
             operationManager = operationManager
         )
 
-        // Request storage permissions
-        checkAndRequestPermissions()
+        isPermissionGranted = hasStoragePermission()
 
         setContent {
             val context = androidx.compose.ui.platform.LocalContext.current
@@ -75,10 +79,22 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     FileManagerScreen(
-                        viewModel = viewModel
+                        viewModel = viewModel,
+                        isPermissionGranted = isPermissionGranted,
+                        onRequestPermission = { checkAndRequestPermissions() }
                     )
                 }
             }
+        }
+    }
+
+    private fun hasStoragePermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Environment.isExternalStorageManager()
+        } else {
+            val writePermission = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            val readPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+            writePermission == PackageManager.PERMISSION_GRANTED && readPermission == PackageManager.PERMISSION_GRANTED
         }
     }
 
@@ -114,8 +130,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Refresh when returning to the app (e.g. after granting permission in settings)
-        if (::viewModel.isInitialized) {
+        isPermissionGranted = hasStoragePermission()
+        if (isPermissionGranted && ::viewModel.isInitialized) {
             viewModel.refreshPane(com.xtmanager.core.model.PaneType.LEFT)
             viewModel.refreshPane(com.xtmanager.core.model.PaneType.RIGHT)
         }
