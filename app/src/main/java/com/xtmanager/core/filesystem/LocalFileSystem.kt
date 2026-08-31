@@ -17,18 +17,58 @@ class LocalFileSystem : FileSystem {
             return@withContext emptyList()
         }
 
-        val files = directory.listFiles() ?: return@withContext emptyList()
-        return@withContext files.map { file ->
+        var filesList: Array<File>? = directory.listFiles()
+        if (filesList == null) {
+            val shellFiles = mutableListOf<File>()
+            try {
+                val process = Runtime.getRuntime().exec(arrayOf("ls", "-1a", directory.absolutePath))
+                val reader = process.inputStream.bufferedReader()
+                var line: String?
+                while (reader.readLine().also { line = it } != null) {
+                    val name = line!!.trim()
+                    if (name.isNotEmpty() && name != "." && name != "..") {
+                        val child = File(directory, name)
+                        if (child.exists()) {
+                            shellFiles.add(child)
+                        }
+                    }
+                }
+                process.waitFor()
+            } catch (_: Exception) {}
+
+            if (shellFiles.isNotEmpty()) {
+                filesList = shellFiles.toTypedArray()
+            } else {
+                val knownNames = when (directory.absolutePath) {
+                    "/" -> listOf(
+                        "apex", "bin", "bugreports", "config", "data", "dev", "etc",
+                        "init", "linkerconfig", "mnt", "odm", "oem", "proc", "product",
+                        "res", "sdcard", "storage", "sys", "system", "vendor"
+                    )
+                    "/storage" -> listOf("emulated", "self", "sdcard0", "0")
+                    "/storage/emulated" -> listOf("0")
+                    else -> emptyList()
+                }
+                val fallbackFiles = knownNames.map { File(directory, it) }.filter { it.exists() }
+                if (fallbackFiles.isNotEmpty()) {
+                    filesList = fallbackFiles.toTypedArray()
+                }
+            }
+        }
+
+        val finalFiles = filesList ?: emptyArray()
+        return@withContext finalFiles.map { file ->
+            val isDir = file.isDirectory || (file.exists() && !file.isFile)
             val type = when {
-                file.isDirectory -> FileType.DIRECTORY
+                isDir -> FileType.DIRECTORY
                 isArchiveFile(file.name) -> FileType.ARCHIVE
                 else -> FileType.FILE
             }
             FileEntry(
                 name = file.name,
                 path = file.absolutePath,
-                isDirectory = file.isDirectory,
-                size = if (file.isDirectory) 0L else file.length(),
+                isDirectory = isDir,
+                size = if (isDir) 0L else file.length(),
                 lastModified = file.lastModified(),
                 type = type
             )

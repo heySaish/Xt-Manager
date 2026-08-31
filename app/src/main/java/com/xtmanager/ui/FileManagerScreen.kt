@@ -236,12 +236,40 @@ fun FileManagerScreen(
             topBar = {
                 TopAppBar(
                     title = {
-                        Text(
-                            text = if (isPermissionGranted) activeState.path else "Xt-manager",
-                            style = MaterialTheme.typography.bodyMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        if (isPermissionGranted) {
+                            val pathText = remember(activeState.path) {
+                                val p = activeState.path
+                                if (p.endsWith("/")) p else "$p/"
+                            }
+                            val folderCount = activeState.files.count { it.isDirectory }
+                            val fileCount = activeState.files.count { !it.isDirectory }
+                            val diskInfo = remember(activeState.path) {
+                                getDiskInfo(activeState.path)
+                            }
+
+                            Column {
+                                Text(
+                                    text = pathText,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "Folders: $folderCount  Files: $fileCount  Disk: $diskInfo",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = "Xt-manager",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
@@ -739,3 +767,26 @@ fun PermissionRequestScreen(
         }
     }
 }
+
+private fun getDiskInfo(path: String): String {
+    return try {
+        val file = File(path)
+        val target = if (file.exists()) file else File("/storage/emulated/0")
+        val stat = android.os.StatFs(target.absolutePath)
+        val availableBytes = stat.availableBlocksLong * stat.blockSizeLong
+        val totalBytes = stat.blockCountLong * stat.blockSizeLong
+
+        val availFormatted = formatBytesToGB(availableBytes)
+        val totalFormatted = formatBytesToGB(totalBytes)
+
+        "$availFormatted/$totalFormatted"
+    } catch (_: Exception) {
+        "0.00G/0.00G"
+    }
+}
+
+private fun formatBytesToGB(bytes: Long): String {
+    val gb = bytes.toDouble() / (1024.0 * 1024.0 * 1024.0)
+    return String.format(java.util.Locale.US, "%.2fG", gb)
+}
+

@@ -69,26 +69,14 @@ fun FilePane(
     }
     
     val interactionSource = remember { MutableInteractionSource() }
-    var isRefreshing by remember { mutableStateOf(false) }
     val state = rememberPullToRefreshState()
-
-    LaunchedEffect(isRefreshing) {
-        if (isRefreshing) {
-            state.startRefresh()
-        } else {
-            state.endRefresh()
-        }
-    }
 
     LaunchedEffect(state.isRefreshing) {
         if (state.isRefreshing) {
-            isRefreshing = true
             onRefresh()
+            kotlinx.coroutines.delay(200)
+            state.endRefresh()
         }
-    }
-
-    LaunchedEffect(paneState.path, paneState.files) {
-        isRefreshing = false
     }
 
     Surface(
@@ -110,21 +98,19 @@ fun FilePane(
                     .weight(1f)
                     .nestedScroll(state.nestedScrollConnection)
             ) {
-                // Curved wave pull to refresh background matching MT Manager design
+                // Sleek compact curved wave pull-to-refresh header without icon
                 val offsetPx = state.verticalOffset
                 val density = LocalDensity.current
 
                 if (offsetPx > 0f) {
-                    val heightDp = with(density) { offsetPx.toDp() }
+                    val heightDp = with(density) { (offsetPx * 0.45f).coerceAtMost(120f).toDp() }
                     val waveColor = MaterialTheme.colorScheme.primaryContainer
-                    val iconColor = MaterialTheme.colorScheme.onPrimaryContainer
 
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(heightDp)
-                            .align(Alignment.TopCenter),
-                        contentAlignment = Alignment.Center
+                            .align(Alignment.TopCenter)
                     ) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
                             val width = size.width
@@ -133,12 +119,12 @@ fun FilePane(
                             val path = Path().apply {
                                 moveTo(0f, 0f)
                                 lineTo(width, 0f)
-                                lineTo(width, height * 0.3f)
+                                lineTo(width, height * 0.2f)
                                 quadraticBezierTo(
                                     x1 = width / 2f,
-                                    y1 = height * 1.15f,
+                                    y1 = height * 0.75f,
                                     x2 = 0f,
-                                    y2 = height * 0.3f
+                                    y2 = height * 0.2f
                                 )
                                 close()
                             }
@@ -148,33 +134,6 @@ fun FilePane(
                                 color = waveColor
                             )
                         }
-
-                        val rotation = if (state.isRefreshing) {
-                            val transition = rememberInfiniteTransition(label = "refreshRotation")
-                            val angle by transition.animateFloat(
-                                initialValue = 0f,
-                                targetValue = 360f,
-                                animationSpec = infiniteRepeatable(
-                                    animation = tween(1000, easing = LinearEasing)
-                                ),
-                                label = "rotationAngle"
-                            )
-                            angle
-                        } else {
-                            (offsetPx * 2.5f) % 360f
-                        }
-
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Refreshing",
-                            tint = iconColor,
-                            modifier = Modifier
-                                .size(24.dp)
-                                .graphicsLayer {
-                                    rotationZ = rotation
-                                    translationY = -(offsetPx * 0.1f)
-                                }
-                        )
                     }
                 }
 
