@@ -32,9 +32,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.height
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import com.xtmanager.core.model.FileEntry
@@ -101,7 +105,13 @@ fun FilePane(
                     .weight(1f)
                     .nestedScroll(state.nestedScrollConnection)
             ) {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            translationY = state.position
+                        }
+                ) {
                     // \"Go Up\" directory item (..)
                     if (paneState.path != "/" && paneState.path != "") {
                         item {
@@ -167,7 +177,43 @@ fun FilePane(
 
                 PullToRefreshContainer(
                     state = state,
-                    modifier = Modifier.align(Alignment.TopCenter)
+                    modifier = Modifier.align(Alignment.TopCenter),
+                    containerColor = Color.Transparent,
+                    elevation = 0.dp,
+                    indicator = { pullToRefreshState ->
+                        val position = pullToRefreshState.position
+                        val density = androidx.compose.ui.platform.LocalDensity.current
+                        val waveColor = MaterialTheme.colorScheme.surface
+
+                        if (position > 0) {
+                            Canvas(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(with(density) { position.toDp() })
+                            ) {
+                                val width = size.width
+                                val height = size.height
+
+                                val path = Path().apply {
+                                    moveTo(0f, 0f)
+                                    lineTo(width, 0f)
+                                    lineTo(width, height * 0.4f)
+                                    quadraticTo(
+                                        x1 = width / 2f,
+                                        y1 = height,
+                                        x2 = 0f,
+                                        y2 = height * 0.4f
+                                    )
+                                    close()
+                                }
+
+                                drawPath(
+                                    path = path,
+                                    color = waveColor
+                                )
+                            }
+                        }
+                    }
                 )
             }
         }
