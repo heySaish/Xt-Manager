@@ -17,7 +17,6 @@
         android:label="Xt-manager"
         android:roundIcon="@android:drawable/ic_menu_manage"
         android:supportsRtl="true"
-        android:extractNativeLibs="true"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
         
         <activity
