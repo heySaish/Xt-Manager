@@ -79,7 +79,6 @@ import com.xtmanager.core.model.PaneType
 import com.xtmanager.ui.dialogs.ConfirmDialog
 import com.xtmanager.ui.dialogs.CreateDialog
 import com.xtmanager.ui.dialogs.RenameDialog
-import com.xtmanager.runtime.proot.ProotManager
 import com.xtmanager.viewmodel.FileManagerViewModel
 import kotlinx.coroutines.launch
 import java.io.File
@@ -88,7 +87,6 @@ import java.io.File
 @Composable
 fun FileManagerScreen(
     viewModel: FileManagerViewModel,
-    prootManager: ProotManager,
     modifier: Modifier = Modifier
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -100,8 +98,6 @@ fun FileManagerScreen(
     val operations by viewModel.operations.collectAsState()
     
     val showHiddenFiles by viewModel.showHiddenFiles.collectAsState()
-    val alpineStatus by viewModel.alpineInstallStatus.collectAsState()
-    val alpineProgress by viewModel.alpineInstallProgress.collectAsState()
 
     val activeState = if (activePane == PaneType.LEFT) leftPaneState else rightPaneState
     val inactivePane = if (activePane == PaneType.LEFT) PaneType.RIGHT else PaneType.LEFT
@@ -197,47 +193,6 @@ fun FileManagerScreen(
                     Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Text(
-                        text = "Alpine Runtime",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                text = "Status: $alpineStatus",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium
-                            )
-                            if (alpineProgress > 0.0f && alpineProgress < 1.0f) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                LinearProgressIndicator(
-                                    progress = alpineProgress,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                            if (alpineProgress < 1.0f && alpineProgress != -1.0f) {
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Button(
-                                    onClick = { viewModel.installAlpine() },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(6.dp)
-                                ) {
-                                    Text("Install Alpine")
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
                     // Open Terminal button
                     Button(
                         onClick = {
@@ -246,7 +201,7 @@ fun FileManagerScreen(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
-                        enabled = alpineProgress >= 1.0f
+                        enabled = true
                     ) {
                         Icon(Icons.Default.Terminal, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
@@ -715,7 +670,6 @@ fun FileManagerScreen(
     // Terminal Dialog
     if (showTerminalDialog) {
         TerminalDialog(
-            prootManager = prootManager,
             initialPath = activeState.path,
             onDismiss = { showTerminalDialog = false }
         )

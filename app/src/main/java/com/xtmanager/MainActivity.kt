@@ -17,13 +17,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
-import com.xtmanager.archive.AlpineArchiveManager
+import com.xtmanager.archive.LocalArchiveManager
 import com.xtmanager.core.filesystem.LocalFileSystem
 import com.xtmanager.core.operations.OperationManager
-import com.xtmanager.runtime.proot.AlpineManager
-import com.xtmanager.runtime.proot.ProotExecutor
-import com.xtmanager.runtime.proot.ProotManager
-import com.xtmanager.runtime.tools.AlpineToolManager
 import com.xtmanager.ui.FileManagerScreen
 import com.xtmanager.viewmodel.FileManagerViewModel
 
@@ -48,17 +44,12 @@ class MainActivity : ComponentActivity() {
 
         // Initialize dependencies
         val fileSystem = LocalFileSystem()
-        val prootManager = ProotManager(applicationContext)
-        val prootExecutor = ProotExecutor(prootManager)
-        val toolManager = AlpineToolManager(prootExecutor)
-        val archiveManager = AlpineArchiveManager(toolManager)
+        val archiveManager = LocalArchiveManager()
         val operationManager = OperationManager(fileSystem, archiveManager)
-        val alpineManager = AlpineManager(applicationContext, prootManager)
 
         viewModel = FileManagerViewModel(
             fileSystem = fileSystem,
-            operationManager = operationManager,
-            alpineManager = alpineManager
+            operationManager = operationManager
         )
 
         // Request storage permissions
@@ -84,8 +75,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     FileManagerScreen(
-                        viewModel = viewModel,
-                        prootManager = prootManager
+                        viewModel = viewModel
                     )
                 }
             }

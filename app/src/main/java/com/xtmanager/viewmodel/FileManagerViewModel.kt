@@ -8,19 +8,14 @@ import com.xtmanager.core.model.FileEntry
 import com.xtmanager.core.model.PaneState
 import com.xtmanager.core.model.PaneType
 import com.xtmanager.core.operations.OperationManager
-import com.xtmanager.runtime.proot.AlpineManager
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.io.File
 
 class FileManagerViewModel(
     private val fileSystem: FileSystem,
-    private val operationManager: OperationManager,
-    private val alpineManager: AlpineManager
+    private val operationManager: OperationManager
 ) : ViewModel() {
 
     private val _leftPaneState = MutableStateFlow(PaneState(path = "/storage/emulated/0"))
@@ -33,12 +28,6 @@ class FileManagerViewModel(
     val activePane: StateFlow<PaneType> = _activePane.asStateFlow()
 
     val operations = operationManager.operations
-
-    private val _alpineInstallStatus = MutableStateFlow("Idle")
-    val alpineInstallStatus: StateFlow<String> = _alpineInstallStatus.asStateFlow()
-
-    private val _alpineInstallProgress = MutableStateFlow(if (alpineManager.isInstalled) 1.0f else 0.0f)
-    val alpineInstallProgress: StateFlow<Float> = _alpineInstallProgress.asStateFlow()
 
     private val _showHiddenFiles = MutableStateFlow(false)
     val showHiddenFiles: StateFlow<Boolean> = _showHiddenFiles.asStateFlow()
@@ -272,24 +261,6 @@ class FileManagerViewModel(
         viewModelScope.launch {
             refreshPane(PaneType.LEFT)
             refreshPane(PaneType.RIGHT)
-        }
-    }
-
-    fun installAlpine() {
-        viewModelScope.launch {
-            _alpineInstallStatus.value = "Starting Installation..."
-            _alpineInstallProgress.value = 0.01f
-            val success = alpineManager.install { status, progress ->
-                _alpineInstallStatus.value = status
-                _alpineInstallProgress.value = progress
-            }
-            if (success) {
-                _alpineInstallStatus.value = "Installed"
-                _alpineInstallProgress.value = 1.0f
-            } else {
-                _alpineInstallStatus.value = "Installation Failed"
-                _alpineInstallProgress.value = -1.0f
-            }
         }
     }
 

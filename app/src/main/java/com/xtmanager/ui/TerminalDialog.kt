@@ -34,12 +34,10 @@ import com.termux.terminal.TerminalSession
 import com.termux.terminal.TerminalSessionClient
 import com.termux.view.TerminalView
 import com.termux.view.TerminalViewClient
-import com.xtmanager.runtime.proot.ProotManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TerminalDialog(
-    prootManager: ProotManager,
     initialPath: String = "/storage/emulated/0",
     onDismiss: () -> Unit
 ) {
@@ -112,19 +110,13 @@ fun TerminalDialog(
 
     val terminalSession = remember {
         val shellPath = "/system/bin/sh"
-        val cwd = prootManager.filesDir.absolutePath
+        val cwd = if (java.io.File(initialPath).exists()) initialPath else "/storage/emulated/0"
         
-        val argsList = arrayOf(
-            shellPath,
-            "-c",
-            ". ${prootManager.filesDir.absolutePath}/init-sandbox.sh"
-        )
+        val argsList = arrayOf("-i")
 
         val envMap = System.getenv().toMutableMap()
-        envMap["PREFIX"] = prootManager.filesDir.absolutePath
-        envMap["NATIVE_DIR"] = prootManager.prootBinary.parentFile?.absolutePath ?: ""
-        envMap["FDROID"] = "false"
         envMap["TERM"] = "xterm-256color"
+        envMap["HOME"] = "/data/data/com.xtmanager/files"
         envMap.putIfAbsent("PATH", "/system/bin:/system/xbin")
         val envList = envMap.map { "${it.key}=${it.value}" }.toTypedArray()
 
