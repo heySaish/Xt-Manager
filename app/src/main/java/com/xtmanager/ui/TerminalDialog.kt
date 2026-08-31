@@ -117,7 +117,7 @@ fun TerminalDialog(
                 }
             }
             override fun shouldBackButtonBeMappedToEscape(): Boolean = false
-            override fun shouldEnforceCharBasedInput(): Boolean = false
+            override fun shouldEnforceCharBasedInput(): Boolean = true
             override fun shouldUseCtrlSpaceWorkaround(): Boolean = false
             override fun isTerminalViewSelected(): Boolean = true
             override fun copyModeChanged(copyMode: Boolean) {}
@@ -142,9 +142,8 @@ fun TerminalDialog(
 
     val terminalSession = remember {
         val shellPath = when {
-            File("/data/data/com.termux/files/usr/bin/bash").canExecute() -> "/data/data/com.termux/files/usr/bin/bash"
-            File("/data/data/com.termux/files/usr/bin/sh").canExecute() -> "/data/data/com.termux/files/usr/bin/sh"
-            File("/system/bin/sh").canExecute() -> "/system/bin/sh"
+            File("/data/data/com.termux/files/usr/bin/bash").exists() -> "/data/data/com.termux/files/usr/bin/bash"
+            File("/data/data/com.termux/files/usr/bin/sh").exists() -> "/data/data/com.termux/files/usr/bin/sh"
             else -> "/system/bin/sh"
         }
         val cwd = if (File(initialPath).exists()) initialPath else "/storage/emulated/0"
@@ -232,6 +231,10 @@ fun TerminalDialog(
                                 imm?.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
                             }
                         }
+                    },
+                    update = { view ->
+                        view.setTerminalViewClient(viewClient)
+                        terminalView = view
                     },
                     modifier = Modifier
                         .fillMaxWidth()
