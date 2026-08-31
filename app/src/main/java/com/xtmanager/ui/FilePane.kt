@@ -1,48 +1,53 @@
 package com.xtmanager.ui
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.xtmanager.core.model.FileEntry
-import com.xtmanager.core.model.FileType
 import com.xtmanager.core.model.PaneState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -105,6 +110,74 @@ fun FilePane(
                     .weight(1f)
                     .nestedScroll(state.nestedScrollConnection)
             ) {
+                // Curved wave pull to refresh background matching MT Manager design
+                val offsetPx = state.verticalOffset
+                val density = LocalDensity.current
+
+                if (offsetPx > 0f) {
+                    val heightDp = with(density) { offsetPx.toDp() }
+                    val waveColor = MaterialTheme.colorScheme.primaryContainer
+                    val iconColor = MaterialTheme.colorScheme.onPrimaryContainer
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(heightDp)
+                            .align(Alignment.TopCenter),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val width = size.width
+                            val height = size.height
+
+                            val path = Path().apply {
+                                moveTo(0f, 0f)
+                                lineTo(width, 0f)
+                                lineTo(width, height * 0.3f)
+                                quadraticBezierTo(
+                                    x1 = width / 2f,
+                                    y1 = height * 1.15f,
+                                    x2 = 0f,
+                                    y2 = height * 0.3f
+                                )
+                                close()
+                            }
+
+                            drawPath(
+                                path = path,
+                                color = waveColor
+                            )
+                        }
+
+                        val rotation = if (state.isRefreshing) {
+                            val transition = rememberInfiniteTransition(label = "refreshRotation")
+                            val angle by transition.animateFloat(
+                                initialValue = 0f,
+                                targetValue = 360f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(1000, easing = LinearEasing)
+                                ),
+                                label = "rotationAngle"
+                            )
+                            angle
+                        } else {
+                            (offsetPx * 2.5f) % 360f
+                        }
+
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Refreshing",
+                            tint = iconColor,
+                            modifier = Modifier
+                                .size(24.dp)
+                                .graphicsLayer {
+                                    rotationZ = rotation
+                                    translationY = -(offsetPx * 0.1f)
+                                }
+                        )
+                    }
+                }
+
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -112,7 +185,7 @@ fun FilePane(
                             translationY = state.verticalOffset
                         }
                 ) {
-                    // \"Go Up\" directory item (..)
+                    // "Go Up" directory item (..)
                     if (paneState.path != "/" && paneState.path != "") {
                         item {
                             Row(
@@ -128,17 +201,26 @@ fun FilePane(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.ArrowUpward,
+                                    imageVector = Icons.Default.FolderOpen,
                                     contentDescription = "Go up",
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(22.dp)
                                 )
-                                Text(
-                                    text = "..",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(start = 8.dp)
-                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "..",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1
+                                    )
+                                    Text(
+                                        text = "Parent Directory",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    )
+                                }
                             }
                             Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
                         }
@@ -174,47 +256,8 @@ fun FilePane(
                         }
                     }
                 }
-
-                PullToRefreshContainer(
-                    state = state,
-                    modifier = Modifier.align(Alignment.TopCenter),
-                    containerColor = Color.Transparent,
-                    indicator = { pullToRefreshState ->
-                        val offset = pullToRefreshState.verticalOffset
-                        val density = androidx.compose.ui.platform.LocalDensity.current
-                        val waveColor = MaterialTheme.colorScheme.surface
-
-                        if (offset > 0) {
-                            Canvas(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(with(density) { offset.toDp() })
-                            ) {
-                                val width = size.width
-                                val height = size.height
-
-                                val path = androidx.compose.ui.graphics.Path().apply {
-                                    moveTo(0f, 0f)
-                                    lineTo(width, 0f)
-                                    lineTo(width, height * 0.4f)
-                                    quadraticBezierTo(
-                                        x1 = width / 2f,
-                                        y1 = height,
-                                        x2 = 0f,
-                                        y2 = height * 0.4f
-                                    )
-                                    close()
-                                }
-
-                                drawPath(
-                                    path = path,
-                                    color = waveColor
-                                )
-                            }
-                        }
-                    }
-                )
             }
         }
     }
 }
+
