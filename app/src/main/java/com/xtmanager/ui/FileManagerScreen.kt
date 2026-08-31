@@ -710,7 +710,7 @@ fun PermissionRequestScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Icon(
-                imageVector = Icons.Default.FolderOpen,
+                imageVector = Icons.Default.Storage,
                 contentDescription = "Storage Access Required",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(96.dp)

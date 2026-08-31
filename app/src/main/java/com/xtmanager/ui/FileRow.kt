@@ -77,7 +77,7 @@ fun FileRow(
             Text(
                 text = fileEntry.name,
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (isSelected) MaterialTheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1
             )
             
