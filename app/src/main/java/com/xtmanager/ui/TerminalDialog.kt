@@ -115,16 +115,18 @@ fun TerminalDialog(
         val cwd = prootManager.filesDir.absolutePath
         
         val argsList = arrayOf(
+            shellPath,
             "-c",
             "source ${prootManager.filesDir.absolutePath}/init-sandbox.sh"
         )
 
-        val envList = arrayOf(
-            "PREFIX=${prootManager.filesDir.absolutePath}",
-            "NATIVE_DIR=${prootManager.prootBinary.parentFile?.absolutePath ?: ""}",
-            "FDROID=false",
-            "TERM=xterm-256color"
-        )
+        val envMap = System.getenv().toMutableMap()
+        envMap["PREFIX"] = prootManager.filesDir.absolutePath
+        envMap["NATIVE_DIR"] = prootManager.prootBinary.parentFile?.absolutePath ?: ""
+        envMap["FDROID"] = "false"
+        envMap["TERM"] = "xterm-256color"
+        envMap.putIfAbsent("PATH", "/system/bin:/system/xbin")
+        val envList = envMap.map { "${it.key}=${it.value}" }.toTypedArray()
 
         TerminalSession(
             shellPath,

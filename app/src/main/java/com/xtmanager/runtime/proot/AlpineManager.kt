@@ -119,14 +119,15 @@ class AlpineManager(
     }
 
     private fun getAlpineRootfsUrlForArch(arch: String): String {
-        return "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/$arch/alpine-minirootfs-3.21.0-$arch.tar.gz"
+        val ver = if (arch == "armhf") "3.21.0" else "3.21.3"
+        return "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/$arch/alpine-minirootfs-$ver-$arch.tar.gz"
     }
 
     private fun assetExists(path: String): Boolean {
         return try {
-            context.assets.open(path).close()
-            true
-        } catch (e: IOException) {
+            val list = context.assets.list("") ?: return false
+            list.contains(path)
+        } catch (e: Exception) {
             false
         }
     }
