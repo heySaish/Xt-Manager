@@ -109,7 +109,7 @@ fun FilePane(
                     modifier = Modifier
                         .fillMaxSize()
                         .graphicsLayer {
-                            translationY = state.position
+                            translationY = state.verticalOffset
                         }
                 ) {
                     // \"Go Up\" directory item (..)
@@ -179,26 +179,25 @@ fun FilePane(
                     state = state,
                     modifier = Modifier.align(Alignment.TopCenter),
                     containerColor = Color.Transparent,
-                    elevation = 0.dp,
                     indicator = { pullToRefreshState ->
-                        val position = pullToRefreshState.position
+                        val offset = pullToRefreshState.verticalOffset
                         val density = androidx.compose.ui.platform.LocalDensity.current
                         val waveColor = MaterialTheme.colorScheme.surface
 
-                        if (position > 0) {
+                        if (offset > 0) {
                             Canvas(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(with(density) { position.toDp() })
+                                    .height(with(density) { offset.toDp() })
                             ) {
                                 val width = size.width
                                 val height = size.height
 
-                                val path = Path().apply {
+                                val path = androidx.compose.ui.graphics.Path().apply {
                                     moveTo(0f, 0f)
                                     lineTo(width, 0f)
                                     lineTo(width, height * 0.4f)
-                                    quadraticTo(
+                                    quadraticBezierTo(
                                         x1 = width / 2f,
                                         y1 = height,
                                         x2 = 0f,
