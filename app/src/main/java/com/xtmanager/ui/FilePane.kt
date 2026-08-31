@@ -23,7 +23,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,6 +35,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import com.xtmanager.core.model.FileEntry
 import com.xtmanager.core.model.FileType
@@ -59,6 +61,22 @@ fun FilePane(
     
     val interactionSource = remember { MutableInteractionSource() }
     var isRefreshing by remember { mutableStateOf(false) }
+    val state = rememberPullToRefreshState()
+
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
+            state.startRefresh()
+        } else {
+            state.endRefresh()
+        }
+    }
+
+    LaunchedEffect(state.isRefreshing) {
+        if (state.isRefreshing) {
+            isRefreshing = true
+            onRefresh()
+        }
+    }
 
     LaunchedEffect(paneState.path, paneState.files) {
         isRefreshing = false
@@ -78,16 +96,12 @@ fun FilePane(
         tonalElevation = if (isActive) 1.dp else 0.dp
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.weight(1f)) {
-                PullToRefreshBox(
-                    isRefreshing = isRefreshing,
-                    onRefresh = {
-                        isRefreshing = true
-                        onRefresh()
-                    },
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .nestedScroll(state.nestedScrollConnection)
+            ) {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
                     // \"Go Up\" directory item (..)
                     if (paneState.path != "/" && paneState.path != "") {
                         item {
@@ -150,8 +164,12 @@ fun FilePane(
                         }
                     }
                 }
+
+                PullToRefreshContainer(
+                    state = state,
+                    modifier = Modifier.align(Alignment.TopCenter)
+                )
             }
-        }
         }
     }
 }
