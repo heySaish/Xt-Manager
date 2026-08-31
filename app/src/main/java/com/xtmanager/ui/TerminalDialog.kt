@@ -41,6 +41,7 @@ fun TerminalDialog(
     initialPath: String = "/storage/emulated/0",
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
     val sessionClient = remember {
         object : TerminalSessionClient {
             override fun onTextChanged(changedSession: TerminalSession) {}
@@ -116,7 +117,7 @@ fun TerminalDialog(
 
         val envMap = System.getenv().toMutableMap()
         envMap["TERM"] = "xterm-256color"
-        envMap["HOME"] = "/data/data/com.xtmanager/files"
+        envMap["HOME"] = context.filesDir.absolutePath
         envMap.putIfAbsent("PATH", "/system/bin:/system/xbin")
         val envList = envMap.map { "${it.key}=${it.value}" }.toTypedArray()
 
@@ -127,7 +128,10 @@ fun TerminalDialog(
             envList,
             2000,
             sessionClient
-        )
+        ).apply {
+            // Pre-initialize terminal window size to trigger process creation immediately in background
+            updateSize(80, 24, 12, 24)
+        }
     }
 
     AlertDialog(
@@ -149,7 +153,7 @@ fun TerminalDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Alpine Terminal Simulator",
+                        text = "Terminal",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f)
@@ -171,6 +175,13 @@ fun TerminalDialog(
                             attachSession(terminalSession)
                             setTextSize(currentTextSize)
                             terminalView = this
+                            isFocusable = true
+                            isFocusableInTouchMode = true
+                            requestFocus()
+                            post {
+                                val imm = ctx.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                                imm.showSoftInput(this, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+                            }
                         }
                     },
                     modifier = Modifier

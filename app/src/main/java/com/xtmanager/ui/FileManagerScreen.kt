@@ -261,12 +261,7 @@ fun FileManagerScreen(
                             }
                         }
 
-                        IconButton(onClick = { 
-                            viewModel.refreshPane(PaneType.LEFT)
-                            viewModel.refreshPane(PaneType.RIGHT)
-                        }) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Refresh")
-                        }
+
                         
                         IconButton(onClick = { topMenuExpanded = true }) {
                             Icon(Icons.Default.MoreVert, contentDescription = "More")
@@ -392,6 +387,7 @@ fun FileManagerScreen(
                             viewModel.navigateTo(PaneType.LEFT, path)
                         },
                         onPaneClick = { viewModel.setActivePane(PaneType.LEFT) },
+                        onRefresh = { viewModel.refreshPane(PaneType.LEFT) },
                         modifier = Modifier
                             .weight(1f)
                             .padding(end = 2.dp)
@@ -417,6 +413,7 @@ fun FileManagerScreen(
                             viewModel.navigateTo(PaneType.RIGHT, path)
                         },
                         onPaneClick = { viewModel.setActivePane(PaneType.RIGHT) },
+                        onRefresh = { viewModel.refreshPane(PaneType.RIGHT) },
                         modifier = Modifier
                             .weight(1f)
                             .padding(start = 2.dp)

@@ -34,9 +34,7 @@ class FileManagerViewModel(
     val showHiddenFiles: StateFlow<Boolean> = _showHiddenFiles.asStateFlow()
 
     init {
-        // Initial load
-        refreshPane(PaneType.LEFT)
-        refreshPane(PaneType.RIGHT)
+        // Initial load is deferred to MainActivity's onResume when permissions are active
     }
 
     fun setActivePane(paneType: PaneType) {
