@@ -10,14 +10,16 @@ class ProotExecutor(private val prootManager: ProotManager) {
 
     suspend fun execute(command: String): ToolResult = withContext(Dispatchers.IO) {
         try {
-            val cmd = prootManager.getProotCommand(command)
-            val processBuilder = ProcessBuilder(cmd)
+            val filesDir = prootManager.filesDir
+            val nativeDir = prootManager.prootBinary.parentFile?.absolutePath ?: ""
             
-            // Set environment variables if needed
+            val xcmd = "source ${filesDir.absolutePath}/init-sandbox.sh $command"
+            val processBuilder = ProcessBuilder("sh", "-c", xcmd)
+            
             val env = processBuilder.environment()
-            env["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-            env["HOME"] = "/root"
-            env["TMPDIR"] = "/tmp"
+            env["PREFIX"] = filesDir.absolutePath
+            env["NATIVE_DIR"] = nativeDir
+            env["FDROID"] = "false"
 
             val process = processBuilder.start()
 

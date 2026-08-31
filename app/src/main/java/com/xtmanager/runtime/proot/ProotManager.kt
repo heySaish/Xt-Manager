@@ -7,13 +7,13 @@ class ProotManager(private val context: Context) {
     val filesDir: File get() = context.filesDir
     
     val prootBinary: File
-        get() = File(context.applicationInfo.nativeLibraryDir, "libproot.so")
+        get() = File(context.applicationInfo.nativeLibraryDir, "libaxs.so")
         
     val alpineRootfs: File
         get() = File(filesDir, "alpine")
 
     val isProotInstalled: Boolean
-        get() = prootBinary.exists()
+        get() = prootBinary.exists() && File(context.applicationInfo.nativeLibraryDir, "libproot-xed.so").exists()
 
     fun getBindPaths(): List<String> {
         return listOf(

@@ -111,29 +111,25 @@ fun TerminalDialog(
     }
 
     val terminalSession = remember {
-        val shellPath = prootManager.prootBinary.absolutePath
+        val shellPath = "/system/bin/sh"
         val cwd = prootManager.filesDir.absolutePath
         
-        val bindPaths = prootManager.getBindPaths()
-        val argsList = mutableListOf<String>()
-        argsList.add("-r")
-        argsList.add(prootManager.alpineRootfs.absolutePath)
-        bindPaths.forEach { path ->
-            argsList.add("-b")
-            argsList.add("$path:$path")
-        }
-        argsList.add("/bin/sh")
+        val argsList = arrayOf(
+            "-c",
+            "source ${prootManager.filesDir.absolutePath}/init-sandbox.sh"
+        )
 
         val envList = arrayOf(
-            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-            "HOME=/root",
+            "PREFIX=${prootManager.filesDir.absolutePath}",
+            "NATIVE_DIR=${prootManager.prootBinary.parentFile?.absolutePath ?: ""}",
+            "FDROID=false",
             "TERM=xterm-256color"
         )
 
         TerminalSession(
             shellPath,
             cwd,
-            argsList.toTypedArray(),
+            argsList,
             envList,
             2000,
             sessionClient
