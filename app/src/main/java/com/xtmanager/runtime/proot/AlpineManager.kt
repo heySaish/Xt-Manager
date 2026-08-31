@@ -57,14 +57,32 @@ class AlpineManager(
             // 4. Locate and Copy/Download Alpine rootfs
             val tempRootfsFile = File(filesDir, "alpine.tar.gz")
             val rootfsAssetPath = "alpine-minirootfs-$arch.tar.gz"
+            var copiedFromAssets = false
 
-            if (assetExists(rootfsAssetPath)) {
+            try {
                 onProgress("Copying Alpine Rootfs from assets...", 0.25f)
-                copyAssetToFile(rootfsAssetPath, tempRootfsFile)
-            } else if (assetExists("alpine-minirootfs-aarch64.tar.gz") && arch == "aarch64") {
-                onProgress("Copying Alpine Rootfs from assets...", 0.25f)
-                copyAssetToFile("alpine-minirootfs-aarch64.tar.gz", tempRootfsFile)
-            } else {
+                context.assets.open(rootfsAssetPath).use { input ->
+                    FileOutputStream(tempRootfsFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                copiedFromAssets = true
+            } catch (e: IOException) {
+                if (arch == "aarch64") {
+                    try {
+                        context.assets.open("alpine-minirootfs-aarch64.tar.gz").use { input ->
+                            FileOutputStream(tempRootfsFile).use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                        copiedFromAssets = true
+                    } catch (ex: IOException) {
+                        // ignore and download
+                    }
+                }
+            }
+
+            if (!copiedFromAssets) {
                 onProgress("Downloading Alpine Rootfs...", 0.20f)
                 val rootfsUrl = getAlpineRootfsUrlForArch(arch)
                 downloadFile(rootfsUrl, tempRootfsFile) { progress ->
