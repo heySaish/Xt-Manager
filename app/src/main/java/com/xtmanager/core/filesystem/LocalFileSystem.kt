@@ -129,9 +129,36 @@ class LocalFileSystem : FileSystem {
     override suspend fun mkdir(path: String) {
         withContext(Dispatchers.IO) {
             val directory = File(path)
-            if (!directory.exists()) {
-                if (!directory.mkdirs()) {
+            if (directory.exists()) {
+                throw IOException("File or folder already exists: $path")
+            }
+            if (!directory.mkdirs() && !directory.mkdir()) {
+                try {
+                    val proc = Runtime.getRuntime().exec(arrayOf("mkdir", "-p", directory.absolutePath))
+                    proc.waitFor()
+                } catch (_: Exception) {
                     throw IOException("Failed to create directory: $path")
+                }
+            }
+        }
+    }
+
+    override suspend fun createFile(path: String) {
+        withContext(Dispatchers.IO) {
+            val file = File(path)
+            if (file.exists()) {
+                throw IOException("File or folder already exists: $path")
+            }
+            val parent = file.parentFile
+            if (parent != null && !parent.exists()) {
+                parent.mkdirs()
+            }
+            if (!file.createNewFile()) {
+                try {
+                    FileOutputStream(file).use { }
+                } catch (_: Exception) {
+                    val proc = Runtime.getRuntime().exec(arrayOf("touch", file.absolutePath))
+                    proc.waitFor()
                 }
             }
         }

@@ -1,5 +1,6 @@
 package com.xtmanager.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -67,6 +68,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -81,10 +83,14 @@ import com.xtmanager.ui.dialogs.ConfirmDialog
 import com.xtmanager.ui.dialogs.CreateDialog
 import com.xtmanager.ui.dialogs.RenameDialog
 import com.xtmanager.viewmodel.FileManagerViewModel
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import kotlinx.coroutines.launch
 import java.io.File
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun FileManagerScreen(
     viewModel: FileManagerViewModel,
@@ -106,6 +112,8 @@ fun FileManagerScreen(
     val inactivePane = if (activePane == PaneType.LEFT) PaneType.RIGHT else PaneType.LEFT
     val inactiveState = if (activePane == PaneType.LEFT) rightPaneState else leftPaneState
 
+    val context = LocalContext.current
+
     // Dialog trigger states
     var showCreateDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf<FileEntry?>(null) }
@@ -113,9 +121,15 @@ fun FileManagerScreen(
     var showCompressDialog by remember { mutableStateOf(false) }
     var showExtractDialog by remember { mutableStateOf<FileEntry?>(null) }
     var showOperationsDialog by remember { mutableStateOf(false) }
+    var showJumpToPathDialog by remember { mutableStateOf(false) }
     
     var topMenuExpanded by remember { mutableStateOf(false) }
     var showTerminalDialog by remember { mutableStateOf(false) }
+
+    // Intercept Back button when selection mode is active to cancel selection first
+    BackHandler(enabled = activeState.isSelectionMode) {
+        viewModel.clearSelection(activePane)
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -247,7 +261,24 @@ fun FileManagerScreen(
                                 getDiskInfo(activeState.path)
                             }
 
-                            Column {
+                            val selectedCount = activeState.selected.size
+                            val subtitleText = if (selectedCount > 0) {
+                                "Selected: $selectedCount  Folders: $folderCount  Files: $fileCount  Disk: $diskInfo"
+                            } else {
+                                "Folders: $folderCount  Files: $fileCount  Disk: $diskInfo"
+                            }
+
+                            Column(
+                                modifier = Modifier.combinedClickable(
+                                    onClick = { showJumpToPathDialog = true },
+                                    onLongClick = {
+                                        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                        val clip = android.content.ClipData.newPlainText("Path", activeState.path)
+                                        clipboard?.setPrimaryClip(clip)
+                                        android.widget.Toast.makeText(context, "Path copied to clipboard", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+                            ) {
                                 Text(
                                     text = pathText,
                                     style = MaterialTheme.typography.titleMedium,
@@ -256,9 +287,9 @@ fun FileManagerScreen(
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
-                                    text = "Folders: $folderCount  Files: $fileCount  Disk: $diskInfo",
+                                    text = subtitleText,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                    color = if (selectedCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -351,6 +382,7 @@ fun FileManagerScreen(
                         }
                     },
                     onCreateFolder = { showCreateDialog = true },
+                    onSyncPath = { viewModel.navigateTo(inactivePane, activeState.path) },
                     onCopy = { viewModel.copySelected(activePane) },
                     onMove = { viewModel.moveSelected(activePane) },
                     onRename = {
@@ -400,10 +432,14 @@ fun FileManagerScreen(
                         isActive = activePane == PaneType.LEFT,
                         onFileClick = { file ->
                             viewModel.setActivePane(PaneType.LEFT)
-                            if (file.isDirectory) {
-                                viewModel.navigateTo(PaneType.LEFT, file.path)
-                            } else {
+                            if (leftPaneState.isSelectionMode) {
                                 viewModel.toggleFileSelection(PaneType.LEFT, file.path)
+                            } else {
+                                if (file.isDirectory) {
+                                    viewModel.navigateTo(PaneType.LEFT, file.path)
+                                } else {
+                                    viewModel.toggleFileSelection(PaneType.LEFT, file.path)
+                                }
                             }
                         },
                         onFileLongClick = { file ->
@@ -416,6 +452,10 @@ fun FileManagerScreen(
                         },
                         onPaneClick = { viewModel.setActivePane(PaneType.LEFT) },
                         onRefresh = { viewModel.refreshPane(PaneType.LEFT) },
+                        onFileSwipe = { index ->
+                            viewModel.setActivePane(PaneType.LEFT)
+                            viewModel.handleSwipe(PaneType.LEFT, index)
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .padding(end = 2.dp)
@@ -426,10 +466,14 @@ fun FileManagerScreen(
                         isActive = activePane == PaneType.RIGHT,
                         onFileClick = { file ->
                             viewModel.setActivePane(PaneType.RIGHT)
-                            if (file.isDirectory) {
-                                viewModel.navigateTo(PaneType.RIGHT, file.path)
-                            } else {
+                            if (rightPaneState.isSelectionMode) {
                                 viewModel.toggleFileSelection(PaneType.RIGHT, file.path)
+                            } else {
+                                if (file.isDirectory) {
+                                    viewModel.navigateTo(PaneType.RIGHT, file.path)
+                                } else {
+                                    viewModel.toggleFileSelection(PaneType.RIGHT, file.path)
+                                }
                             }
                         },
                         onFileLongClick = { file ->
@@ -442,6 +486,10 @@ fun FileManagerScreen(
                         },
                         onPaneClick = { viewModel.setActivePane(PaneType.RIGHT) },
                         onRefresh = { viewModel.refreshPane(PaneType.RIGHT) },
+                        onFileSwipe = { index ->
+                            viewModel.setActivePane(PaneType.RIGHT)
+                            viewModel.handleSwipe(PaneType.RIGHT, index)
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .padding(start = 2.dp)
@@ -454,12 +502,17 @@ fun FileManagerScreen(
 
     // --- DIALOGS IMPLEMENTATION ---
 
-    // Create folder dialog
+    // Create file / folder dialog
     if (showCreateDialog) {
         CreateDialog(
-            title = "New Folder",
+            title = "Create New",
+            currentPath = activeState.path,
             onDismiss = { showCreateDialog = false },
-            onConfirm = { name ->
+            onCreateFile = { name ->
+                viewModel.createFile(activePane, name)
+                showCreateDialog = false
+            },
+            onCreateFolder = { name ->
                 viewModel.createDirectory(activePane, name)
                 showCreateDialog = false
             }
@@ -717,6 +770,52 @@ fun FileManagerScreen(
             initialPath = activeState.path,
             onDismiss = { showTerminalDialog = false }
         )
+    }
+
+    // Jump to Path Dialog
+    if (showJumpToPathDialog) {
+        var editedPath by remember { mutableStateOf(activeState.path) }
+        val focusRequester = remember { FocusRequester() }
+
+        AlertDialog(
+            onDismissRequest = { showJumpToPathDialog = false },
+            title = { Text("Jump to Path") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = editedPath,
+                        onValueChange = { editedPath = it },
+                        label = { Text("Enter Directory Path") },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val path = editedPath.trim()
+                        if (path.isNotEmpty()) {
+                            viewModel.navigateTo(activePane, path)
+                            showJumpToPathDialog = false
+                        }
+                    }
+                ) {
+                    Text("Jump")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showJumpToPathDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+
+        LaunchedEffect(Unit) {
+            focusRequester.requestFocus()
+        }
     }
 }
 

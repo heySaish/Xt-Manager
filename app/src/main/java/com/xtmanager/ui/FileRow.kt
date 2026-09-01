@@ -3,6 +3,7 @@ package com.xtmanager.ui
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,10 +19,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.xtmanager.core.model.FileEntry
 import com.xtmanager.core.model.FileType
@@ -33,6 +40,7 @@ fun FileRow(
     isSelected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    onSwipe: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val backgroundColor = if (isSelected) {
@@ -53,10 +61,39 @@ fun FileRow(
         FileType.FILE -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
+    val density = LocalDensity.current
+    val minSwipeThresholdPx = remember(density) { with(density) { 35.dp.toPx() } }
+    var totalDragAmount by remember { mutableFloatStateOf(0f) }
+    var swipeTriggered by remember { mutableStateOf(false) }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
             .background(backgroundColor)
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onDragStart = {
+                        totalDragAmount = 0f
+                        swipeTriggered = false
+                    },
+                    onHorizontalDrag = { change, dragAmount ->
+                        totalDragAmount += dragAmount
+                        if (!swipeTriggered && kotlin.math.abs(totalDragAmount) >= minSwipeThresholdPx) {
+                            swipeTriggered = true
+                            change.consume()
+                            onSwipe()
+                        }
+                    },
+                    onDragEnd = {
+                        totalDragAmount = 0f
+                        swipeTriggered = false
+                    },
+                    onDragCancel = {
+                        totalDragAmount = 0f
+                        swipeTriggered = false
+                    }
+                )
+            }
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
@@ -99,3 +136,4 @@ fun FileRow(
         }
     }
 }
+

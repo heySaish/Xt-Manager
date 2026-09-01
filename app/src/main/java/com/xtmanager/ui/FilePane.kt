@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
@@ -41,6 +42,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
@@ -60,6 +64,7 @@ fun FilePane(
     onPathClick: (String) -> Unit,
     onPaneClick: () -> Unit,
     onRefresh: () -> Unit,
+    onFileSwipe: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val borderColor = if (isActive) {
@@ -83,11 +88,16 @@ fun FilePane(
         modifier = modifier
             .fillMaxSize()
             .border(1.5.dp, borderColor, RoundedCornerShape(8.dp))
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onPaneClick
-            ),
+            .pointerInput(onPaneClick) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        if (event.type == PointerEventType.Press) {
+                            onPaneClick()
+                        }
+                    }
+                }
+            },
         shape = RoundedCornerShape(8.dp),
         color = if (isActive) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         tonalElevation = if (isActive) 1.dp else 0.dp
@@ -201,15 +211,16 @@ fun FilePane(
                             }
                         }
                     } else {
-                        items(
+                        itemsIndexed(
                             items = paneState.files,
-                            key = { file -> file.path }
-                        ) { file ->
+                            key = { _, file -> file.path }
+                        ) { index, file ->
                             FileRow(
                                 fileEntry = file,
                                 isSelected = paneState.selected.contains(file.path),
                                 onClick = { onFileClick(file) },
-                                onLongClick = { onFileLongClick(file) }
+                                onLongClick = { onFileLongClick(file) },
+                                onSwipe = { onFileSwipe(index) }
                             )
                             Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
                         }

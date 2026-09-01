@@ -24,5 +24,7 @@ interface FileSystem {
     
     suspend fun mkdir(path: String)
     
+    suspend fun createFile(path: String)
+    
     suspend fun rename(source: String, destination: String)
 }

@@ -68,7 +68,7 @@ class FileManagerViewModel(
 
     fun navigateTo(paneType: PaneType, newPath: String) {
         val state = if (paneType == PaneType.LEFT) _leftPaneState.value else _rightPaneState.value
-        val normalizedPath = File(newPath).canonicalPath
+        val normalizedPath = File(newPath).absoluteFile.normalize().path
         
         val newHistory = state.history.subList(0, state.historyIndex + 1) + normalizedPath
         val newIndex = newHistory.size - 1
@@ -150,23 +150,62 @@ class FileManagerViewModel(
 
     fun toggleFileSelection(paneType: PaneType, filePath: String) {
         val state = if (paneType == PaneType.LEFT) _leftPaneState.value else _rightPaneState.value
-        val newSelection = if (state.selected.contains(filePath)) {
+        val isCurrentlySelected = state.selected.contains(filePath)
+        val newSelection = if (isCurrentlySelected) {
             state.selected - filePath
         } else {
             state.selected + filePath
         }
-        updatePane(paneType, state.copy(selected = newSelection))
+        val fileIndex = state.files.indexOfFirst { it.path == filePath }
+        val newAnchor = if (newSelection.isEmpty()) {
+            null
+        } else {
+            state.anchorIndex ?: (if (fileIndex >= 0) fileIndex else null)
+        }
+        updatePane(paneType, state.copy(selected = newSelection, anchorIndex = newAnchor))
+    }
+
+    fun handleSwipe(paneType: PaneType, index: Int) {
+        val state = if (paneType == PaneType.LEFT) _leftPaneState.value else _rightPaneState.value
+        if (index !in state.files.indices) return
+
+        val targetPath = state.files[index].path
+
+        if (!state.isSelectionMode || state.anchorIndex == null) {
+            // First Swipe: Activate Selection Mode, select swiped item, set Anchor Index
+            updatePane(
+                paneType,
+                state.copy(
+                    selected = setOf(targetPath),
+                    anchorIndex = index
+                )
+            )
+        } else {
+            // Second / Range Swipe: Select range between Anchor Index and current swiped index
+            val anchor = state.anchorIndex
+            val start = minOf(anchor, index)
+            val end = maxOf(anchor, index)
+            val rangePaths = state.files.subList(start, end + 1).map { it.path }.toSet()
+            
+            updatePane(
+                paneType,
+                state.copy(
+                    selected = state.selected + rangePaths,
+                    anchorIndex = index
+                )
+            )
+        }
     }
 
     fun selectAll(paneType: PaneType) {
         val state = if (paneType == PaneType.LEFT) _leftPaneState.value else _rightPaneState.value
         val allPaths = state.files.map { it.path }.toSet()
-        updatePane(paneType, state.copy(selected = allPaths))
+        updatePane(paneType, state.copy(selected = allPaths, anchorIndex = 0))
     }
 
     fun clearSelection(paneType: PaneType) {
         val state = if (paneType == PaneType.LEFT) _leftPaneState.value else _rightPaneState.value
-        updatePane(paneType, state.copy(selected = emptySet()))
+        updatePane(paneType, state.copy(selected = emptySet(), anchorIndex = null))
     }
 
     fun createDirectory(paneType: PaneType, name: String) {
@@ -175,10 +214,26 @@ class FileManagerViewModel(
         viewModelScope.launch {
             try {
                 fileSystem.mkdir(newDir)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
                 refreshPane(PaneType.LEFT)
                 refreshPane(PaneType.RIGHT)
+            }
+        }
+    }
+
+    fun createFile(paneType: PaneType, name: String) {
+        val state = if (paneType == PaneType.LEFT) _leftPaneState.value else _rightPaneState.value
+        val newFile = File(state.path, name).absolutePath
+        viewModelScope.launch {
+            try {
+                fileSystem.createFile(newFile)
             } catch (e: Exception) {
-                // handle error
+                e.printStackTrace()
+            } finally {
+                refreshPane(PaneType.LEFT)
+                refreshPane(PaneType.RIGHT)
             }
         }
     }

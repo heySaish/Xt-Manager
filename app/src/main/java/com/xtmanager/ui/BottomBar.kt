@@ -15,8 +15,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,6 +34,7 @@ fun BottomBar(
     onGoForward: () -> Unit,
     onGoUp: () -> Unit,
     onCreateFolder: () -> Unit,
+    onSyncPath: () -> Unit,
     onCopy: () -> Unit,
     onMove: () -> Unit,
     onRename: () -> Unit,
@@ -103,7 +103,7 @@ fun BottomBar(
                     )
                 }
             } else {
-                // Standard navigation actions
+                // Standard navigation actions: < > + ⇄ ↑
                 IconButton(
                     onClick = onGoBack,
                     enabled = canGoBack
@@ -127,7 +127,14 @@ fun BottomBar(
                 IconButton(onClick = onCreateFolder) {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = "Create folder"
+                        contentDescription = "Create folder or file"
+                    )
+                }
+
+                IconButton(onClick = onSyncPath) {
+                    Icon(
+                        imageVector = Icons.Default.SwapHoriz,
+                        contentDescription = "Sync other pane path to active pane path"
                     )
                 }
                 
@@ -137,14 +144,8 @@ fun BottomBar(
                         contentDescription = "Go up directory"
                     )
                 }
-                
-                IconButton(onClick = onMenuClick) {
-                    Icon(
-                        imageVector = Icons.Default.Menu,
-                        contentDescription = "More options"
-                    )
-                }
             }
         }
     }
 }
+
