@@ -148,7 +148,7 @@ fun TerminalDialog(
         }
         val cwd = if (File(initialPath).exists()) initialPath else "/storage/emulated/0"
 
-        val argsList = arrayOf("-i")
+        val argsList = if (shellPath.endsWith("bash")) arrayOf("-i") else emptyArray()
 
         val envMap = System.getenv().toMutableMap()
         envMap["TERM"] = "xterm-256color"
