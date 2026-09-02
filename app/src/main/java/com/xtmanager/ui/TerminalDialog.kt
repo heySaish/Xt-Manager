@@ -59,7 +59,7 @@ fun TerminalDialog(
             override fun onTextChanged(changedSession: TerminalSession) {}
             override fun onTitleChanged(changedSession: TerminalSession) {}
             override fun onSessionFinished(finishedSession: TerminalSession) {
-                onDismiss()
+                // Keep session output visible on finish; user can dismiss via close button
             }
             override fun onCopyTextToClipboard(session: TerminalSession, text: String) {
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
@@ -141,31 +141,53 @@ fun TerminalDialog(
     }
 
     val terminalSession = remember {
-        val shellPath = when {
-            File("/data/data/com.termux/files/usr/bin/bash").exists() -> "/data/data/com.termux/files/usr/bin/bash"
-            File("/data/data/com.termux/files/usr/bin/sh").exists() -> "/data/data/com.termux/files/usr/bin/sh"
-            else -> "/system/bin/sh"
-        }
-        val cwd = if (File(initialPath).exists()) initialPath else "/storage/emulated/0"
+        val filesDir = context.filesDir
+        val homeDir = File(filesDir, "home").apply { if (!exists()) mkdirs() }
+        val tmpDir = File(filesDir, "tmp").apply { if (!exists()) mkdirs() }
+        val alpineDir = File(filesDir, "alpine")
+        val prootBin = File(filesDir, "proot")
+        val sandboxScript = File(filesDir, "init-sandbox.sh")
 
-        val argsList = if (shellPath.endsWith("bash")) arrayOf("-i") else emptyArray()
+        val (shellPath, argsList) = when {
+            sandboxScript.exists() && prootBin.exists() -> {
+                Pair("/system/bin/sh", arrayOf("-c", "source ${sandboxScript.absolutePath}"))
+            }
+            File(alpineDir, "bin/sh").exists() && prootBin.exists() -> {
+                Pair(prootBin.absolutePath, arrayOf("-r", alpineDir.absolutePath, "-b", "/sdcard", "-b", "/storage", "-b", "/dev", "-b", "/proc", "-b", "/sys", "/bin/sh"))
+            }
+            File("/data/data/com.termux/files/usr/bin/bash").exists() -> {
+                Pair("/data/data/com.termux/files/usr/bin/bash", arrayOf("-l"))
+            }
+            File("/data/data/com.termux/files/usr/bin/sh").exists() -> {
+                Pair("/data/data/com.termux/files/usr/bin/sh", arrayOf("-l"))
+            }
+            else -> {
+                Pair("/system/bin/sh", emptyArray())
+            }
+        }
+        val cwd = if (File(initialPath).exists()) initialPath else homeDir.absolutePath
 
         val envMap = System.getenv().toMutableMap()
         envMap["TERM"] = "xterm-256color"
-        envMap["HOME"] = context.filesDir.absolutePath
+        envMap["PREFIX"] = filesDir.absolutePath
+        envMap["HOME"] = homeDir.absolutePath
+        envMap["TMPDIR"] = tmpDir.absolutePath
+        envMap["PS1"] = "\\[\\033[1;32m\\]xt-manager\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]\\$ "
 
+        val alpineBinPath = File(alpineDir, "bin").absolutePath
+        val alpineUsrBinPath = File(alpineDir, "usr/bin").absolutePath
         val termuxUsrDir = File("/data/data/com.termux/files/usr")
+        val termuxBinPath = "/data/data/com.termux/files/usr/bin"
+        val currentPath = envMap["PATH"] ?: "/system/bin:/system/xbin:/vendor/bin"
+
         if (termuxUsrDir.exists()) {
-            envMap["PREFIX"] = termuxUsrDir.absolutePath
-            val usrBinPath = "/data/data/com.termux/files/usr/bin"
-            val currentPath = envMap["PATH"] ?: "/system/bin:/system/xbin"
-            envMap["PATH"] = "$usrBinPath:$currentPath"
+            envMap["PATH"] = "$alpineBinPath:$alpineUsrBinPath:$termuxBinPath:$currentPath"
             val usrLibPath = "/data/data/com.termux/files/usr/lib"
             if (File(usrLibPath).exists()) {
                 envMap["LD_LIBRARY_PATH"] = usrLibPath
             }
         } else {
-            envMap.putIfAbsent("PATH", "/system/bin:/system/xbin:/vendor/bin")
+            envMap["PATH"] = "$alpineBinPath:$alpineUsrBinPath:$currentPath"
         }
 
         val envList = envMap.map { "${it.key}=${it.value}" }.toTypedArray()
