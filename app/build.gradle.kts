@@ -54,8 +54,6 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(project(":terminal-emulator"))
-    implementation(project(":terminal-view"))
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

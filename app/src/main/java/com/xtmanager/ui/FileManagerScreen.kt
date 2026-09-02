@@ -30,7 +30,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
@@ -125,7 +124,6 @@ fun FileManagerScreen(
     var showJumpToPathDialog by remember { mutableStateOf(false) }
     
     var topMenuExpanded by remember { mutableStateOf(false) }
-    var showTerminalDialog by remember { mutableStateOf(false) }
 
     // Intercept Back button when selection mode is active to cancel selection first
     BackHandler(enabled = activeState.isSelectionMode) {
@@ -194,38 +192,6 @@ fun FileManagerScreen(
                         )
                     )
                     
-                    NavigationDrawerItem(
-                        icon = { Icon(Icons.Default.Terminal, contentDescription = null) },
-                        label = { Text("Termux Home") },
-                        selected = activeState.path == "/data/data/com.termux/files/home",
-                        onClick = {
-                            viewModel.navigateTo(activePane, "/data/data/com.termux/files/home")
-                            scope.launch { drawerState.close() }
-                        },
-                        colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Open Terminal button
-                    Button(
-                        onClick = {
-                            showTerminalDialog = true
-                            scope.launch { drawerState.close() }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        enabled = true
-                    ) {
-                        Icon(Icons.Default.Terminal, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Open Terminal")
-                    }
-
                     Spacer(modifier = Modifier.weight(1f))
 
                     // Active background operations quick button
@@ -762,14 +728,6 @@ fun FileManagerScreen(
                     Text("Clear Completed")
                 }
             }
-        )
-    }
-
-    // Terminal Dialog
-    if (showTerminalDialog) {
-        TerminalDialog(
-            initialPath = activeState.path,
-            onDismiss = { showTerminalDialog = false }
         )
     }
 

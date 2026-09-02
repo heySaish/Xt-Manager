@@ -21,5 +21,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "Xt-manager"
 include(":app")
-include(":terminal-emulator")
-include(":terminal-view")
