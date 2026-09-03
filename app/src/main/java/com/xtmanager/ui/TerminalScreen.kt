@@ -292,7 +292,7 @@ fun TermuxExtraKeysToolbar(
                 .padding(vertical = 4.dp, horizontal = 2.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // Row 1: ESC, ⌨, HOME, ↑, END, PGUP, -, /
+            // Row 1: ESC, ⌨, HOME, ↑, END, PGUP
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -306,11 +306,9 @@ fun TermuxExtraKeysToolbar(
                 TermuxKeyButton(label = "↑", isActive = false, onClick = { onKeyClick("\u001b[A") })
                 TermuxKeyButton(label = "END", isActive = false, onClick = { onKeyClick("\u001b[4~") })
                 TermuxKeyButton(label = "PGUP", isActive = false, onClick = { onKeyClick("\u001b[5~") })
-                TermuxKeyButton(label = "-", isActive = false, onClick = { onKeyClick("-") })
-                TermuxKeyButton(label = "/", isActive = false, onClick = { onKeyClick("/") })
             }
 
-            // Row 2: TAB, CTRL, ALT, ←, ↓, →, PGDN, |, ~
+            // Row 2: TAB, CTRL, ALT, ←, ↓, →, PGDN
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -325,8 +323,6 @@ fun TermuxExtraKeysToolbar(
                 TermuxKeyButton(label = "↓", isActive = false, onClick = { onKeyClick("\u001b[B") })
                 TermuxKeyButton(label = "→", isActive = false, onClick = { onKeyClick("\u001b[C") })
                 TermuxKeyButton(label = "PGDN", isActive = false, onClick = { onKeyClick("\u001b[6~") })
-                TermuxKeyButton(label = "|", isActive = false, onClick = { onKeyClick("|") })
-                TermuxKeyButton(label = "~", isActive = false, onClick = { onKeyClick("~") })
             }
         }
     }
