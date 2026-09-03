@@ -66,6 +66,7 @@ ARGS="$ARGS -b $NATIVE_DIR"
 ARGS="$ARGS -b $PREFIX/public:/public"
 ARGS="$ARGS -b $PREFIX/public:/home"
 ARGS="$ARGS -b $PREFIX/public:/root"
+ARGS="$ARGS -w /public"
 ARGS="$ARGS -b $PREFIX/alpine/tmp:/dev/shm"
 
 

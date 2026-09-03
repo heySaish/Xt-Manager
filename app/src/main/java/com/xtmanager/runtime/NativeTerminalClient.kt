@@ -24,7 +24,9 @@ open class NativeTerminalClient(
 
     // TerminalSessionClient implementations
     override fun onTextChanged(changedSession: TerminalSession) {
-        terminalView?.onScreenUpdated()
+        terminalView?.post {
+            terminalView?.onScreenUpdated(false)
+        }
     }
     override fun onTitleChanged(changedSession: TerminalSession) {
         terminalView?.postInvalidate()

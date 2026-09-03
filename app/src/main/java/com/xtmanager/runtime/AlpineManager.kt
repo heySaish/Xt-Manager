@@ -303,9 +303,12 @@ class AlpineManager(private val context: Context) {
         val shellPath = "/system/bin/sh"
         val args = arrayOf("/system/bin/sh", initSandboxScript)
 
+        val publicDir = File(filesDir, "public")
+        if (!publicDir.exists()) publicDir.mkdirs()
+
         return com.termux.terminal.TerminalSession(
             shellPath,
-            filesPath,
+            publicDir.absolutePath,
             args,
             envList,
             10000,

@@ -1,5 +1,7 @@
 package com.xtmanager.ui
 
+import android.app.Activity
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -134,10 +136,30 @@ fun FileManagerScreen(
     }
     
     var topMenuExpanded by remember { mutableStateOf(false) }
+    var lastBackPressTime by remember { mutableStateOf(0L) }
 
-    // Intercept Back button when selection mode is active to cancel selection first
-    BackHandler(enabled = activeState.isSelectionMode) {
-        viewModel.clearSelection(activePane)
+    // Intercept Back button:
+    // 1. Selection mode active -> cancel selection
+    // 2. Drawer open -> close drawer
+    // 3. Otherwise -> double back press confirmation to exit app
+    BackHandler(enabled = true) {
+        when {
+            activeState.isSelectionMode -> {
+                viewModel.clearSelection(activePane)
+            }
+            drawerState.isOpen -> {
+                scope.launch { drawerState.close() }
+            }
+            else -> {
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastBackPressTime < 2000) {
+                    (context as? Activity)?.finish()
+                } else {
+                    lastBackPressTime = currentTime
+                    Toast.makeText(context, "Press back again to exit", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     ModalNavigationDrawer(

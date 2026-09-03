@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -60,12 +61,17 @@ import com.xtmanager.runtime.NativeTerminalClient
 import com.xtmanager.runtime.TerminalService
 import kotlin.concurrent.thread
 
+import androidx.activity.compose.BackHandler
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TerminalScreen(
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    BackHandler {
+        onClose()
+    }
     val context = LocalContext.current
     var statusText by remember { mutableStateOf("Initializing...") }
     var currentSession by remember { mutableStateOf<TerminalSession?>(null) }
@@ -180,6 +186,7 @@ fun TerminalScreen(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
+                .imePadding()
                 .background(Color(0xFF0F172A))
         ) {
             // Native Termux TerminalView
