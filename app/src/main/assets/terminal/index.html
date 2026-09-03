@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Alpine Terminal</title>
+
+  <!-- Xterm.js CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: #0f172a;
+      overflow: hidden;
+      font-family: monospace;
+    }
+    #terminal-container {
+      width: 100%;
+      height: 100%;
+      padding: 4px;
+    }
+    .xterm {
+      height: 100%;
+    }
+    .xterm-viewport {
+      background-color: #0f172a !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="terminal-container"></div>
+
+  <!-- Xterm.js and Fit Addon -->
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
+
+  <script>
+    let term;
+    let fitAddon;
+
+    function initTerminal() {
+      term = new Terminal({
+        cursorBlink: true,
+        fontSize: 14,
+        fontFamily: 'monospace',
+        theme: {
+          background: '#0f172a',
+          foreground: '#f8fafc',
+          cursor: '#38bdf8',
+          selectionBackground: 'rgba(56, 189, 248, 0.3)',
+          black: '#1e293b',
+          red: '#ef4444',
+          green: '#22c55e',
+          yellow: '#eab308',
+          blue: '#3b82f6',
+          magenta: '#a855f7',
+          cyan: '#06b6d4',
+          white: '#f1f5f9',
+          brightBlack: '#64748b',
+          brightRed: '#f87171',
+          brightGreen: '#4ade80',
+          brightYellow: '#fde047',
+          brightBlue: '#60a5fa',
+          brightMagenta: '#c084fc',
+          brightCyan: '#22d3ee',
+          brightWhite: '#ffffff'
+        },
+        convertEol: true
+      });
+
+      fitAddon = new FitAddon.FitAddon();
+      term.loadAddon(fitAddon);
+
+      const container = document.getElementById('terminal-container');
+      term.open(container);
+      fitAddon.fit();
+
+      term.onData((data) => {
+        if (window.AndroidTerminal && window.AndroidTerminal.sendInput) {
+          window.AndroidTerminal.sendInput(data);
+        }
+      });
+
+      term.onResize((size) => {
+        if (window.AndroidTerminal && window.AndroidTerminal.onResize) {
+          window.AndroidTerminal.onResize(size.cols, size.rows);
+        }
+      });
+
+      window.addEventListener('resize', () => {
+        if (fitAddon) {
+          fitAddon.fit();
+        }
+      });
+
+      if (window.AndroidTerminal && window.AndroidTerminal.onReady) {
+        window.AndroidTerminal.onReady();
+      }
+    }
+
+    // Called from Kotlin to write data to terminal
+    function writeTerminalData(data) {
+      if (term) {
+        term.write(data);
+      }
+    }
+
+    // Base64 version for binary/special escape chars safety
+    function writeTerminalDataBase64(b64Data) {
+      if (term) {
+        try {
+          const text = decodeURIComponent(escape(atob(b64Data)));
+          term.write(text);
+        } catch(e) {
+          term.write(atob(b64Data));
+        }
+      }
+    }
+
+    function sendSpecialKey(key) {
+      if (window.AndroidTerminal && window.AndroidTerminal.sendInput) {
+        window.AndroidTerminal.sendInput(key);
+      }
+    }
+
+    window.onload = initTerminal;
+  </script>
+</body>
+</html>

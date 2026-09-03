@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
@@ -122,6 +123,15 @@ fun FileManagerScreen(
     var showExtractDialog by remember { mutableStateOf<FileEntry?>(null) }
     var showOperationsDialog by remember { mutableStateOf(false) }
     var showJumpToPathDialog by remember { mutableStateOf(false) }
+    var showTerminal by remember { mutableStateOf(false) }
+
+    if (showTerminal) {
+        TerminalScreen(
+            onClose = { showTerminal = false },
+            modifier = modifier
+        )
+        return
+    }
     
     var topMenuExpanded by remember { mutableStateOf(false) }
 
@@ -185,6 +195,19 @@ fun FileManagerScreen(
                         selected = activeState.path == "/storage/emulated/0",
                         onClick = {
                             viewModel.navigateTo(activePane, "/storage/emulated/0")
+                            scope.launch { drawerState.close() }
+                        },
+                        colors = NavigationDrawerItemDefaults.colors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    )
+
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.Terminal, contentDescription = null) },
+                        label = { Text("Alpine Terminal") },
+                        selected = false,
+                        onClick = {
+                            showTerminal = true
                             scope.launch { drawerState.close() }
                         },
                         colors = NavigationDrawerItemDefaults.colors(
@@ -289,6 +312,13 @@ fun FileManagerScreen(
 
 
                         
+                        IconButton(onClick = { showTerminal = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Terminal,
+                                contentDescription = "Alpine Terminal"
+                            )
+                        }
+
                         IconButton(onClick = { topMenuExpanded = true }) {
                             Icon(Icons.Default.MoreVert, contentDescription = "More")
                         }
