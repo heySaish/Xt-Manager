@@ -51,17 +51,16 @@ class TerminalBridge(
                 readThread = thread(start = true, name = "AlpineOutputReader") {
                     val buffer = ByteArray(8192)
                     try {
-                        var length: Int
-                        while (isRunning && inputStream?.read(buffer).also { length = it ?: -1 } != -1) {
-                            if (length > 0) {
-                                val bytes = buffer.copyOf(length)
-                                val b64Data = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                                webView.post {
-                                    webView.evaluateJavascript(
-                                        "if (window.writeTerminalDataBase64) window.writeTerminalDataBase64('$b64Data');",
-                                        null
-                                    )
-                                }
+                        while (isRunning) {
+                            val length = inputStream?.read(buffer) ?: -1
+                            if (length <= 0) break
+                            val bytes = buffer.copyOf(length)
+                            val b64Data = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                            webView.post {
+                                webView.evaluateJavascript(
+                                    "if (window.writeTerminalDataBase64) window.writeTerminalDataBase64('$b64Data');",
+                                    null
+                                )
                             }
                         }
                     } catch (e: Exception) {
