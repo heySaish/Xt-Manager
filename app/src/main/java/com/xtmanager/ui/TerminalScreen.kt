@@ -278,104 +278,56 @@ fun TermuxExtraKeysToolbar(
     onToggleKeyboard: () -> Unit,
     onKeyClick: (String) -> Unit
 ) {
-    val scrollState = rememberScrollState()
+    val scrollState1 = rememberScrollState()
+    val scrollState2 = rememberScrollState()
 
     Surface(
-        color = Color(0xFF0F172A),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        tonalElevation = 4.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(scrollState)
-                .padding(horizontal = 4.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(vertical = 4.dp, horizontal = 2.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            TermuxKeyButton(
-                label = "⌨",
-                isActive = false,
-                onClick = onToggleKeyboard
-            )
-            TermuxKeyButton(
-                label = "ESC",
-                isActive = false,
-                onClick = { onKeyClick("\u001b") }
-            )
-            TermuxKeyButton(
-                label = "CTRL",
-                isActive = isCtrlActive,
-                onClick = onToggleCtrl
-            )
-            TermuxKeyButton(
-                label = "ALT",
-                isActive = isAltActive,
-                onClick = onToggleAlt
-            )
-            TermuxKeyButton(
-                label = "TAB",
-                isActive = false,
-                onClick = { onKeyClick("\t") }
-            )
-            TermuxKeyButton(
-                label = "-",
-                isActive = false,
-                onClick = { onKeyClick("-") }
-            )
-            TermuxKeyButton(
-                label = "/",
-                isActive = false,
-                onClick = { onKeyClick("/") }
-            )
-            TermuxKeyButton(
-                label = "|",
-                isActive = false,
-                onClick = { onKeyClick("|") }
-            )
-            TermuxKeyButton(
-                label = "~",
-                isActive = false,
-                onClick = { onKeyClick("~") }
-            )
-            TermuxKeyButton(
-                label = "HOME",
-                isActive = false,
-                onClick = { onKeyClick("\u001b[1~") }
-            )
-            TermuxKeyButton(
-                label = "END",
-                isActive = false,
-                onClick = { onKeyClick("\u001b[4~") }
-            )
-            TermuxKeyButton(
-                label = "PGUP",
-                isActive = false,
-                onClick = { onKeyClick("\u001b[5~") }
-            )
-            TermuxKeyButton(
-                label = "PGDN",
-                isActive = false,
-                onClick = { onKeyClick("\u001b[6~") }
-            )
-            TermuxKeyButton(
-                label = "▲",
-                isActive = false,
-                onClick = { onKeyClick("\u001b[A") }
-            )
-            TermuxKeyButton(
-                label = "▼",
-                isActive = false,
-                onClick = { onKeyClick("\u001b[B") }
-            )
-            TermuxKeyButton(
-                label = "◀",
-                isActive = false,
-                onClick = { onKeyClick("\u001b[D") }
-            )
-            TermuxKeyButton(
-                label = "▶",
-                isActive = false,
-                onClick = { onKeyClick("\u001b[C") }
-            )
+            // Row 1: ESC, ⌨, HOME, ↑, END, PGUP, -, /
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(scrollState1)
+                    .padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                TermuxKeyButton(label = "ESC", isActive = false, onClick = { onKeyClick("\u001b") })
+                TermuxKeyButton(label = "⌨", isActive = false, onClick = onToggleKeyboard)
+                TermuxKeyButton(label = "HOME", isActive = false, onClick = { onKeyClick("\u001b[1~") })
+                TermuxKeyButton(label = "↑", isActive = false, onClick = { onKeyClick("\u001b[A") })
+                TermuxKeyButton(label = "END", isActive = false, onClick = { onKeyClick("\u001b[4~") })
+                TermuxKeyButton(label = "PGUP", isActive = false, onClick = { onKeyClick("\u001b[5~") })
+                TermuxKeyButton(label = "-", isActive = false, onClick = { onKeyClick("-") })
+                TermuxKeyButton(label = "/", isActive = false, onClick = { onKeyClick("/") })
+            }
+
+            // Row 2: TAB, CTRL, ALT, ←, ↓, →, PGDN, |, ~
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(scrollState2)
+                    .padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                TermuxKeyButton(label = "TAB", isActive = false, onClick = { onKeyClick("\t") })
+                TermuxKeyButton(label = "CTRL", isActive = isCtrlActive, onClick = onToggleCtrl)
+                TermuxKeyButton(label = "ALT", isActive = isAltActive, onClick = onToggleAlt)
+                TermuxKeyButton(label = "←", isActive = false, onClick = { onKeyClick("\u001b[D") })
+                TermuxKeyButton(label = "↓", isActive = false, onClick = { onKeyClick("\u001b[B") })
+                TermuxKeyButton(label = "→", isActive = false, onClick = { onKeyClick("\u001b[C") })
+                TermuxKeyButton(label = "PGDN", isActive = false, onClick = { onKeyClick("\u001b[6~") })
+                TermuxKeyButton(label = "|", isActive = false, onClick = { onKeyClick("|") })
+                TermuxKeyButton(label = "~", isActive = false, onClick = { onKeyClick("~") })
+            }
         }
     }
 }
@@ -386,23 +338,28 @@ fun TermuxKeyButton(
     isActive: Boolean,
     onClick: () -> Unit
 ) {
-    OutlinedButton(
+    Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(4.dp),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = if (isActive) Color(0xFF2563EB) else Color(0xFF1E293B),
-            contentColor = if (isActive) Color.White else Color(0xFFF1F5F9)
+        shape = RoundedCornerShape(6.dp),
+        color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+        contentColor = if (isActive) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+        tonalElevation = if (isActive) 8.dp else 2.dp,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
         ),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(
-            horizontal = 12.dp,
-            vertical = 2.dp
-        ),
-        modifier = Modifier.height(36.dp)
+        modifier = Modifier.height(34.dp)
     ) {
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = if (isActive) FontWeight.Bold else FontWeight.SemiBold
-        )
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+        ) {
+            Text(
+                text = label,
+                fontSize = 12.sp,
+                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+                letterSpacing = 0.5.sp
+            )
+        }
     }
 }
