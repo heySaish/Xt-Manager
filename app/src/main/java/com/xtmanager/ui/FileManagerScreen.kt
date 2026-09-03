@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
@@ -190,17 +191,18 @@ fun FileManagerScreen(
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
+                    // Group 1: Local Storage
                     Text(
                         text = "Local Storage",
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(vertical = 8.dp)
                     )
 
                     NavigationDrawerItem(
                         icon = { Icon(Icons.Default.Storage, contentDescription = null) },
-                        label = { Text("Root (/) ") },
+                        label = { Text("Root (/)") },
                         selected = activeState.path == "/",
                         onClick = {
                             viewModel.navigateTo(activePane, "/")
@@ -212,9 +214,9 @@ fun FileManagerScreen(
                     )
                     
                     NavigationDrawerItem(
-                        icon = { Icon(Icons.Default.Home, contentDescription = null) },
+                        icon = { Icon(Icons.Default.Folder, contentDescription = null) },
                         label = { Text("Storage Directory") },
-                        selected = activeState.path == "/storage/emulated/0",
+                        selected = activeState.path == "/storage/emulated/0" || activeState.path == "/sdcard",
                         onClick = {
                             viewModel.navigateTo(activePane, "/storage/emulated/0")
                             scope.launch { drawerState.close() }
@@ -224,10 +226,23 @@ fun FileManagerScreen(
                         )
                     )
 
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Group 2: Tools
+                    Text(
+                        text = "Tools",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+
                     NavigationDrawerItem(
                         icon = { Icon(Icons.Default.Terminal, contentDescription = null) },
-                        label = { Text("Alpine Terminal") },
-                        selected = false,
+                        label = { Text("Terminal") },
+                        selected = showTerminal,
                         onClick = {
                             showTerminal = true
                             scope.launch { drawerState.close() }
