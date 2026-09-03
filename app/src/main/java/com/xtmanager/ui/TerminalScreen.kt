@@ -74,6 +74,7 @@ import androidx.activity.compose.BackHandler
 @Composable
 fun TerminalScreen(
     onClose: () -> Unit,
+    initialPath: String? = null,
     modifier: Modifier = Modifier
 ) {
     BackHandler {
@@ -169,7 +170,7 @@ fun TerminalScreen(
                         val client = NativeTerminalClient(context)
                         clientRef = client
                         terminalViewRef?.post {
-                            val session = alpineManager.createAlpineTerminalSession(client)
+                            val session = alpineManager.createAlpineTerminalSession(client, initialPath)
                             currentSession = session
                             terminalViewRef?.attachSession(session)
                             statusText = "Alpine Linux Active"
@@ -230,7 +231,7 @@ fun TerminalScreen(
 
                             if (ready) {
                                 view.post {
-                                    val session = alpineManager.createAlpineTerminalSession(client)
+                                    val session = alpineManager.createAlpineTerminalSession(client, initialPath)
                                     currentSession = session
                                     view.attachSession(session)
                                     statusText = "Alpine Linux Active"

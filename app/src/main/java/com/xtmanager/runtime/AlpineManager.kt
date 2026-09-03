@@ -276,7 +276,8 @@ class AlpineManager(private val context: Context) {
     }
 
     fun createAlpineTerminalSession(
-        client: com.termux.terminal.TerminalSessionClient
+        client: com.termux.terminal.TerminalSessionClient,
+        initialPath: String? = null
     ): com.termux.terminal.TerminalSession {
         val nativeDir = context.applicationInfo.nativeLibraryDir
         val filesPath = filesDir.absolutePath
@@ -290,6 +291,15 @@ class AlpineManager(private val context: Context) {
         val prootBin = prootBinInNative ?: prootBinInFiles ?: File(filesDir, "libproot-xed.so").absolutePath
         val initSandboxScript = File(filesDir, "init-sandbox.sh").absolutePath
 
+        val publicDir = File(filesDir, "public")
+        if (!publicDir.exists()) publicDir.mkdirs()
+
+        val workingDir = if (!initialPath.isNullOrBlank() && File(initialPath).exists()) {
+            File(initialPath)
+        } else {
+            publicDir
+        }
+
         val envList = arrayOf(
             "PREFIX=$filesPath",
             "NATIVE_DIR=${if (prootBinInNative != null) nativeDir else filesPath}",
@@ -297,18 +307,16 @@ class AlpineManager(private val context: Context) {
             "HOME=/public",
             "TERM=xterm-256color",
             "PROOT=$prootBin",
-            "LD_LIBRARY_PATH=$filesPath:$nativeDir"
+            "LD_LIBRARY_PATH=$filesPath:$nativeDir",
+            "INITIAL_CWD=${workingDir.absolutePath}"
         )
 
         val shellPath = "/system/bin/sh"
         val args = arrayOf("/system/bin/sh", initSandboxScript)
 
-        val publicDir = File(filesDir, "public")
-        if (!publicDir.exists()) publicDir.mkdirs()
-
         return com.termux.terminal.TerminalSession(
             shellPath,
-            publicDir.absolutePath,
+            workingDir.absolutePath,
             args,
             envList,
             10000,

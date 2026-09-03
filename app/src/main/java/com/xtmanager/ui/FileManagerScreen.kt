@@ -127,10 +127,12 @@ fun FileManagerScreen(
     var showOperationsDialog by remember { mutableStateOf(false) }
     var showJumpToPathDialog by remember { mutableStateOf(false) }
     var showTerminal by remember { mutableStateOf(false) }
+    var terminalInitialPath by remember { mutableStateOf<String?>(null) }
 
     if (showTerminal) {
         TerminalScreen(
             onClose = { showTerminal = false },
+            initialPath = terminalInitialPath,
             modifier = modifier
         )
         return
@@ -349,10 +351,14 @@ fun FileManagerScreen(
 
 
                         
-                        IconButton(onClick = { showTerminal = true }) {
+                        IconButton(onClick = {
+                            terminalInitialPath = activeState.path
+                            showTerminal = true
+                        }) {
                             Icon(
                                 imageVector = Icons.Default.Terminal,
-                                contentDescription = "Alpine Terminal"
+                                contentDescription = "Open in Terminal",
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
 
