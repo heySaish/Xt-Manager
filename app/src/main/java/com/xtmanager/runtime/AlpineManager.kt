@@ -230,7 +230,7 @@ class AlpineManager(private val context: Context) {
                         skipPadding(gzis, fileSize)
 
                         // Set permissions for executables
-                        if ((mode and 0111) != 0 || name.contains("bin/") || name.contains("sbin/") || name.contains("lib/")) {
+                        if ((mode and 73) != 0 || name.contains("bin/") || name.contains("sbin/") || name.contains("lib/")) {
                             makeExecutable(targetFile)
                         } else {
                             targetFile.setReadable(true, false)
