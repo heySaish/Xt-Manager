@@ -44,7 +44,7 @@ done
 
 if [ -n "$missing_packages" ]; then
     echo -e "\e[34;1m[*] \e[0mInstalling important packages\e[0m"
-    apk update && apk upgrade
+    apk update
     apk add $missing_packages
     if [ $? -eq 0 ]; then
         echo -e "\e[32;1m[+] \e[0mSuccessfully installed\e[0m"
@@ -83,40 +83,37 @@ fi
 
 
     echo "$$" > "$PREFIX/pid"
-    chmod +x "$PREFIX/axs"
+    chmod +x "$PREFIX/axs" 2>/dev/null || true
 
-    if [ ! -e "$PREFIX/alpine/etc/acode_motd" ]; then
-        cat <<EOF > "$PREFIX/alpine/etc/acode_motd"
-Welcome to Alpine Linux in Acode!
+    if [ ! -e "$PREFIX/alpine/etc/xtmanager_motd" ]; then
+        cat <<'EOF' > "$PREFIX/alpine/etc/xtmanager_motd"
+\e[1;34mWelcome to Alpine Linux (Xt-Manager)\e[0m
 
-Working with packages:
-
- - Search:  apk search <query>
- - Install: apk add <package>
- - Uninstall: apk del <package>
- - Upgrade: apk update && apk upgrade
+  * Packages:  \e[32mapk add <package>\e[0m
+  * Workspace: \e[33m/public\e[0m (~)
+  * Storage:   \e[33m/sdcard\e[0m
 
 EOF
     fi
 
-    # Create acode CLI tool
-    if [ ! -e "$PREFIX/alpine/usr/local/bin/acode" ]; then
+    # Create xtmanager CLI tool
+    if [ ! -e "$PREFIX/alpine/usr/local/bin/xtmanager" ]; then
         mkdir -p "$PREFIX/alpine/usr/local/bin"
-        cat <<'ACODE_CLI' > "$PREFIX/alpine/usr/local/bin/acode"
+        cat <<'XTMANAGER_CLI' > "$PREFIX/alpine/usr/local/bin/xtmanager"
 #!/bin/bash
-# acode - Open files/folders in Acode editor
-# Uses OSC escape sequences to communicate with the Acode terminal
+# xtmanager - Open files/folders in Xt-Manager
+# Uses OSC escape sequences to communicate with the terminal
 
 usage() {
-    echo "Usage: acode [file/folder...]"
+    echo "Usage: xtmanager [file/folder...]"
     echo ""
-    echo "Open files or folders in Acode editor."
+    echo "Open files or folders in Xt-Manager."
     echo ""
     echo "Examples:"
-    echo "  acode file.txt      # Open a file"
-    echo "  acode .             # Open current folder"
-    echo "  acode ~/project     # Open a folder"
-    echo "  acode -h, --help    # Show this help"
+    echo "  xtmanager file.txt      # Open a file"
+    echo "  xtmanager .             # Open current folder"
+    echo "  xtmanager ~/project     # Open a folder"
+    echo "  xtmanager -h, --help    # Show this help"
 }
 
 get_abs_path() {
@@ -145,18 +142,17 @@ get_abs_path() {
     echo "$abs_path"
 }
 
-open_in_acode() {
+open_in_xtmanager() {
     local path=$(get_abs_path "$1")
     local type="file"
     [[ -d "$path" ]] && type="folder"
 
     # Send OSC 7777 escape sequence: \e]7777;cmd;type;path\a
-    # The terminal component will intercept and handle this
     printf '\e]7777;open;%s;%s\a' "$type" "$path"
 }
 
 if [[ $# -eq 0 ]]; then
-    open_in_acode "."
+    open_in_xtmanager "."
     exit 0
 fi
 
@@ -168,7 +164,7 @@ for arg in "$@"; do
             ;;
         *)
             if [[ -e "$arg" ]]; then
-                open_in_acode "$arg"
+                open_in_xtmanager "$arg"
             else
                 echo "Error: '$arg' does not exist" >&2
                 exit 1
@@ -176,8 +172,8 @@ for arg in "$@"; do
             ;;
     esac
 done
-ACODE_CLI
-        chmod +x "$PREFIX/alpine/usr/local/bin/acode"
+XTMANAGER_CLI
+        chmod +x "$PREFIX/alpine/usr/local/bin/xtmanager"
     fi
 
     # Create initrc if it doesn't exist
@@ -232,8 +228,10 @@ _shorten_path() {
 PROMPT_COMMAND='_PS1_PATH=$(_shorten_path); _PS1_EXIT=$?'
 
 # Display MOTD if available
-if [ -s /etc/acode_motd ]; then
-    cat /etc/acode_motd
+if [ -s /etc/xtmanager_motd ]; then
+    echo -e "$(cat /etc/xtmanager_motd)"
+elif [ -s /etc/acode_motd ]; then
+    echo -e "$(cat /etc/acode_motd)"
 fi
 
 check_binary_execution() {

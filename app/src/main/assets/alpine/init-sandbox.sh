@@ -16,9 +16,10 @@ if [ "$FDROID" = "true" ]; then
         export PROOT_LOADER32="$PREFIX/libproot32.so"
     fi
 
-
     export PROOT="$PREFIX/libproot-xed.so"
-    chmod +x $PREFIX/*
+    for f in "$PREFIX"/*.so "$PREFIX"/*.sh; do
+        [ -f "$f" ] && [ ! -L "$f" ] && chmod +x "$f" 2>/dev/null || true
+    done
 else
     if [ -f "$NATIVE_DIR/libproot.so" ]; then
         export PROOT_LOADER="$NATIVE_DIR/libproot.so"
@@ -28,13 +29,18 @@ else
         export PROOT_LOADER32="$NATIVE_DIR/libproot32.so"
     fi
 
-
-    if [ -e "$PREFIX/libtalloc.so.2" ] || [ -L "$PREFIX/libtalloc.so.2" ]; then
-        rm "$PREFIX/libtalloc.so.2"
-    fi
-
-    ln -s "$NATIVE_DIR/libtalloc.so" "$PREFIX/libtalloc.so.2"
     export PROOT="$NATIVE_DIR/libproot-xed.so"
+fi
+
+# Ensure libtalloc.so.2 link is created for the linker
+if [ -e "$PREFIX/libtalloc.so.2" ] || [ -L "$PREFIX/libtalloc.so.2" ]; then
+    rm -f "$PREFIX/libtalloc.so.2"
+fi
+
+if [ -f "$PREFIX/libtalloc.so" ]; then
+    ln -s "$PREFIX/libtalloc.so" "$PREFIX/libtalloc.so.2" 2>/dev/null || true
+elif [ -f "$NATIVE_DIR/libtalloc.so" ]; then
+    ln -s "$NATIVE_DIR/libtalloc.so" "$PREFIX/libtalloc.so.2" 2>/dev/null || true
 fi
 
 ARGS="--kill-on-exit"

@@ -103,6 +103,23 @@ class AlpineManager(private val context: Context) {
                 Log.w(TAG, "Optional asset copy skipped for $libName: ${e.message}")
             }
         }
+
+        // Create libtalloc.so.2 link for Android dynamic linker
+        try {
+            val talloc2 = File(filesDir, "libtalloc.so.2")
+            val talloc1 = File(filesDir, "libtalloc.so")
+            if (talloc1.exists()) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    Files.deleteIfExists(talloc2.toPath())
+                    Files.createSymbolicLink(talloc2.toPath(), Paths.get("libtalloc.so"))
+                } else {
+                    talloc1.copyTo(talloc2, overwrite = true)
+                }
+                makeExecutable(talloc2)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to create libtalloc.so.2 link: ${e.message}")
+        }
     }
 
     private fun copyAssetFile(assetPath: String, outFile: File) {
