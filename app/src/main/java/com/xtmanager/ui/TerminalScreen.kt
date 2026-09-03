@@ -1,7 +1,9 @@
 package com.xtmanager.ui
 
+import android.content.Context
 import android.content.Intent
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.ButtonDefaults
@@ -74,6 +77,14 @@ fun TerminalScreen(
 
     val alpineManager = remember { AlpineManager(context) }
 
+    fun showKeyboard() {
+        terminalViewRef?.let { view ->
+            view.requestFocus()
+            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.showSoftInput(view, InputMethodManager.SHOW_FORCED)
+        }
+    }
+
     // Start Foreground Service to keep terminal alive in background
     LaunchedEffect(Unit) {
         val serviceIntent = Intent(context, TerminalService::class.java)
@@ -126,6 +137,12 @@ fun TerminalScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showKeyboard() }) {
+                        Icon(
+                            imageVector = Icons.Default.Keyboard,
+                            contentDescription = "Show Keyboard"
+                        )
+                    }
                     IconButton(onClick = {
                         currentSession?.write("clear\r")
                     }) {
@@ -143,6 +160,7 @@ fun TerminalScreen(
                             currentSession = session
                             terminalViewRef?.attachSession(session)
                             statusText = "Alpine Linux Active"
+                            showKeyboard()
                         }
                     }) {
                         Icon(
@@ -184,7 +202,11 @@ fun TerminalScreen(
                             )
                             setTerminalViewClient(client)
                             setTextSize(36) // Default text size
+                            isFocusable = true
+                            isFocusableInTouchMode = true
+                            requestFocus()
                         }
+                        client.terminalView = view
                         terminalViewRef = view
 
                         thread {
@@ -198,6 +220,7 @@ fun TerminalScreen(
                                     currentSession = session
                                     view.attachSession(session)
                                     statusText = "Alpine Linux Active"
+                                    showKeyboard()
                                 }
                             } else {
                                 statusText = "Alpine Setup Failed"
@@ -224,6 +247,7 @@ fun TerminalScreen(
                     isAltActive = newState
                     clientRef?.isAltActive = newState
                 },
+                onToggleKeyboard = { showKeyboard() },
                 onKeyClick = { key ->
                     currentSession?.write(key)
                 }
@@ -244,6 +268,7 @@ fun TermuxExtraKeysToolbar(
     isAltActive: Boolean,
     onToggleCtrl: () -> Unit,
     onToggleAlt: () -> Unit,
+    onToggleKeyboard: () -> Unit,
     onKeyClick: (String) -> Unit
 ) {
     val scrollState = rememberScrollState()
@@ -259,6 +284,11 @@ fun TermuxExtraKeysToolbar(
                 .padding(horizontal = 4.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
+            TermuxKeyButton(
+                label = "⌨",
+                isActive = false,
+                onClick = onToggleKeyboard
+            )
             TermuxKeyButton(
                 label = "ESC",
                 isActive = false,
@@ -287,7 +317,8 @@ fun TermuxExtraKeysToolbar(
             TermuxKeyButton(
                 label = "/",
                 isActive = false,
-                onClick = { onKeyClick("/") })
+                onClick = { onKeyClick("/") }
+            )
             TermuxKeyButton(
                 label = "|",
                 isActive = false,

@@ -5,14 +5,18 @@ import android.content.Context
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.inputmethod.InputMethodManager
 import com.termux.terminal.TerminalSession
 import com.termux.terminal.TerminalSessionClient
+import com.termux.view.TerminalView
 import com.termux.view.TerminalViewClient
 
 open class NativeTerminalClient(
     private val context: Context,
     private val onSessionFinishedCallback: (() -> Unit)? = null
 ) : TerminalSessionClient, TerminalViewClient {
+
+    var terminalView: TerminalView? = null
 
     companion object {
         private const val TAG = "NativeTerminalClient"
@@ -58,7 +62,15 @@ open class NativeTerminalClient(
 
     // TerminalViewClient implementations
     override fun onScale(scale: Float): Float = scale
-    override fun onSingleTapUp(e: MotionEvent) {}
+
+    override fun onSingleTapUp(e: MotionEvent) {
+        terminalView?.let { view ->
+            view.requestFocus()
+            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
+        }
+    }
+
     override fun shouldBackButtonBeMappedToEscape(): Boolean = false
     override fun shouldEnforceCharBasedInput(): Boolean = true
     override fun shouldUseCtrlSpaceWorkaround(): Boolean = false
@@ -67,6 +79,7 @@ open class NativeTerminalClient(
     override fun onKeyDown(keyCode: Int, e: KeyEvent, session: TerminalSession): Boolean = false
     override fun onKeyUp(keyCode: Int, e: KeyEvent): Boolean = false
     override fun onLongPress(event: MotionEvent): Boolean = false
+
     var isCtrlActive: Boolean = false
     var isAltActive: Boolean = false
 

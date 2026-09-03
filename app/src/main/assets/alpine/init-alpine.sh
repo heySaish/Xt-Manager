@@ -373,5 +373,11 @@ chmod +x "$PREFIX/alpine/initrc"
 
 if [ "$FAILSAFE" != true ]; then
     # everytime a terminal is started initrc will run
-    exec /bin/bash --rcfile /initrc -i
+    if [ -x /bin/bash ]; then
+        exec /bin/bash --rcfile /initrc -i
+    elif [ -x /usr/bin/bash ]; then
+        exec /usr/bin/bash --rcfile /initrc -i
+    else
+        exec /bin/sh
+    fi
 fi
