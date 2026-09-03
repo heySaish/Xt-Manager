@@ -44,10 +44,23 @@ elif [ -f "$NATIVE_DIR/libtalloc.so" ]; then
 fi
 
 ARGS="--kill-on-exit"
+
+for system_mnt in /apex /odm /product /system /system_ext /vendor /linkerconfig/ld.config.txt /linkerconfig/com.android.art/ld.config.txt /plat_property_contexts /property_contexts; do
+ if [ -e "$system_mnt" ]; then
+  system_mnt=$(readlink -f "$system_mnt" 2>/dev/null || echo "$system_mnt")
+  ARGS="$ARGS -b ${system_mnt}"
+ fi
+done
+
+unset system_mnt
+
+ARGS="$ARGS -b /sdcard"
+ARGS="$ARGS -b /storage"
 ARGS="$ARGS -b /dev"
+ARGS="$ARGS -b /data"
+ARGS="$ARGS -b /dev/urandom:/dev/random"
 ARGS="$ARGS -b /proc"
 ARGS="$ARGS -b /sys"
-ARGS="$ARGS -b /sdcard"
 ARGS="$ARGS -b $PREFIX"
 ARGS="$ARGS -b $NATIVE_DIR"
 ARGS="$ARGS -b $PREFIX/public:/public"
