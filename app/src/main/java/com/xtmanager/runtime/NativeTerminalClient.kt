@@ -23,8 +23,12 @@ open class NativeTerminalClient(
     }
 
     // TerminalSessionClient implementations
-    override fun onTextChanged(changedSession: TerminalSession) {}
-    override fun onTitleChanged(changedSession: TerminalSession) {}
+    override fun onTextChanged(changedSession: TerminalSession) {
+        terminalView?.onScreenUpdated()
+    }
+    override fun onTitleChanged(changedSession: TerminalSession) {
+        terminalView?.postInvalidate()
+    }
     
     override fun onSessionFinished(finishedSession: TerminalSession) {
         Log.d(TAG, "Terminal session finished with exit status: ${finishedSession.exitStatus}")

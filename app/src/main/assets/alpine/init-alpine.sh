@@ -215,157 +215,21 @@ export HOME=/public
 export TERM=xterm-256color
 SHELL=/bin/bash
 export PIP_BREAK_SYSTEM_PACKAGES=1
-
-# Default prompt with fish-style path shortening (~/p/s/components)
-# To use custom prompts (Starship, Oh My Posh, etc.), just init them in ~/.bashrc:
-#   eval "$(starship init bash)"
-_shorten_path() {
-    local path="$PWD"
-
-    if [[ "$HOME" != "/" && "$path" == "$HOME" ]]; then
-        echo "~"
-        return
-    elif [[ "$HOME" != "/" && "$path" == "$HOME/"* ]]; then
-        path="~${path#$HOME}"
-    fi
-
-    [[ "$path" == "~" ]] && echo "~" && return
-
-    local parts result=""
-    IFS='/' read -ra parts <<< "$path"
-    local len=${#parts[@]}
-
-    for ((i=0; i<len; i++)); do
-        [[ -z "${parts[i]}" ]] && continue
-        if [[ $i -lt $((len-1)) ]]; then
-            result+="${parts[i]:0:1}/"
-        else
-            result+="${parts[i]}"
-        fi
-    done
-
-    [[ "$path" == /* ]] && echo "/$result" || echo "$result"
-}
-
-PROMPT_COMMAND='_PS1_PATH=$(_shorten_path); _PS1_EXIT=$?'
+export PS1='\[\033[1;32m\]alpine\[\033[0m\]:\[\033[1;34m\]\w\[\033[0m\]\$ '
 
 # Display MOTD if available
 if [ -s /etc/xtmanager_motd ]; then
     echo -e "$(cat /etc/xtmanager_motd)"
-elif [ -s /etc/acode_motd ]; then
-    echo -e "$(cat /etc/acode_motd)"
 fi
 
-check_binary_execution() {
-    local cmd="$1"
-    local cmd_path=""
-
-    # Ignore shell builtins, keywords, etc.
-    [[ -z "$cmd" ]] && return
-
-    # If user executed a path directly (./foo, /path/foo)
-    if [[ "$cmd" == */* ]]; then
-        cmd_path="$(realpath "$cmd" 2>/dev/null)"
-    else
-        cmd_path="$(command -v "$cmd" 2>/dev/null)"
-
-        # Resolve symlinks/relative paths
-        if [[ -n "$cmd_path" ]]; then
-            cmd_path="$(realpath "$cmd_path" 2>/dev/null)"
-        fi
-    fi
-
-    [[ -z "$cmd_path" ]] && return
-    [[ ! -f "$cmd_path" ]] && return
-
-    if [[ "$cmd_path" == /storage/* ]] || \
-       [[ "$cmd_path" == /sdcard/* ]]; then
-        echo -e "\e[1;31m[!] ATTENTION REQUIRED\e[0m
-
-\e[1;31mThe binary is located in:\e[0m
-  \e[36m$cmd_path\e[0m
-
-\e[1;31mBinaries cannot be executed reliably from /sdcard or /storage.\e[0m
-These locations are backed by Android's external storage layer and do not support normal Linux executable permissions.
-
-Move your project or binary to a directory under:
-  \e[1;32m/home/\e[0m
-
-Example:
-  \e[1;32mmv myproject ~/myproject\e[0m
-  \e[1;32mcd ~/myproject\e[0m
-
-Then run the binary again.
-" >&2
-    fi
-}
-
-_acode_preexec() {
-    # Skip commands executed by the trap itself
-    [[ "$BASH_COMMAND" == trap* ]] && return
-
-    local cmd="${BASH_COMMAND%% *}"
-    check_binary_execution "$cmd"
-}
-
-# Preserve any existing DEBUG trap and append our handler instead of overwriting it.
-# This avoids clobbering user-installed preexec hooks (starship, fzf, bash-preexec, etc.).
-__acode_existing_debug_trap="$(trap -p DEBUG 2>/dev/null)"
-if [[ -n "${__acode_existing_debug_trap}" ]]; then
-    __acode_existing_cmd="$(printf "%s" "${__acode_existing_debug_trap}" | sed -E "s/.*'((.*)?)'.*/\1/")"
-else
-    __acode_existing_cmd=""
-fi
-
-# Only add our handler if it's not already present
-if [[ "${__acode_existing_cmd}" != *"_acode_preexec"* ]]; then
-    if [[ -n "${__acode_existing_cmd}" ]]; then
-        trap "${__acode_existing_cmd}; _acode_preexec" DEBUG
-    else
-        trap '_acode_preexec' DEBUG
-    fi
-fi
-unset __acode_existing_debug_trap __acode_existing_cmd
-
-# Command-not-found handler
-command_not_found_handle() {
-    cmd="$1"
-    pkg=""
-    green="\e[1;32m"
-    reset="\e[0m"
-
-    pkg=$(apk search -x "cmd:$cmd" 2>/dev/null | awk -F'-[0-9]' '{print $1}' | head -n 1)
-
-    if [ -n "$pkg" ]; then
-        echo -e "The program '$cmd' is not installed.\nInstall it by executing:\n ${green}apk add $pkg${reset}" >&2
-    else
-        echo "The program '$cmd' is not installed and no package provides it." >&2
-    fi
-
-    return 127
-}
-
-# Replicate behaviour of termux (non standard)
+# Replicate behaviour of termux
 alias clear='reset'
-
-# Source user configs AFTER defaults (so user can override everything)
-if [ -f /etc/bash/bashrc ]; then
-    source /etc/bash/bashrc
-fi
 
 if [ -f "$HOME/.bashrc" ]; then
     source "$HOME/.bashrc"
 fi
 
 EOF
-fi
-
-# Add PS1 only if not already present
-if ! grep -q 'PS1=' "$PREFIX/alpine/initrc"; then
-    # Smart path shortening (fish-style: ~/p/s/components)
-    echo 'PS1="\[\033[1;32m\]\u\[\033[0m\]@localhost \[\033[1;34m\]\$_PS1_PATH\[\033[0m\] \[\$([ \$_PS1_EXIT -ne 0 ] && echo \"\033[31m\")\]\$\[\033[0m\] "' >> "$PREFIX/alpine/initrc"
-    # Simple prompt (uncomment below and comment above if you prefer full paths)
-    # echo 'PS1="\[\033[1;32m\]\u\[\033[0m\]@localhost \[\033[1;34m\]\w\[\033[0m\] \$ "' >> "$PREFIX/alpine/initrc"
 fi
 
 
