@@ -47,6 +47,17 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Edge-to-edge drawing
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        // Make status bar & navigation bar transparent
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
+
         // Initialize dependencies
         val fileSystem = LocalFileSystem()
         val archiveManager = LocalArchiveManager()
