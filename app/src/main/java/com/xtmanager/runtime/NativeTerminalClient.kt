@@ -66,8 +66,28 @@ open class NativeTerminalClient(
     override fun setTerminalShellPid(session: TerminalSession, pid: Int) {}
     override fun getTerminalCursorStyle(): Int? = null
 
-    // TerminalViewClient implementations
-    override fun onScale(scale: Float): Float = scale
+    var currentTextSize: Int = 36
+
+    override fun onScale(scale: Float): Float {
+        if (scale > 1.04f) {
+            if (currentTextSize < 96) {
+                currentTextSize += 2
+                terminalView?.post {
+                    terminalView?.setTextSize(currentTextSize)
+                }
+            }
+            return 1.0f
+        } else if (scale < 0.96f) {
+            if (currentTextSize > 18) {
+                currentTextSize -= 2
+                terminalView?.post {
+                    terminalView?.setTextSize(currentTextSize)
+                }
+            }
+            return 1.0f
+        }
+        return scale
+    }
 
     override fun onSingleTapUp(e: MotionEvent) {
         terminalView?.let { view ->

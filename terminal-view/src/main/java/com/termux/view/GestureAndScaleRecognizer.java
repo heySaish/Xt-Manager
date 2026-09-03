@@ -82,7 +82,29 @@ final class GestureAndScaleRecognizer {
 
             @Override
             public boolean onScale(ScaleGestureDetector detector) {
-                return mListener.onScale(detector.getFocusX(), detector.getFocusY(), detector.getScaleFactor());
+                float scaleFactor = detector.getScaleFactor();
+
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    float currentSpanX = detector.getCurrentSpanX();
+                    float previousSpanX = detector.getPreviousSpanX();
+                    float currentSpanY = detector.getCurrentSpanY();
+                    float previousSpanY = detector.getPreviousSpanY();
+
+                    float scaleX = (previousSpanX > 0) ? currentSpanX / previousSpanX : 1.0f;
+                    float scaleY = (previousSpanY > 0) ? currentSpanY / previousSpanY : 1.0f;
+
+                    float deltaDefault = Math.abs(scaleFactor - 1.0f);
+                    float deltaX = Math.abs(scaleX - 1.0f);
+                    float deltaY = Math.abs(scaleY - 1.0f);
+
+                    if (deltaY > deltaDefault && deltaY > deltaX) {
+                        scaleFactor = scaleY;
+                    } else if (deltaX > deltaDefault) {
+                        scaleFactor = scaleX;
+                    }
+                }
+
+                return mListener.onScale(detector.getFocusX(), detector.getFocusY(), scaleFactor);
             }
         });
         mScaleDetector.setQuickScaleEnabled(false);
