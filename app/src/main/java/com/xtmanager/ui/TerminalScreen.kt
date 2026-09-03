@@ -98,69 +98,10 @@ fun TerminalScreen(
         }
     }
 
-    var showBatteryOptimizationDialog by remember { mutableStateOf(false) }
-
-    // Start Foreground Service & Check Battery Optimization (Don't kill my app)
+    // Start Foreground Service to keep terminal alive in background
     LaunchedEffect(Unit) {
         val serviceIntent = Intent(context, TerminalService::class.java)
         context.startService(serviceIntent)
-
-        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
-        if (powerManager != null && !powerManager.isIgnoringBatteryOptimizations(context.packageName)) {
-            showBatteryOptimizationDialog = true
-        }
-    }
-
-    if (showBatteryOptimizationDialog) {
-        AlertDialog(
-            onDismissRequest = { showBatteryOptimizationDialog = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.BatteryAlert,
-                    contentDescription = "Battery Optimization",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            title = {
-                Text(
-                    text = "Disable Battery Optimization",
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Text(
-                    text = "To prevent Android from killing background terminal processes, please disable battery optimization for Xt-Manager (dontkillmyapp.com)."
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showBatteryOptimizationDialog = false
-                        try {
-                            val intent = Intent(
-                                Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                                Uri.parse("package:${context.packageName}")
-                            )
-                            context.startActivity(intent)
-                        } catch (e: Exception) {
-                            try {
-                                val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-                                context.startActivity(intent)
-                            } catch (ex: Exception) {
-                                Toast.makeText(context, "Unable to open battery settings", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }
-                ) {
-                    Text("Disable Optimization")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showBatteryOptimizationDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
     }
 
     Scaffold(
