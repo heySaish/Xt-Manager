@@ -18,6 +18,7 @@
 
     <application
         android:allowBackup="true"
+        android:extractNativeLibs="true"
         android:icon="@android:drawable/ic_menu_manage"
         android:label="Xt-manager"
         android:roundIcon="@android:drawable/ic_menu_manage"

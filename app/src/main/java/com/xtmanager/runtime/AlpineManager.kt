@@ -87,10 +87,20 @@ class AlpineManager(private val context: Context) {
     }
 
     private fun copyNativeBinaries(arch: String) {
+        val nativeDir = context.applicationInfo.nativeLibraryDir
         val nativeLibsDir = "alpine/$arch/libs"
         val nativeLibs = arrayOf("libproot-xed.so", "libproot.so", "libtalloc.so")
 
         for (libName in nativeLibs) {
+            val nativeFile = File(nativeDir, libName)
+            if (nativeFile.exists()) {
+                Log.d(TAG, "Native library $libName exists in nativeLibraryDir: ${nativeFile.absolutePath}")
+                val filesFile = File(filesDir, libName)
+                if (filesFile.exists()) {
+                    filesFile.delete()
+                }
+                continue
+            }
             try {
                 val outFile = File(filesDir, libName)
                 copyAssetFile("$nativeLibsDir/$libName", outFile)
