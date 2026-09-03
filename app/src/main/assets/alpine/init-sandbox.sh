@@ -44,7 +44,7 @@ ARGS="--kill-on-exit"
 for system_mnt in /apex /odm /product /system /system_ext /vendor /linkerconfig/ld.config.txt /linkerconfig/com.android.art/ld.config.txt /plat_property_contexts /property_contexts; do
 
  if [ -e "$system_mnt" ]; then
-  system_mnt=$(realpath "$system_mnt")
+  system_mnt=$(readlink -f "$system_mnt" 2>/dev/null || echo "$system_mnt")
   ARGS="$ARGS -b ${system_mnt}"
  fi
 done
