@@ -33,26 +33,6 @@ if [ "$INSTALLING" != true ] && [ $# -gt 0 ] && [ "${1#--}" = "$1" ]; then
     exec "$@"
 fi
 
-required_packages="bash command-not-found tzdata wget"
-missing_packages=""
-
-for pkg in $required_packages; do
-    if ! apk info -e "$pkg" >/dev/null 2>&1; then
-        missing_packages="$missing_packages $pkg"
-    fi
-done
-
-if [ -n "$missing_packages" ]; then
-    echo -e "\e[34;1m[*] \e[0mInstalling important packages\e[0m"
-    apk update
-    apk add $missing_packages
-    if [ $? -eq 0 ]; then
-        echo -e "\e[32;1m[+] \e[0mSuccessfully installed\e[0m"
-    fi
-    echo -e "\e[34m[*] \e[0mUse \e[32mapk\e[0m to install new packages\e[0m"
-fi
-
-
 if [ ! -f /linkerconfig/ld.config.txt ]; then
     mkdir -p /linkerconfig
     touch /linkerconfig/ld.config.txt
@@ -89,6 +69,7 @@ fi
 \e[1;34mWelcome to Alpine Linux (Xt-Manager)\e[0m
 
   * Packages:  \e[32mapk add <package>\e[0m
+  * Setup:     \e[32mxt-setup-alpine\e[0m
   * Workspace: \e[33m/public\e[0m (~)
   * Storage:   \e[33m/sdcard\e[0m
 
@@ -173,6 +154,48 @@ for arg in "$@"; do
 done
 XTMANAGER_CLI
         chmod +x "$PREFIX/alpine/usr/local/bin/xtmanager"
+    fi
+
+    # Create xt-setup-alpine CLI tool
+    if [ ! -e "$PREFIX/alpine/usr/local/bin/xt-setup-alpine" ]; then
+        mkdir -p "$PREFIX/alpine/usr/local/bin"
+        cat <<'SETUP_CLI' > "$PREFIX/alpine/usr/local/bin/xt-setup-alpine"
+#!/bin/sh
+# xt-setup-alpine - Manual setup helper for Alpine Linux environment
+
+echo -e "\e[34;1m[*] \e[0mSetting up Alpine Linux environment...\e[0m"
+
+required_packages="bash command-not-found tzdata wget"
+missing_packages=""
+
+for pkg in $required_packages; do
+    if ! apk info -e "$pkg" >/dev/null 2>&1; then
+        missing_packages="$missing_packages $pkg"
+    fi
+done
+
+if [ -n "$missing_packages" ]; then
+    echo -e "\e[34;1m[*] \e[0mUpdating package lists and installing essential packages:$missing_packages...\e[0m"
+    apk update
+    apk add $missing_packages
+    if [ $? -eq 0 ]; then
+        echo -e "\e[32;1m[+] \e[0mSuccessfully installed essential packages!\e[0m"
+    else
+        echo -e "\e[31;1m[-] \e[0mFailed to install some packages. Check your internet connection.\e[0m"
+    fi
+else
+    echo -e "\e[32;1m[+] \e[0mAll essential packages ($required_packages) are already installed!\e[0m"
+fi
+
+if [ -n "$ANDROID_TZ" ] && [ -f "/usr/share/zoneinfo/$ANDROID_TZ" ]; then
+    ln -sf "/usr/share/zoneinfo/$ANDROID_TZ" /etc/localtime 2>/dev/null
+    echo "$ANDROID_TZ" > /etc/timezone 2>/dev/null
+    echo -e "\e[32;1m[+] \e[0mTimezone configured: $ANDROID_TZ"
+fi
+
+echo -e "\e[32;1m[+] \e[0mXt-Manager Alpine setup complete!\e[0m"
+SETUP_CLI
+        chmod +x "$PREFIX/alpine/usr/local/bin/xt-setup-alpine"
     fi
 
     # Create initrc if it doesn't exist
