@@ -66,11 +66,17 @@ class AlpineManager(private val context: Context) {
             if (!alpineBinDir.exists()) alpineBinDir.mkdirs()
 
             val alpineBinRm = File(alpineBinDir, "rm")
-            if (alpineBinRm.exists()) {
-                alpineBinRm.delete()
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    Files.deleteIfExists(alpineBinRm.toPath())
+                } else if (alpineBinRm.exists()) {
+                    alpineBinRm.delete()
+                }
+                copyAssetFile("alpine/rm-wrapper.sh", alpineBinRm)
+                makeExecutable(alpineBinRm)
+            } catch (e: Exception) {
+                Log.w(TAG, "Optional rm-wrapper setup skipped: ${e.message}")
             }
-            copyAssetFile("alpine/rm-wrapper.sh", alpineBinRm)
-            makeExecutable(alpineBinRm)
 
             // 5. Create axs symlink if needed
             refreshAxsSymlink()
