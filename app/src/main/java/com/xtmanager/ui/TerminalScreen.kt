@@ -1,11 +1,7 @@
 package com.xtmanager.ui
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.view.ViewGroup
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -54,12 +50,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.termux.terminal.TerminalSession
+import com.termux.view.TerminalView
 import com.xtmanager.runtime.AlpineManager
-import com.xtmanager.runtime.TerminalBridge
+import com.xtmanager.runtime.NativeTerminalClient
 import com.xtmanager.runtime.TerminalService
+import kotlin.concurrent.thread
 
 @OptIn(ExperimentalMaterial3Api::class)
-@SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun TerminalScreen(
     onClose: () -> Unit,
@@ -67,11 +65,12 @@ fun TerminalScreen(
 ) {
     val context = LocalContext.current
     var statusText by remember { mutableStateOf("Initializing...") }
-    var bridgeRef by remember { mutableStateOf<TerminalBridge?>(null) }
+    var currentSession by remember { mutableStateOf<TerminalSession?>(null) }
+    var terminalViewRef by remember { mutableStateOf<TerminalView?>(null) }
 
     val alpineManager = remember { AlpineManager(context) }
 
-    // Start Foreground Service
+    // Start Foreground Service to keep terminal alive in background
     LaunchedEffect(Unit) {
         val serviceIntent = Intent(context, TerminalService::class.java)
         context.startService(serviceIntent)
@@ -124,7 +123,7 @@ fun TerminalScreen(
                 },
                 actions = {
                     IconButton(onClick = {
-                        bridgeRef?.sendInput("clear\r")
+                        currentSession?.write("clear\r")
                     }) {
                         Icon(
                             imageVector = Icons.Default.Clear,
@@ -132,8 +131,17 @@ fun TerminalScreen(
                         )
                     }
                     IconButton(onClick = {
-                        bridgeRef?.destroy()
-                        bridgeRef?.startAlpineSession { statusText = it }
+                        currentSession?.finishIfRunning()
+                        thread {
+                            val session = alpineManager.createAlpineTerminalSession(
+                                NativeTerminalClient(context)
+                            )
+                            currentSession = session
+                            terminalViewRef?.post {
+                                terminalViewRef?.attachCurrentSession(session)
+                                statusText = "Alpine Linux Active"
+                            }
+                        }
                     }) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
@@ -154,7 +162,7 @@ fun TerminalScreen(
                 .fillMaxSize()
                 .background(Color(0xFF0F172A))
         ) {
-            // WebView for Xterm.js
+            // Native Termux TerminalView
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -162,44 +170,47 @@ fun TerminalScreen(
             ) {
                 AndroidView(
                     factory = { ctx ->
-                        WebView(ctx).apply {
+                        val client = NativeTerminalClient(ctx, onSessionFinishedCallback = {
+                            statusText = "Alpine Process Terminated"
+                        })
+
+                        val view = TerminalView(ctx, null).apply {
                             layoutParams = ViewGroup.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.MATCH_PARENT
                             )
-                            settings.apply {
-                                javaScriptEnabled = true
-                                domStorageEnabled = true
-                                allowFileAccess = true
-                                allowContentAccess = true
-                                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                            }
-                            setBackgroundColor(0xFF0F172A.toInt())
-
-                            val bridge = TerminalBridge(ctx, this, alpineManager)
-                            bridgeRef = bridge
-                            addJavascriptInterface(bridge, "AndroidTerminal")
-
-                            webViewClient = object : WebViewClient() {
-                                override fun onPageFinished(view: WebView?, url: String?) {
-                                    super.onPageFinished(view, url)
-                                    bridge.startAlpineSession { status ->
-                                        statusText = status
-                                    }
-                                }
-                            }
-
-                            loadUrl("file:///android_asset/terminal/index.html")
+                            setTerminalViewClient(client)
+                            setTextSize(36) // Default text size
                         }
+                        terminalViewRef = view
+
+                        thread {
+                            val ready = alpineManager.setupAlpineEnvironment { status ->
+                                statusText = status
+                            }
+
+                            if (ready) {
+                                val session = alpineManager.createAlpineTerminalSession(client)
+                                currentSession = session
+                                view.post {
+                                    view.attachCurrentSession(session)
+                                    statusText = "Alpine Linux Active"
+                                }
+                            } else {
+                                statusText = "Alpine Setup Failed"
+                            }
+                        }
+
+                        view
                     },
                     modifier = Modifier.fillMaxSize()
                 )
             }
 
-            // Keyboard Helper Keys Toolbar
+            // Native Soft Keyboard Helper Toolbar
             TerminalKeyboardToolbar(
                 onKeyClick = { key ->
-                    bridgeRef?.sendKey(key)
+                    currentSession?.write(key)
                 }
             )
         }
@@ -207,7 +218,7 @@ fun TerminalScreen(
 
     DisposableEffect(Unit) {
         onDispose {
-            bridgeRef?.destroy()
+            currentSession?.finishIfRunning()
         }
     }
 }

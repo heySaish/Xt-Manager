@@ -293,11 +293,12 @@ class AlpineManager(private val context: Context) {
         return totalRead
     }
 
-    fun startAlpineProcess(): Process {
+    fun createAlpineTerminalSession(
+        client: com.termux.terminal.TerminalSessionClient
+    ): com.termux.terminal.TerminalSession {
         val nativeDir = context.applicationInfo.nativeLibraryDir
         val filesPath = filesDir.absolutePath
         
-        // Find PRoot binary (nativeLibraryDir or fallback to filesDir)
         val prootBinInNative = File(nativeDir, "libproot-xed.so").takeIf { it.exists() }?.absolutePath
             ?: File(nativeDir, "libaxs.so").takeIf { it.exists() }?.absolutePath
 
@@ -305,22 +306,28 @@ class AlpineManager(private val context: Context) {
             ?: File(filesDir, "libaxs.so").takeIf { it.exists() }?.absolutePath
 
         val prootBin = prootBinInNative ?: prootBinInFiles ?: File(filesDir, "libproot-xed.so").absolutePath
-
         val initSandboxScript = File(filesDir, "init-sandbox.sh").absolutePath
 
-        // POSIX compliant execution (. instead of source)
-        val builder = ProcessBuilder("sh", "-c", ". \"$initSandboxScript\"")
-        
-        val env = builder.environment()
-        env["PREFIX"] = filesPath
-        env["NATIVE_DIR"] = if (prootBinInNative != null) nativeDir else filesPath
-        env["FDROID"] = "true" // Enables filesDir native library fallback in init-sandbox.sh
-        env["HOME"] = "/public"
-        env["TERM"] = "xterm-256color"
-        env["PROOT"] = prootBin
+        val envList = arrayOf(
+            "PREFIX=$filesPath",
+            "NATIVE_DIR=${if (prootBinInNative != null) nativeDir else filesPath}",
+            "FDROID=true",
+            "HOME=/public",
+            "TERM=xterm-256color",
+            "PROOT=$prootBin",
+            "LD_LIBRARY_PATH=$filesPath:$nativeDir"
+        )
 
-        builder.directory(filesDir)
-        builder.redirectErrorStream(true)
-        return builder.start()
+        val shellPath = "/system/bin/sh"
+        val args = arrayOf("-c", ". \"$initSandboxScript\"")
+
+        return com.termux.terminal.TerminalSession(
+            shellPath,
+            filesPath,
+            args,
+            envList,
+            10000,
+            client
+        )
     }
 }
