@@ -42,6 +42,7 @@ android {
         }
         jniLibs {
             useLegacyPackaging = true
+            pickFirsts.add("**/libtermux.so")
         }
     }
 }

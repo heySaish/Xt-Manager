@@ -142,7 +142,7 @@ fun TerminalScreen(
                             val session = alpineManager.createAlpineTerminalSession(client)
                             currentSession = session
                             terminalViewRef?.post {
-                                terminalViewRef?.attachCurrentSession(session)
+                                terminalViewRef?.attachSession(session)
                                 statusText = "Alpine Linux Active"
                             }
                         }
@@ -198,7 +198,7 @@ fun TerminalScreen(
                                 val session = alpineManager.createAlpineTerminalSession(client)
                                 currentSession = session
                                 view.post {
-                                    view.attachCurrentSession(session)
+                                    view.attachSession(session)
                                     statusText = "Alpine Linux Active"
                                 }
                             } else {
