@@ -67,6 +67,10 @@ fun TerminalScreen(
     var statusText by remember { mutableStateOf("Initializing...") }
     var currentSession by remember { mutableStateOf<TerminalSession?>(null) }
     var terminalViewRef by remember { mutableStateOf<TerminalView?>(null) }
+    var clientRef by remember { mutableStateOf<NativeTerminalClient?>(null) }
+
+    var isCtrlActive by remember { mutableStateOf(false) }
+    var isAltActive by remember { mutableStateOf(false) }
 
     val alpineManager = remember { AlpineManager(context) }
 
@@ -133,9 +137,9 @@ fun TerminalScreen(
                     IconButton(onClick = {
                         currentSession?.finishIfRunning()
                         thread {
-                            val session = alpineManager.createAlpineTerminalSession(
-                                NativeTerminalClient(context)
-                            )
+                            val client = NativeTerminalClient(context)
+                            clientRef = client
+                            val session = alpineManager.createAlpineTerminalSession(client)
                             currentSession = session
                             terminalViewRef?.post {
                                 terminalViewRef?.attachCurrentSession(session)
@@ -173,6 +177,7 @@ fun TerminalScreen(
                         val client = NativeTerminalClient(ctx, onSessionFinishedCallback = {
                             statusText = "Alpine Process Terminated"
                         })
+                        clientRef = client
 
                         val view = TerminalView(ctx, null).apply {
                             layoutParams = ViewGroup.LayoutParams(
@@ -207,8 +212,20 @@ fun TerminalScreen(
                 )
             }
 
-            // Native Soft Keyboard Helper Toolbar
-            TerminalKeyboardToolbar(
+            // Termux-Style Extra Keys Bar
+            TermuxExtraKeysToolbar(
+                isCtrlActive = isCtrlActive,
+                isAltActive = isAltActive,
+                onToggleCtrl = {
+                    val newState = !isCtrlActive
+                    isCtrlActive = newState
+                    clientRef?.isCtrlActive = newState
+                },
+                onToggleAlt = {
+                    val newState = !isAltActive
+                    isAltActive = newState
+                    clientRef?.isAltActive = newState
+                },
                 onKeyClick = { key ->
                     currentSession?.write(key)
                 }
@@ -224,13 +241,17 @@ fun TerminalScreen(
 }
 
 @Composable
-fun TerminalKeyboardToolbar(
+fun TermuxExtraKeysToolbar(
+    isCtrlActive: Boolean,
+    isAltActive: Boolean,
+    onToggleCtrl: () -> Unit,
+    onToggleAlt: () -> Unit,
     onKeyClick: (String) -> Unit
 ) {
     val scrollState = rememberScrollState()
 
     Surface(
-        color = Color(0xFF1E293B),
+        color = Color(0xFF0F172A),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -240,45 +261,112 @@ fun TerminalKeyboardToolbar(
                 .padding(horizontal = 4.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            TerminalKeyButton(label = "ESC", onClick = { onKeyClick("\u001b") })
-            TerminalKeyButton(label = "TAB", onClick = { onKeyClick("\t") })
-            TerminalKeyButton(label = "CTRL+C", onClick = { onKeyClick("\u0003") })
-            TerminalKeyButton(label = "CTRL+Z", onClick = { onKeyClick("\u001a") })
-            TerminalKeyButton(label = "CTRL+D", onClick = { onKeyClick("\u0004") })
-            TerminalKeyButton(label = "▲", onClick = { onKeyClick("\u001b[A") })
-            TerminalKeyButton(label = "▼", onClick = { onKeyClick("\u001b[B") })
-            TerminalKeyButton(label = "◀", onClick = { onKeyClick("\u001b[D") })
-            TerminalKeyButton(label = "▶", onClick = { onKeyClick("\u001b[C") })
-            TerminalKeyButton(label = "|", onClick = { onKeyClick("|") })
-            TerminalKeyButton(label = "/", onClick = { onKeyClick("/") })
-            TerminalKeyButton(label = "~", onClick = { onKeyClick("~") })
-            TerminalKeyButton(label = "-", onClick = { onKeyClick("-") })
+            TermuxKeyButton(
+                label = "ESC",
+                isActive = false,
+                onClick = { onKeyClick("\u001b") }
+            )
+            TermuxKeyButton(
+                label = "CTRL",
+                isActive = isCtrlActive,
+                onClick = onToggleCtrl
+            )
+            TermuxKeyButton(
+                label = "ALT",
+                isActive = isAltActive,
+                onClick = onToggleAlt
+            )
+            TermuxKeyButton(
+                label = "TAB",
+                isActive = false,
+                onClick = { onKeyClick("\t") }
+            )
+            TermuxKeyButton(
+                label = "-",
+                isActive = false,
+                onClick = { onKeyClick("-") }
+            )
+            TermuxKeyButton(
+                label = "/",
+                isActive = false,
+                onClick = { onKeyClick("/") })
+            TermuxKeyButton(
+                label = "|",
+                isActive = false,
+                onClick = { onKeyClick("|") }
+            )
+            TermuxKeyButton(
+                label = "~",
+                isActive = false,
+                onClick = { onKeyClick("~") }
+            )
+            TermuxKeyButton(
+                label = "HOME",
+                isActive = false,
+                onClick = { onKeyClick("\u001b[1~") }
+            )
+            TermuxKeyButton(
+                label = "END",
+                isActive = false,
+                onClick = { onKeyClick("\u001b[4~") }
+            )
+            TermuxKeyButton(
+                label = "PGUP",
+                isActive = false,
+                onClick = { onKeyClick("\u001b[5~") }
+            )
+            TermuxKeyButton(
+                label = "PGDN",
+                isActive = false,
+                onClick = { onKeyClick("\u001b[6~") }
+            )
+            TermuxKeyButton(
+                label = "▲",
+                isActive = false,
+                onClick = { onKeyClick("\u001b[A") }
+            )
+            TermuxKeyButton(
+                label = "▼",
+                isActive = false,
+                onClick = { onKeyClick("\u001b[B") }
+            )
+            TermuxKeyButton(
+                label = "◀",
+                isActive = false,
+                onClick = { onKeyClick("\u001b[D") }
+            )
+            TermuxKeyButton(
+                label = "▶",
+                isActive = false,
+                onClick = { onKeyClick("\u001b[C") }
+            )
         }
     }
 }
 
 @Composable
-fun TerminalKeyButton(
+fun TermuxKeyButton(
     label: String,
+    isActive: Boolean,
     onClick: () -> Unit
 ) {
     OutlinedButton(
         onClick = onClick,
-        shape = RoundedCornerShape(6.dp),
+        shape = RoundedCornerShape(4.dp),
         colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = Color(0xFF334155),
-            contentColor = Color(0xFFF8FAFC)
+            containerColor = if (isActive) Color(0xFF2563EB) else Color(0xFF1E293B),
+            contentColor = if (isActive) Color.White else Color(0xFFF1F5F9)
         ),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
-            horizontal = 10.dp,
-            vertical = 4.dp
+            horizontal = 12.dp,
+            vertical = 2.dp
         ),
-        modifier = Modifier.height(32.dp)
+        modifier = Modifier.height(36.dp)
     ) {
         Text(
             text = label,
             fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = if (isActive) FontWeight.Bold else FontWeight.SemiBold
         )
     }
 }

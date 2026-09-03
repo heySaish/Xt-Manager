@@ -67,8 +67,21 @@ open class NativeTerminalClient(
     override fun onKeyDown(keyCode: Int, e: KeyEvent, session: TerminalSession): Boolean = false
     override fun onKeyUp(keyCode: Int, e: KeyEvent): Boolean = false
     override fun onLongPress(event: MotionEvent): Boolean = false
-    override fun readControlKey(): Boolean = false
-    override fun readAltKey(): Boolean = false
+    var isCtrlActive: Boolean = false
+    var isAltActive: Boolean = false
+
+    override fun readControlKey(): Boolean {
+        val ctrl = isCtrlActive
+        if (ctrl) isCtrlActive = false
+        return ctrl
+    }
+
+    override fun readAltKey(): Boolean {
+        val alt = isAltActive
+        if (alt) isAltActive = false
+        return alt
+    }
+
     override fun readShiftKey(): Boolean = false
     override fun readFnKey(): Boolean = false
     override fun onCodePoint(codePoint: Int, ctrlDown: Boolean, session: TerminalSession): Boolean = false
