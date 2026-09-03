@@ -32,8 +32,10 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.SdCard
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
@@ -215,18 +217,26 @@ fun FileManagerScreen(
                         )
                     )
                     
-                    NavigationDrawerItem(
-                        icon = { Icon(Icons.Default.Folder, contentDescription = null) },
-                        label = { Text("Storage Directory") },
-                        selected = activeState.path == "/storage/emulated/0" || activeState.path == "/sdcard",
-                        onClick = {
-                            viewModel.navigateTo(activePane, "/storage/emulated/0")
-                            scope.launch { drawerState.close() }
-                        },
-                        colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer
+                    val storageVolumes = remember(context) { getStorageVolumesList(context) }
+                    for (vol in storageVolumes) {
+                        NavigationDrawerItem(
+                            icon = {
+                                Icon(
+                                    imageVector = if (vol.isRemovable) Icons.Default.SdCard else Icons.Default.Folder,
+                                    contentDescription = null
+                                )
+                            },
+                            label = { Text(vol.name) },
+                            selected = activeState.path == vol.path,
+                            onClick = {
+                                viewModel.navigateTo(activePane, vol.path)
+                                scope.launch { drawerState.close() }
+                            },
+                            colors = NavigationDrawerItemDefaults.colors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer
+                            )
                         )
-                    )
+                    }
 
                     Spacer(modifier = Modifier.height(12.dp))
                     Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
@@ -919,5 +929,65 @@ private fun getDiskInfo(path: String): String {
 private fun formatBytesToGB(bytes: Long): String {
     val gb = bytes.toDouble() / (1024.0 * 1024.0 * 1024.0)
     return String.format(java.util.Locale.US, "%.2fG", gb)
+}
+
+data class StorageVolumeInfo(
+    val name: String,
+    val path: String,
+    val isRemovable: Boolean
+)
+
+fun getStorageVolumesList(context: android.content.Context): List<StorageVolumeInfo> {
+    val list = mutableListOf<StorageVolumeInfo>()
+
+    // Internal Storage
+    list.add(StorageVolumeInfo("Internal Storage", "/storage/emulated/0", isRemovable = false))
+
+    try {
+        val sm = context.getSystemService(android.content.Context.STORAGE_SERVICE) as? android.os.storage.StorageManager
+        if (sm != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            val volumes = sm.storageVolumes
+            for (vol in volumes) {
+                if (vol.state == android.os.Environment.MEDIA_MOUNTED || vol.state == android.os.Environment.MEDIA_MOUNTED_READ_ONLY) {
+                    val dir = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                        vol.directory?.absolutePath
+                    } else {
+                        try {
+                            val getPathMethod = vol.javaClass.getMethod("getPath")
+                            getPathMethod.invoke(vol) as? String
+                        } catch (_: Exception) { null }
+                    }
+
+                    if (dir != null && dir != "/storage/emulated/0" && dir != "/storage/self/primary") {
+                        val name = vol.getDescription(context) ?: if (vol.isRemovable) "External SD / USB" else "Storage"
+                        if (list.none { it.path == dir }) {
+                            list.add(StorageVolumeInfo(name, dir, isRemovable = vol.isRemovable))
+                        }
+                    }
+                }
+            }
+        }
+    } catch (_: Exception) {}
+
+    // Fallback scan of /storage directory
+    try {
+        val storageDir = File("/storage")
+        if (storageDir.exists() && storageDir.isDirectory) {
+            val children = storageDir.listFiles()
+            if (children != null) {
+                for (file in children) {
+                    val name = file.name
+                    if (name != "emulated" && name != "self" && file.isDirectory && file.canRead()) {
+                        if (list.none { it.path == file.absolutePath }) {
+                            val displayName = if (name.matches(Regex("[0-9A-FA-f]{4}-[0-9A-FA-f]{4}"))) "SD Card ($name)" else "Storage ($name)"
+                            list.add(StorageVolumeInfo(displayName, file.absolutePath, isRemovable = true))
+                        }
+                    }
+                }
+            }
+        }
+    } catch (_: Exception) {}
+
+    return list
 }
 
