@@ -18,7 +18,7 @@ class AlpineManager(private val context: Context) {
 
     val filesDir: File get() = context.filesDir
     val alpineDir: File get() = File(filesDir, "alpine")
-    val isInstalled: Boolean get() = File(alpineDir, "bin/sh").exists() || File(alpineDir, "bin/busybox").exists()
+    val isInstalled: Boolean get() = (File(alpineDir, "bin/busybox").exists() || File(alpineDir, "bin/sh").exists()) && File(alpineDir, "etc").exists()
 
     fun getArchName(): String = "arm64"
 
@@ -39,9 +39,18 @@ class AlpineManager(private val context: Context) {
             makeExecutable(File(filesDir, "init-sandbox.sh"))
             makeExecutable(File(filesDir, "init-alpine.sh"))
 
-            // 2. Extract Alpine Rootfs if not installed
+            // 2. Fail-safe: Copy native binaries directly to filesDir
+            onProgress("Setting up PRoot native binaries...")
+            copyNativeBinaries(arch)
+
+            // 3. Extract Alpine Rootfs if not installed
             if (!isInstalled) {
                 onProgress("Extracting Alpine Linux RootFS ($arch)...")
+                
+                // Clear any incomplete previous extraction
+                alpineDir.deleteRecursively()
+                alpineDir.mkdirs()
+
                 val rootfsAssetPath = "alpine/$arch/alpine.rootfs"
                 val tempTarGz = File(filesDir, "temp_rootfs.tar.gz")
                 copyAssetFile(rootfsAssetPath, tempTarGz)
@@ -52,15 +61,18 @@ class AlpineManager(private val context: Context) {
                 onProgress("Alpine Linux extracted successfully!")
             }
 
-            // 3. Setup rm wrapper inside alpine bin
-            val alpineBinRm = File(alpineDir, "bin/rm")
+            // 4. Setup rm wrapper inside alpine bin
+            val alpineBinDir = File(alpineDir, "bin")
+            if (!alpineBinDir.exists()) alpineBinDir.mkdirs()
+
+            val alpineBinRm = File(alpineBinDir, "rm")
             if (alpineBinRm.exists()) {
                 alpineBinRm.delete()
             }
             copyAssetFile("alpine/rm-wrapper.sh", alpineBinRm)
             makeExecutable(alpineBinRm)
 
-            // 4. Create axs symlink if needed
+            // 5. Create axs symlink if needed
             refreshAxsSymlink()
 
             return true
@@ -68,6 +80,22 @@ class AlpineManager(private val context: Context) {
             Log.e(TAG, "Failed to setup Alpine environment", e)
             onProgress("Error setting up Alpine: ${e.message}")
             return false
+        }
+    }
+
+    private fun copyNativeBinaries(arch: String) {
+        val nativeLibsDir = "alpine/$arch/libs"
+        val nativeLibs = arrayOf("libproot-xed.so", "libproot.so", "libaxs.so", "libtalloc.so")
+
+        for (libName in nativeLibs) {
+            try {
+                val outFile = File(filesDir, libName)
+                copyAssetFile("$nativeLibsDir/$libName", outFile)
+                makeExecutable(outFile)
+                Log.d(TAG, "Copied native library $libName to ${outFile.absolutePath}")
+            } catch (e: Exception) {
+                Log.w(TAG, "Optional asset copy skipped for $libName: ${e.message}")
+            }
         }
     }
 
@@ -87,27 +115,31 @@ class AlpineManager(private val context: Context) {
     }
 
     private fun refreshAxsSymlink() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            try {
-                val axsPath = Paths.get(filesDir.absolutePath, "axs")
-                val nativeAxsPath = Paths.get(context.applicationInfo.nativeLibraryDir, "libaxs.so")
-                if (Files.exists(nativeAxsPath)) {
-                    Files.deleteIfExists(axsPath)
-                    Files.createSymbolicLink(axsPath, nativeAxsPath)
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to create axs symlink", e)
+        try {
+            val axsPath = Paths.get(filesDir.absolutePath, "axs")
+            val nativeAxsPath = Paths.get(context.applicationInfo.nativeLibraryDir, "libaxs.so")
+            val fallbackAxsPath = Paths.get(filesDir.absolutePath, "libaxs.so")
+            
+            val sourceAxs = if (Files.exists(nativeAxsPath)) nativeAxsPath else fallbackAxsPath
+            
+            if (Files.exists(sourceAxs) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Files.deleteIfExists(axsPath)
+                Files.createSymbolicLink(axsPath, sourceAxs)
             }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to create axs symlink", e)
         }
     }
 
     /**
-     * Pure Kotlin Tar.Gz extractor to avoid dependence on system 'tar' command.
-     * Works across all Android versions reliably.
+     * Pure Kotlin Tar.Gz extractor with GNU LongName/LongLink & Symlink support.
      */
     private fun extractTarGz(tarGzFile: File, destDir: File) {
         GZIPInputStream(tarGzFile.inputStream().buffered()).use { gzis ->
             val buffer = ByteArray(512)
+            var nextLongName: String? = null
+            var nextLongLink: String? = null
+
             while (true) {
                 val read = readFully(gzis, buffer, 0, 512)
                 if (read < 512) break
@@ -115,24 +147,51 @@ class AlpineManager(private val context: Context) {
                 // Two consecutive 512-byte zero blocks signal EOF in Tar
                 if (buffer.all { it == 0.toByte() }) break
 
-                // Filename (offset 0, length 100)
-                val nameBytes = buffer.copyOfRange(0, 100)
-                var name = String(nameBytes, Charsets.US_ASCII).trim { it <= ' ' || it == '\u0000' }
-                if (name.isEmpty()) continue
-
-                // Prefix (offset 345, length 155) for long paths
-                val prefixBytes = buffer.copyOfRange(345, 500)
-                val prefix = String(prefixBytes, Charsets.US_ASCII).trim { it <= ' ' || it == '\u0000' }
-                if (prefix.isNotEmpty()) {
-                    name = "$prefix/$name"
-                }
+                // Type flag at offset 156
+                val typeFlag = buffer[156].toInt().toChar()
 
                 // File size in octal (offset 124, length 12)
                 val sizeStr = String(buffer, 124, 12, Charsets.US_ASCII).trim { it <= ' ' || it == '\u0000' }
                 val fileSize = sizeStr.toLongOrNull(8) ?: 0L
 
-                // Type flag at offset 156 ('0'/'\0'=file, '5'=dir, '2'=symlink)
-                val typeFlag = buffer[156].toInt().toChar()
+                // Handle GNU Long Name / Long Link extensions
+                if (typeFlag == 'L') {
+                    val nameBuf = ByteArray(fileSize.toInt())
+                    readFully(gzis, nameBuf, 0, nameBuf.size)
+                    nextLongName = String(nameBuf, Charsets.UTF_8).trim { it <= ' ' || it == '\u0000' }
+                    skipPadding(gzis, fileSize)
+                    continue
+                } else if (typeFlag == 'K') {
+                    val linkBuf = ByteArray(fileSize.toInt())
+                    readFully(gzis, linkBuf, 0, linkBuf.size)
+                    nextLongLink = String(linkBuf, Charsets.UTF_8).trim { it <= ' ' || it == '\u0000' }
+                    skipPadding(gzis, fileSize)
+                    continue
+                } else if (typeFlag == 'x' || typeFlag == 'g') { // PAX Extended headers
+                    skipPayload(gzis, fileSize)
+                    skipPadding(gzis, fileSize)
+                    continue
+                }
+
+                // Header filename (offset 0, length 100)
+                val headerNameBytes = buffer.copyOfRange(0, 100)
+                var name = nextLongName ?: String(headerNameBytes, Charsets.US_ASCII).trim { it <= ' ' || it == '\u0000' }
+                nextLongName = null
+
+                if (name.isEmpty()) continue
+
+                // Prefix (offset 345, length 155) for long paths if not overridden by GNU LongName
+                if (buffer[345] != 0.toByte() && !name.contains("/")) {
+                    val prefixBytes = buffer.copyOfRange(345, 500)
+                    val prefix = String(prefixBytes, Charsets.US_ASCII).trim { it <= ' ' || it == '\u0000' }
+                    if (prefix.isNotEmpty()) {
+                        name = "$prefix/$name"
+                    }
+                }
+
+                // File mode (offset 100, length 8)
+                val modeStr = String(buffer, 100, 8, Charsets.US_ASCII).trim { it <= ' ' || it == '\u0000' }
+                val mode = modeStr.toIntOrNull(8) ?: 0
 
                 val targetFile = File(destDir, name)
 
@@ -141,8 +200,10 @@ class AlpineManager(private val context: Context) {
                         targetFile.mkdirs()
                     }
                     '2' -> { // Symbolic link
-                        val linkTargetBytes = buffer.copyOfRange(157, 257)
-                        val linkTarget = String(linkTargetBytes, Charsets.US_ASCII).trim { it <= ' ' || it == '\u0000' }
+                        val headerLinkBytes = buffer.copyOfRange(157, 257)
+                        val linkTarget = nextLongLink ?: String(headerLinkBytes, Charsets.US_ASCII).trim { it <= ' ' || it == '\u0000' }
+                        nextLongLink = null
+
                         targetFile.parentFile?.mkdirs()
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             try {
@@ -153,7 +214,7 @@ class AlpineManager(private val context: Context) {
                             }
                         }
                     }
-                    else -> { // Regular file
+                    else -> { // Regular file ('0' or '\0')
                         targetFile.parentFile?.mkdirs()
                         FileOutputStream(targetFile).use { fos ->
                             var remaining = fileSize
@@ -166,15 +227,36 @@ class AlpineManager(private val context: Context) {
                                 remaining -= bytesRead
                             }
                         }
-                        // Skip padding to align to 512-byte boundary
-                        val remainder = (fileSize % 512).toInt()
-                        if (remainder > 0) {
-                            val padBuf = ByteArray(512 - remainder)
-                            readFully(gzis, padBuf, 0, padBuf.size)
+                        skipPadding(gzis, fileSize)
+
+                        // Set permissions for executables
+                        if ((mode and 0111) != 0 || name.contains("bin/") || name.contains("sbin/") || name.contains("lib/")) {
+                            makeExecutable(targetFile)
+                        } else {
+                            targetFile.setReadable(true, false)
                         }
                     }
                 }
             }
+        }
+    }
+
+    private fun skipPadding(gzis: InputStream, fileSize: Long) {
+        val remainder = (fileSize % 512).toInt()
+        if (remainder > 0) {
+            val padBuf = ByteArray(512 - remainder)
+            readFully(gzis, padBuf, 0, padBuf.size)
+        }
+    }
+
+    private fun skipPayload(gzis: InputStream, fileSize: Long) {
+        var remaining = fileSize
+        val copyBuf = ByteArray(8192)
+        while (remaining > 0) {
+            val toRead = Math.min(remaining, copyBuf.size.toLong()).toInt()
+            val bytesRead = gzis.read(copyBuf, 0, toRead)
+            if (bytesRead <= 0) break
+            remaining -= bytesRead
         }
     }
 
@@ -191,8 +273,15 @@ class AlpineManager(private val context: Context) {
     fun startAlpineProcess(): Process {
         val nativeDir = context.applicationInfo.nativeLibraryDir
         val filesPath = filesDir.absolutePath
-        val prootBin = File(nativeDir, "libproot-xed.so").takeIf { it.exists() }?.absolutePath
-            ?: File(nativeDir, "libaxs.so").absolutePath
+        
+        // Find PRoot binary (nativeLibraryDir or fallback to filesDir)
+        val prootBinInNative = File(nativeDir, "libproot-xed.so").takeIf { it.exists() }?.absolutePath
+            ?: File(nativeDir, "libaxs.so").takeIf { it.exists() }?.absolutePath
+
+        val prootBinInFiles = File(filesDir, "libproot-xed.so").takeIf { it.exists() }?.absolutePath
+            ?: File(filesDir, "libaxs.so").takeIf { it.exists() }?.absolutePath
+
+        val prootBin = prootBinInNative ?: prootBinInFiles ?: File(filesDir, "libproot-xed.so").absolutePath
 
         val initSandboxScript = File(filesDir, "init-sandbox.sh").absolutePath
 
@@ -201,8 +290,8 @@ class AlpineManager(private val context: Context) {
         
         val env = builder.environment()
         env["PREFIX"] = filesPath
-        env["NATIVE_DIR"] = nativeDir
-        env["FDROID"] = "false"
+        env["NATIVE_DIR"] = if (prootBinInNative != null) nativeDir else filesPath
+        env["FDROID"] = "true" // Enables filesDir native library fallback in init-sandbox.sh
         env["HOME"] = "/public"
         env["TERM"] = "xterm-256color"
         env["PROOT"] = prootBin
