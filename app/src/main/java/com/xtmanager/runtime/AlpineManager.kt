@@ -319,7 +319,7 @@ class AlpineManager(private val context: Context) {
         )
 
         val shellPath = "/system/bin/sh"
-        val args = arrayOf("-c", ". \"$initSandboxScript\"")
+        val args = arrayOf("/system/bin/sh", initSandboxScript)
 
         return com.termux.terminal.TerminalSession(
             shellPath,
