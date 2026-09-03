@@ -300,9 +300,11 @@ class AlpineManager(private val context: Context) {
         val filesPath = filesDir.absolutePath
         
         val prootBinInNative = File(nativeDir, "libproot-xed.so").takeIf { it.exists() }?.absolutePath
+            ?: File(nativeDir, "libproot.so").takeIf { it.exists() }?.absolutePath
             ?: File(nativeDir, "libaxs.so").takeIf { it.exists() }?.absolutePath
 
         val prootBinInFiles = File(filesDir, "libproot-xed.so").takeIf { it.exists() }?.absolutePath
+            ?: File(filesDir, "libproot.so").takeIf { it.exists() }?.absolutePath
             ?: File(filesDir, "libaxs.so").takeIf { it.exists() }?.absolutePath
 
         val prootBin = prootBinInNative ?: prootBinInFiles ?: File(filesDir, "libproot-xed.so").absolutePath
