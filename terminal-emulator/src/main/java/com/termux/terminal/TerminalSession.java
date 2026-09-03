@@ -336,6 +336,10 @@ public final class TerminalSession extends TerminalOutput {
     @SuppressLint("HandlerLeak")
     class MainThreadHandler extends Handler {
 
+        public MainThreadHandler() {
+            super(android.os.Looper.getMainLooper());
+        }
+
         final byte[] mReceiveBuffer = new byte[64 * 1024];
 
         @Override

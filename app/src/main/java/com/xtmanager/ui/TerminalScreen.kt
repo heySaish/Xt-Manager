@@ -136,15 +136,13 @@ fun TerminalScreen(
                     }
                     IconButton(onClick = {
                         currentSession?.finishIfRunning()
-                        thread {
-                            val client = NativeTerminalClient(context)
-                            clientRef = client
+                        val client = NativeTerminalClient(context)
+                        clientRef = client
+                        terminalViewRef?.post {
                             val session = alpineManager.createAlpineTerminalSession(client)
                             currentSession = session
-                            terminalViewRef?.post {
-                                terminalViewRef?.attachSession(session)
-                                statusText = "Alpine Linux Active"
-                            }
+                            terminalViewRef?.attachSession(session)
+                            statusText = "Alpine Linux Active"
                         }
                     }) {
                         Icon(
@@ -195,9 +193,9 @@ fun TerminalScreen(
                             }
 
                             if (ready) {
-                                val session = alpineManager.createAlpineTerminalSession(client)
-                                currentSession = session
                                 view.post {
+                                    val session = alpineManager.createAlpineTerminalSession(client)
+                                    currentSession = session
                                     view.attachSession(session)
                                     statusText = "Alpine Linux Active"
                                 }
