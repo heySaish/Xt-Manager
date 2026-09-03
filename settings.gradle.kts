@@ -24,5 +24,5 @@ include(":app")
 include(":terminal-emulator")
 include(":terminal-view")
 
-project(":terminal-emulator").projectDir = file("termux-app/terminal-emulator")
-project(":terminal-view").projectDir = file("termux-app/terminal-view")
+project(":terminal-emulator").projectDir = file("../termux-app/terminal-emulator")
+project(":terminal-view").projectDir = file("../termux-app/terminal-view")
