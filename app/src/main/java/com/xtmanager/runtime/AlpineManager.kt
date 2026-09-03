@@ -78,9 +78,6 @@ class AlpineManager(private val context: Context) {
                 Log.w(TAG, "Optional rm-wrapper setup skipped: ${e.message}")
             }
 
-            // 5. Create axs symlink if needed
-            refreshAxsSymlink()
-
             return true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to setup Alpine environment", e)
@@ -91,7 +88,7 @@ class AlpineManager(private val context: Context) {
 
     private fun copyNativeBinaries(arch: String) {
         val nativeLibsDir = "alpine/$arch/libs"
-        val nativeLibs = arrayOf("libproot-xed.so", "libproot.so", "libaxs.so", "libtalloc.so")
+        val nativeLibs = arrayOf("libproot-xed.so", "libproot.so", "libtalloc.so")
 
         for (libName in nativeLibs) {
             try {
@@ -137,22 +134,7 @@ class AlpineManager(private val context: Context) {
         file.setWritable(true, true)
     }
 
-    private fun refreshAxsSymlink() {
-        try {
-            val axsPath = Paths.get(filesDir.absolutePath, "axs")
-            val nativeAxsPath = Paths.get(context.applicationInfo.nativeLibraryDir, "libaxs.so")
-            val fallbackAxsPath = Paths.get(filesDir.absolutePath, "libaxs.so")
-            
-            val sourceAxs = if (Files.exists(nativeAxsPath)) nativeAxsPath else fallbackAxsPath
-            
-            if (Files.exists(sourceAxs) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                Files.deleteIfExists(axsPath)
-                Files.createSymbolicLink(axsPath, sourceAxs)
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to create axs symlink", e)
-        }
-    }
+
 
     /**
      * Pure Kotlin Tar.Gz extractor with GNU LongName/LongLink & Symlink support.
@@ -301,11 +283,9 @@ class AlpineManager(private val context: Context) {
         
         val prootBinInNative = File(nativeDir, "libproot-xed.so").takeIf { it.exists() }?.absolutePath
             ?: File(nativeDir, "libproot.so").takeIf { it.exists() }?.absolutePath
-            ?: File(nativeDir, "libaxs.so").takeIf { it.exists() }?.absolutePath
 
         val prootBinInFiles = File(filesDir, "libproot-xed.so").takeIf { it.exists() }?.absolutePath
             ?: File(filesDir, "libproot.so").takeIf { it.exists() }?.absolutePath
-            ?: File(filesDir, "libaxs.so").takeIf { it.exists() }?.absolutePath
 
         val prootBin = prootBinInNative ?: prootBinInFiles ?: File(filesDir, "libproot-xed.so").absolutePath
         val initSandboxScript = File(filesDir, "init-sandbox.sh").absolutePath

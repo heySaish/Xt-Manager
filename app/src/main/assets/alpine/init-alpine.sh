@@ -83,7 +83,6 @@ fi
 
 
     echo "$$" > "$PREFIX/pid"
-    chmod +x "$PREFIX/axs" 2>/dev/null || true
 
     if [ ! -e "$PREFIX/alpine/etc/xtmanager_motd" ]; then
         cat <<'EOF' > "$PREFIX/alpine/etc/xtmanager_motd"
@@ -350,6 +349,6 @@ fi
 chmod +x "$PREFIX/alpine/initrc"
 
 if [ "$FAILSAFE" != true ]; then
-    #everytime a terminal is started initrc will run
-    "$PREFIX/axs" -c "bash --rcfile /initrc -i"
+    # everytime a terminal is started initrc will run
+    exec /bin/bash --rcfile /initrc -i
 fi
