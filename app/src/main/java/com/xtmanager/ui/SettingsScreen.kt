@@ -182,7 +182,11 @@ fun SettingsScreen(
                         Switch(
                             checked = naturalSort,
                             onCheckedChange = { naturalSort = it },
-                            colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary)
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                checkedBorderColor = Color.Transparent
+                            )
                         )
                     }
                 )
@@ -199,7 +203,11 @@ fun SettingsScreen(
                         Switch(
                             checked = showHiddenFiles,
                             onCheckedChange = { showHiddenFiles = it },
-                            colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary)
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                checkedBorderColor = Color.Transparent
+                            )
                         )
                     }
                 )
