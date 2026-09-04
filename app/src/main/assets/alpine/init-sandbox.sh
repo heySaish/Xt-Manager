@@ -118,10 +118,18 @@ if [ "$ARCH" != "aarch64" ] && [ "$ARCH" != "x86_64" ]; then
     LINKER="/system/bin/linker"
 fi
 
-PROOT_EXEC="$PROOT"
-if [ ! -x "$PROOT" ] && [ -x "$LINKER" ]; then
-    PROOT_EXEC="$LINKER $PROOT"
-fi
+case "$PROOT" in
+    /data/app/*)
+        PROOT_EXEC="$PROOT"
+        ;;
+    *)
+        if [ -x "$LINKER" ]; then
+            PROOT_EXEC="$LINKER $PROOT"
+        else
+            PROOT_EXEC="$PROOT"
+        fi
+        ;;
+esac
 
 if [ "$FAILSAFE" = true ] && [ "$INSTALLING" != true ]; then
     echo "$$" > "$PREFIX/pid"
