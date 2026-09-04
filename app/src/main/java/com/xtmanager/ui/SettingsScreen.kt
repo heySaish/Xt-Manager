@@ -365,9 +365,9 @@ private fun SettingsGroupCard(
         ) {
             Column(
                 modifier = Modifier.padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                content = content
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                content()
             }
         }
     }
