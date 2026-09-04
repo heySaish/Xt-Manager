@@ -1,8 +1,11 @@
 export LD_LIBRARY_PATH=$PREFIX
+export PROOT_NO_SECCOMP=1
 
 mkdir -p "$PREFIX/tmp"
 mkdir -p "$PREFIX/alpine/tmp"
 mkdir -p "$PREFIX/public"
+
+chmod -R 755 "$PREFIX/alpine/sbin" "$PREFIX/alpine/bin" "$PREFIX/alpine/usr/bin" "$PREFIX/alpine/usr/sbin" 2>/dev/null || true
 
 export PROOT_TMP_DIR=$PREFIX/tmp
 
