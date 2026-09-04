@@ -92,10 +92,12 @@ class LocalFileSystem : FileSystem {
                     val totalMs = (System.nanoTime() - startTime) / 1_000_000.0
                     val rustScanMs = (metrics?.scanUs ?: 0L) / 1000.0
                     val rustSortMs = (metrics?.sortUs ?: 0L) / 1000.0
-                    Log.d(TAG, String.format(
-                        "Rust Scan -> Path: %s | Items: %d | RustScan: %.2fms | RustSort: %.2fms | Total: %.2fms",
+                    val logMsg = String.format(
+                        "⚡ Rust Engine Scan -> Path: %s | Items: %d | Scan: %.2fms | Sort: %.2fms | Total: %.2fms",
                         directory.name, result.size, rustScanMs, rustSortMs, totalMs
-                    ))
+                    )
+                    Log.d(TAG, logMsg)
+                    com.xtmanager.core.logger.AppLogger.d("RUST_FS", logMsg)
 
                     FileSystemCache.put(directory.absolutePath, result)
                     return@withContext result

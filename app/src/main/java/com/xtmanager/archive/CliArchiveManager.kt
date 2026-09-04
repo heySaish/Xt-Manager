@@ -1,5 +1,6 @@
 package com.xtmanager.archive
 
+import com.xtmanager.core.logger.AppLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
@@ -22,14 +23,14 @@ class CliArchiveManager(
 
         val has7z = isBinaryAvailable("7z")
         if (has7z) {
-            android.util.Log.d("XtArchive", "⚡ Active Engine: 7z CLI Engine for $output")
+            AppLogger.i("ARCHIVE", "⚡ Active Engine: 7z CLI Engine for target '$output'")
             run7zCompress(sources, output, format, level, password) { progress, file ->
                 onProgress(progress, "⚡ [7z CLI] $file")
             }
             return@withContext
         }
 
-        android.util.Log.d("XtArchive", "🐢 Active Engine: Java Native Fallback for $output")
+        AppLogger.w("ARCHIVE", "🐢 Active Engine: Java Core Fallback (7z binary not found) for target '$output'")
         fallbackManager.compress(sources, output, format, level, password) { progress, file ->
             onProgress(progress, "🐢 [Java Core] $file")
         }
@@ -47,14 +48,14 @@ class CliArchiveManager(
 
         val has7z = isBinaryAvailable("7z")
         if (has7z) {
-            android.util.Log.d("XtArchive", "⚡ Active Engine: 7z CLI Engine extracting $archive")
+            AppLogger.i("ARCHIVE", "⚡ Active Engine: 7z CLI Engine extracting '$archive'")
             run7zExtract(archiveFile, destDir, password) { progress, file ->
                 onProgress(progress, "⚡ [7z CLI] $file")
             }
             return@withContext
         }
 
-        android.util.Log.d("XtArchive", "🐢 Active Engine: Java Native Fallback extracting $archive")
+        AppLogger.w("ARCHIVE", "🐢 Active Engine: Java Core Fallback extracting '$archive'")
         fallbackManager.extract(archive, destination, password) { progress, file ->
             onProgress(progress, "🐢 [Java Core] $file")
         }
@@ -90,6 +91,7 @@ class CliArchiveManager(
         cmd.add(output)
         cmd.addAll(sources)
 
+        AppLogger.d("ARCHIVE", "⚡ Executing command: ${cmd.joinToString(" ")}")
         executeProcessWithParser(cmd, SevenZipOutputParser(), onProgress)
     }
 
@@ -104,6 +106,7 @@ class CliArchiveManager(
             cmd.add("-p$password")
         }
 
+        AppLogger.d("ARCHIVE", "⚡ Executing command: ${cmd.joinToString(" ")}")
         executeProcessWithParser(cmd, SevenZipOutputParser(), onProgress)
     }
 
@@ -132,6 +135,7 @@ class CliArchiveManager(
                         val now = System.currentTimeMillis()
                         if (now - lastReportTime >= 50) { // throttle to max 20 updates/sec for smooth rendering
                             onProgress(event.percentage, event.currentItem)
+                            AppLogger.d("ARCHIVE", "⚡ [7z CLI ${String.format("%.0f%%", event.percentage * 100)}] ${event.currentItem}")
                             lastReportTime = now
                         }
                     }
@@ -145,8 +149,10 @@ class CliArchiveManager(
 
         val exitCode = process.waitFor()
         if (exitCode != 0) {
+            AppLogger.e("ARCHIVE", "❌ CLI operation failed with exit code $exitCode")
             throw java.io.IOException("CLI operation failed with exit code $exitCode")
         }
+        AppLogger.i("ARCHIVE", "✅ CLI operation completed successfully!")
         onProgress(1.0f, "Operation completed successfully!")
     }
 

@@ -3,6 +3,7 @@ package com.xtmanager.core.operations
 import com.xtmanager.archive.ArchiveFormat
 import com.xtmanager.archive.ArchiveManager
 import com.xtmanager.core.filesystem.FileSystem
+import com.xtmanager.core.logger.AppLogger
 import com.xtmanager.core.model.Operation
 import com.xtmanager.core.model.OperationStatus
 import com.xtmanager.core.model.OperationType
@@ -37,6 +38,7 @@ class OperationManager(
                 status = OperationStatus.PENDING
             )
             addOperation(operation)
+            AppLogger.i("OPERATIONS", "📋 Enqueued COPY: ${File(source).name} ➡️ $destinationDir")
 
             scope.launch {
                 updateStatus(id, OperationStatus.RUNNING)
@@ -45,8 +47,10 @@ class OperationManager(
                         updateProgress(id, processed, total, currentFile)
                     }
                     updateStatus(id, OperationStatus.COMPLETED)
+                    AppLogger.i("OPERATIONS", "✅ COPY COMPLETED: ${File(source).name}")
                 } catch (e: Exception) {
                     updateError(id, e.localizedMessage ?: "Unknown error")
+                    AppLogger.e("OPERATIONS", "❌ COPY FAILED: ${File(source).name} - ${e.message}")
                 }
             }
         }
@@ -65,6 +69,7 @@ class OperationManager(
                 status = OperationStatus.PENDING
             )
             addOperation(operation)
+            AppLogger.i("OPERATIONS", "🚚 Enqueued MOVE: ${File(source).name} ➡️ $destinationDir")
 
             scope.launch {
                 updateStatus(id, OperationStatus.RUNNING)
@@ -73,8 +78,10 @@ class OperationManager(
                         updateProgress(id, processed, total, currentFile)
                     }
                     updateStatus(id, OperationStatus.COMPLETED)
+                    AppLogger.i("OPERATIONS", "✅ MOVE COMPLETED: ${File(source).name}")
                 } catch (e: Exception) {
                     updateError(id, e.localizedMessage ?: "Unknown error")
+                    AppLogger.e("OPERATIONS", "❌ MOVE FAILED: ${File(source).name} - ${e.message}")
                 }
             }
         }
@@ -91,6 +98,7 @@ class OperationManager(
                 status = OperationStatus.PENDING
             )
             addOperation(operation)
+            AppLogger.i("OPERATIONS", "🗑️ Enqueued DELETE: ${File(path).name}")
 
             scope.launch {
                 updateStatus(id, OperationStatus.RUNNING)
@@ -99,8 +107,10 @@ class OperationManager(
                         updateProgress(id, processed, total, currentFile)
                     }
                     updateStatus(id, OperationStatus.COMPLETED)
+                    AppLogger.i("OPERATIONS", "✅ DELETE COMPLETED: ${File(path).name}")
                 } catch (e: Exception) {
                     updateError(id, e.localizedMessage ?: "Unknown error")
+                    AppLogger.e("OPERATIONS", "❌ DELETE FAILED: ${File(path).name} - ${e.message}")
                 }
             }
         }
@@ -122,6 +132,7 @@ class OperationManager(
             status = OperationStatus.PENDING
         )
         addOperation(operation)
+        AppLogger.i("OPERATIONS", "📦 Enqueued COMPRESS: $format | Target: ${File(outputArchive).name} | Password: ${if (!password.isNullOrEmpty()) "YES" else "NO"}")
 
         scope.launch {
             updateStatus(id, OperationStatus.RUNNING)
@@ -131,8 +142,10 @@ class OperationManager(
                     updateProgress(id, processed, 100, currentFile)
                 }
                 updateStatus(id, OperationStatus.COMPLETED)
+                AppLogger.i("OPERATIONS", "✅ COMPRESS COMPLETED: ${File(outputArchive).name}")
             } catch (e: Exception) {
                 updateError(id, e.localizedMessage ?: "Unknown error")
+                AppLogger.e("OPERATIONS", "❌ COMPRESS FAILED: ${File(outputArchive).name} - ${e.message}")
             }
         }
     }
@@ -147,6 +160,7 @@ class OperationManager(
             status = OperationStatus.PENDING
         )
         addOperation(operation)
+        AppLogger.i("OPERATIONS", "📂 Enqueued EXTRACT: ${File(archivePath).name} ➡️ $destinationDir")
 
         scope.launch {
             updateStatus(id, OperationStatus.RUNNING)
@@ -156,8 +170,10 @@ class OperationManager(
                     updateProgress(id, processed, 100, currentFile)
                 }
                 updateStatus(id, OperationStatus.COMPLETED)
+                AppLogger.i("OPERATIONS", "✅ EXTRACT COMPLETED: ${File(archivePath).name}")
             } catch (e: Exception) {
                 updateError(id, e.localizedMessage ?: "Unknown error")
+                AppLogger.e("OPERATIONS", "❌ EXTRACT FAILED: ${File(archivePath).name} - ${e.message}")
             }
         }
     }

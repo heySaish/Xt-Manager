@@ -439,18 +439,24 @@ private fun SettingsRowItem(
 }
 
 private fun fetchAppLogs(): String {
-    return try {
+    val telemetryLogs = com.xtmanager.core.logger.AppLogger.getAllLogs()
+    val systemLogcat = try {
         val process = Runtime.getRuntime().exec(
-            arrayOf("logcat", "-d", "-s", "XtFsMetrics:V", "com.xtmanager:V", "*:E")
+            arrayOf("logcat", "-d", "-s", "XtFsMetrics:V", "XtArchive:V", "XtOperation:V", "com.xtmanager:V", "*:E")
         )
         val log = process.inputStream.bufferedReader().use { it.readText() }
-        if (log.trim().isEmpty()) {
-            "No active logcat entries found.\nApp initialized cleanly."
-        } else {
-            log.takeLast(4000)
-        }
+        if (log.trim().isEmpty()) "" else log.takeLast(3000)
     } catch (e: Exception) {
-        "Failed to read logcat: ${e.message}"
+        "Logcat fetch error: ${e.message}"
+    }
+
+    return buildString {
+        append("=== Real-time App & Engine Telemetry ===\n")
+        append(telemetryLogs)
+        if (systemLogcat.isNotBlank()) {
+            append("\n\n=== System Logcat Dump ===\n")
+            append(systemLogcat)
+        }
     }
 }
 
