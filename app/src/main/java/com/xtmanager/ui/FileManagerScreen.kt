@@ -3,6 +3,12 @@ package com.xtmanager.ui
 import android.app.Activity
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -134,23 +140,6 @@ fun FileManagerScreen(
     var showTerminal by remember { mutableStateOf(false) }
     var terminalInitialPath by remember { mutableStateOf<String?>(null) }
 
-    if (showTerminal) {
-        TerminalScreen(
-            onClose = { showTerminal = false },
-            initialPath = terminalInitialPath,
-            modifier = modifier
-        )
-        return
-    }
-
-    if (showSettingsScreen) {
-        SettingsScreen(
-            onClose = { showSettingsScreen = false },
-            modifier = modifier
-        )
-        return
-    }
-    
     var topMenuExpanded by remember { mutableStateOf(false) }
     var lastBackPressTime by remember { mutableStateOf(0L) }
 
@@ -178,8 +167,9 @@ fun FileManagerScreen(
         }
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
+    Box(modifier = modifier.fillMaxSize()) {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
                 Column(
@@ -882,6 +872,44 @@ fun FileManagerScreen(
         LaunchedEffect(Unit) {
             focusRequester.requestFocus()
         }
+    }
+
+    // Animated Terminal Screen Overlay (Right-to-Left Slide)
+    AnimatedVisibility(
+        visible = showTerminal,
+        enter = slideInHorizontally(
+            initialOffsetX = { fullWidth -> fullWidth },
+            animationSpec = tween(durationMillis = 300)
+        ) + fadeIn(animationSpec = tween(durationMillis = 300)),
+        exit = slideOutHorizontally(
+            targetOffsetX = { fullWidth -> fullWidth },
+            animationSpec = tween(durationMillis = 300)
+        ) + fadeOut(animationSpec = tween(durationMillis = 300))
+    ) {
+        TerminalScreen(
+            onClose = { showTerminal = false },
+            initialPath = terminalInitialPath,
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+
+    // Animated Settings Screen Overlay (Right-to-Left Slide)
+    AnimatedVisibility(
+        visible = showSettingsScreen,
+        enter = slideInHorizontally(
+            initialOffsetX = { fullWidth -> fullWidth },
+            animationSpec = tween(durationMillis = 300)
+        ) + fadeIn(animationSpec = tween(durationMillis = 300)),
+        exit = slideOutHorizontally(
+            targetOffsetX = { fullWidth -> fullWidth },
+            animationSpec = tween(durationMillis = 300)
+        ) + fadeOut(animationSpec = tween(durationMillis = 300))
+    ) {
+        SettingsScreen(
+            onClose = { showSettingsScreen = false },
+            modifier = Modifier.fillMaxSize()
+        )
+    }
     }
 }
 
