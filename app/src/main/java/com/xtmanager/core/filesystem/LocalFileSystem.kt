@@ -352,12 +352,19 @@ class LocalFileSystem : FileSystem {
 
             FileInputStream(src).use { input ->
                 FileOutputStream(dest).use { output ->
-                    val buffer = ByteArray(8192)
+                    val buffer = ByteArray(64 * 1024)
                     var bytesRead: Int
+                    var lastUpdate = 0L
                     while (input.read(buffer).also { bytesRead = it } != -1) {
                         output.write(buffer, 0, bytesRead)
-                        onProgressUpdate(bytesRead.toLong(), src.name)
+                        val now = System.currentTimeMillis()
+                        if (now - lastUpdate >= 50) {
+                            onProgressUpdate(bytesRead.toLong(), src.name)
+                            lastUpdate = now
+                        }
                     }
+                    // Final update for this file
+                    onProgressUpdate(0L, src.name)
                 }
             }
         }

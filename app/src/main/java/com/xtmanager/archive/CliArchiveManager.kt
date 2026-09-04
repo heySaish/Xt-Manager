@@ -117,14 +117,30 @@ class CliArchiveManager(
         pb.redirectErrorStream(true)
         val process = pb.start()
 
-        val reader = BufferedReader(InputStreamReader(process.inputStream))
-        var line: String? = reader.readLine()
-        while (line != null) {
-            val event = parser.parseLine(line)
-            if (event is ProgressEvent.Progressing) {
-                onProgress(event.percentage, event.currentItem)
+        val reader = InputStreamReader(process.inputStream)
+        val sb = StringBuilder()
+        var charCode = reader.read()
+        var lastReportTime = 0L
+
+        while (charCode != -1) {
+            val ch = charCode.toChar()
+            if (ch == '\r' || ch == '\n') {
+                if (sb.isNotEmpty()) {
+                    val line = sb.toString()
+                    val event = parser.parseLine(line)
+                    if (event is ProgressEvent.Progressing) {
+                        val now = System.currentTimeMillis()
+                        if (now - lastReportTime >= 50) { // throttle to max 20 updates/sec for smooth rendering
+                            onProgress(event.percentage, event.currentItem)
+                            lastReportTime = now
+                        }
+                    }
+                    sb.clear()
+                }
+            } else {
+                sb.append(ch)
             }
-            line = reader.readLine()
+            charCode = reader.read()
         }
 
         val exitCode = process.waitFor()

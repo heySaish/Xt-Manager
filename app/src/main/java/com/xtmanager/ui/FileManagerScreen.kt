@@ -46,6 +46,9 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
@@ -452,8 +455,14 @@ fun FileManagerScreen(
                     },
                     onCreateFolder = { showCreateDialog = true },
                     onSyncPath = { viewModel.navigateTo(inactivePane, activeState.path) },
-                    onCopy = { viewModel.copySelected(activePane) },
-                    onMove = { viewModel.moveSelected(activePane) },
+                    onCopy = { 
+                        viewModel.copySelected(activePane)
+                        showOperationsDialog = true
+                    },
+                    onMove = { 
+                        viewModel.moveSelected(activePane)
+                        showOperationsDialog = true
+                    },
                     onRename = {
                         // Rename the first selected file
                         val selectedPath = activeState.selected.firstOrNull()
@@ -564,6 +573,82 @@ fun FileManagerScreen(
                             .padding(start = 2.dp)
                     )
                 }
+
+                // Floating Operations Progress Card Overlay
+                val runningOps = operations.filter { it.status == com.xtmanager.core.model.OperationStatus.RUNNING || it.status == com.xtmanager.core.model.OperationStatus.PENDING }
+                if (runningOps.isNotEmpty()) {
+                    val activeOp = runningOps.first()
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp, horizontal = 4.dp)
+                            .clickable { showOperationsDialog = true },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "${activeOp.type.name}: ${File(activeOp.source).name}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Text(
+                                    text = activeOp.formattedProgress,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            LinearProgressIndicator(
+                                progress = activeOp.progress,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = if (activeOp.currentFileName.isNotEmpty()) "Processing: ${activeOp.currentFileName}" else "Processing...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    text = activeOp.formattedProcessedSize,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -611,6 +696,7 @@ fun FileManagerScreen(
             onConfirm = {
                 viewModel.deleteSelected(activePane)
                 showDeleteConfirmDialog = false
+                showOperationsDialog = true
             }
         )
     }
@@ -630,6 +716,7 @@ fun FileManagerScreen(
                     password = password
                 )
                 showCompressDialog = false
+                showOperationsDialog = true
             }
         )
     }
@@ -660,6 +747,7 @@ fun FileManagerScreen(
                         if (destDir.isNotBlank()) {
                             viewModel.extractSelected(activePane, file.path, destDir)
                             showExtractDialog = null
+                            showOperationsDialog = true
                         }
                     }
                 ) {
@@ -863,13 +951,13 @@ fun FileManagerScreen(
             onCopy = {
                 val destPath = inactiveState.path
                 viewModel.copyPaths(listOf(file.path), destPath)
-                Toast.makeText(context, "Copying ${file.name} to $destPath", Toast.LENGTH_SHORT).show()
+                showOperationsDialog = true
                 contextMenuTargetFile = null
             },
             onMove = {
                 val destPath = inactiveState.path
                 viewModel.movePaths(listOf(file.path), destPath)
-                Toast.makeText(context, "Moving ${file.name} to $destPath", Toast.LENGTH_SHORT).show()
+                showOperationsDialog = true
                 contextMenuTargetFile = null
             },
             onDelete = {
@@ -906,6 +994,7 @@ fun FileManagerScreen(
                     password = password
                 )
                 compressTargetItem = null
+                showOperationsDialog = true
             }
         )
     }
@@ -920,6 +1009,7 @@ fun FileManagerScreen(
             onConfirm = {
                 viewModel.deletePaths(listOf(file.path))
                 showSingleDeleteDialog = null
+                showOperationsDialog = true
             }
         )
     }
