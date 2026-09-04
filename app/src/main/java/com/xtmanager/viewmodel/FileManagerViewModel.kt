@@ -277,6 +277,22 @@ class FileManagerViewModel(
             refreshPane(PaneType.LEFT)
             refreshPane(PaneType.RIGHT)
         }
+    fun copyPaths(paths: List<String>, destDir: String) {
+        if (paths.isEmpty()) return
+        operationManager.enqueueCopy(paths, destDir)
+        viewModelScope.launch {
+            refreshPane(PaneType.LEFT)
+            refreshPane(PaneType.RIGHT)
+        }
+    }
+
+    fun movePaths(paths: List<String>, destDir: String) {
+        if (paths.isEmpty()) return
+        operationManager.enqueueMove(paths, destDir)
+        viewModelScope.launch {
+            refreshPane(PaneType.LEFT)
+            refreshPane(PaneType.RIGHT)
+        }
     }
 
     fun copySelected(fromPane: PaneType) {

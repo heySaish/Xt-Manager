@@ -50,7 +50,7 @@ fun FileContextMenuDialog(
     onExtract: () -> Unit
 ) {
     val isArchive = remember(fileEntry) {
-        val ext = fileEntry.extension.lowercase()
+        val ext = java.io.File(fileEntry.path).extension.lowercase()
         ext in setOf("zip", "apk", "tar", "gz", "7z", "rar", "bz2", "xz") || fileEntry.type == FileType.ARCHIVE
     }
 
