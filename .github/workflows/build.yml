@@ -20,16 +20,19 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
-    - name: Install NDK
-      run: sdkmanager "ndk;26.3.11579264"
-
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v4
+    - name: Set up Rust Toolchain
+      uses: dtolnay/rust-toolchain@stable
       with:
-        gradle-version: 9.7.1
+        targets: aarch64-linux-android
 
-    - name: Generate Gradle Wrapper
-      run: gradle wrapper
+    - name: Install cargo-ndk
+      run: cargo install cargo-ndk
+
+    - name: Build Rust Native Engine (libxt_fs.so)
+      run: |
+        mkdir -p app/src/main/jniLibs/arm64-v8a
+        cd native-fs
+        cargo ndk -t arm64-v8a -o ../app/src/main/jniLibs build --release
 
     - name: Build Debug APK
       run: ./gradlew assembleDebug

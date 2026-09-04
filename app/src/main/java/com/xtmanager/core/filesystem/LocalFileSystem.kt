@@ -11,10 +11,57 @@ import java.io.IOException
 
 class LocalFileSystem : FileSystem {
 
+    class RawFileItem(
+        val name: String,
+        val isDir: Boolean,
+        val size: Long,
+        val lastMod: Long,
+        val isArchive: Boolean
+    )
+
+    companion object {
+        private var isNativeLoaded = false
+        init {
+            try {
+                System.loadLibrary("xt_fs")
+                isNativeLoaded = true
+            } catch (_: Throwable) {
+                isNativeLoaded = false
+            }
+        }
+
+        @JvmStatic
+        private external fun nativeListFiles(path: String): Array<RawFileItem>?
+    }
+
     override suspend fun list(path: String): List<FileEntry> = withContext(Dispatchers.IO) {
         val directory = File(path)
         if (!directory.exists() || !directory.isDirectory) {
             return@withContext emptyList()
+        }
+
+        if (isNativeLoaded) {
+            try {
+                val rawItems = nativeListFiles(directory.absolutePath)
+                if (rawItems != null && rawItems.isNotEmpty()) {
+                    val basePath = if (directory.absolutePath.endsWith("/")) directory.absolutePath else "${directory.absolutePath}/"
+                    return@withContext rawItems.map { item ->
+                        val type = when {
+                            item.isDir -> FileType.DIRECTORY
+                            item.isArchive -> FileType.ARCHIVE
+                            else -> FileType.FILE
+                        }
+                        FileEntry(
+                            name = item.name,
+                            path = "$basePath${item.name}",
+                            isDirectory = item.isDir,
+                            size = item.size,
+                            lastModified = item.lastMod,
+                            type = type
+                        )
+                    }
+                }
+            } catch (_: Exception) {}
         }
 
         var filesList: Array<File>? = directory.listFiles()
