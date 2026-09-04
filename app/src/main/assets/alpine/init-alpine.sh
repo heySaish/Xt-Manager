@@ -235,13 +235,25 @@ fi
 
 chmod +x "$PREFIX/alpine/initrc"
 
-if [ "$FAILSAFE" != true ]; then
-    # everytime a terminal is started initrc will run
-    if [ -x /bin/bash ]; then
-        exec /bin/bash --rcfile /initrc -i
-    elif [ -x /usr/bin/bash ]; then
-        exec /usr/bin/bash --rcfile /initrc -i
-    else
-        exec /bin/sh
+# First-time terminal open script execution
+if [ ! -f "$PREFIX/.first_boot_script_run" ]; then
+    if [ -f "$PREFIX/setup-alpine.sh" ]; then
+        /bin/sh "$PREFIX/setup-alpine.sh" 2>/dev/null || true
+    elif [ -f /setup-alpine.sh ]; then
+        /bin/sh /setup-alpine.sh 2>/dev/null || true
     fi
+    touch "$PREFIX/.first_boot_script_run" 2>/dev/null || true
+fi
+
+# Shell Login System: Bash if installed, otherwise fallback to /bin/sh
+if [ -x /bin/bash ]; then
+    exec /bin/bash --rcfile /initrc -i
+elif [ -x /usr/bin/bash ]; then
+    exec /usr/bin/bash --rcfile /initrc -i
+elif [ -x "$PREFIX/alpine/bin/bash" ]; then
+    exec "$PREFIX/alpine/bin/bash" --rcfile /initrc -i
+elif [ -x "$PREFIX/alpine/usr/bin/bash" ]; then
+    exec "$PREFIX/alpine/usr/bin/bash" --rcfile /initrc -i
+else
+    exec /bin/sh -i
 fi

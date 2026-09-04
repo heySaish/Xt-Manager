@@ -77,10 +77,9 @@ fun TerminalScreen(
     initialPath: String? = null,
     modifier: Modifier = Modifier
 ) {
-    BackHandler {
-        onClose()
-    }
     val context = LocalContext.current
+    val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+
     var statusText by remember { mutableStateOf("Initializing...") }
     var currentSession by remember { mutableStateOf<TerminalSession?>(null) }
     var terminalViewRef by remember { mutableStateOf<TerminalView?>(null) }
@@ -97,6 +96,24 @@ fun TerminalScreen(
             val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
             imm?.showSoftInput(view, InputMethodManager.SHOW_FORCED)
         }
+    }
+
+    fun hideKeyboard() {
+        keyboardController?.hide()
+        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        val view = terminalViewRef ?: (context as? android.app.Activity)?.currentFocus
+        if (view != null) {
+            imm?.hideSoftInputFromWindow(view.windowToken, 0)
+        }
+    }
+
+    val handleClose = {
+        hideKeyboard()
+        onClose()
+    }
+
+    BackHandler {
+        handleClose()
     }
 
     // Start Foreground Service to keep terminal alive in background
@@ -143,7 +160,7 @@ fun TerminalScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onClose) {
+                    IconButton(onClick = handleClose) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back"
@@ -272,6 +289,7 @@ fun TerminalScreen(
 
     DisposableEffect(Unit) {
         onDispose {
+            hideKeyboard()
             currentSession?.finishIfRunning()
         }
     }
