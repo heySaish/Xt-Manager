@@ -15,8 +15,8 @@ EOF
 echo "[3/4] Updating APK indexes..."
 apk update || true
 
-echo "[4/4] Installing Bash..."
-apk add bash || true
+echo "[4/4] Installing Bash & Archive CLI Tools (7z, tar, zip, unzip, pv)..."
+apk add bash p7zip tar zip unzip pv || true
 
 echo
 echo "================================"
