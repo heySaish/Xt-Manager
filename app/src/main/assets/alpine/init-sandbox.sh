@@ -112,16 +112,20 @@ for arg in "$@"; do
     esac
 done
 
+LINKER="/system/bin/linker64"
+ARCH="$(uname -m)"
+if [ "$ARCH" != "aarch64" ] && [ "$ARCH" != "x86_64" ]; then
+    LINKER="/system/bin/linker"
+fi
+
+PROOT_EXEC="$PROOT"
+if [ ! -x "$PROOT" ] && [ -x "$LINKER" ]; then
+    PROOT_EXEC="$LINKER $PROOT"
+fi
+
 if [ "$FAILSAFE" = true ] && [ "$INSTALLING" != true ]; then
     echo "$$" > "$PREFIX/pid"
-
-    LINKER="/system/bin/linker64"
-    ARCH="$(uname -m)"
-    if [ "$ARCH" != "aarch64" ] && [ "$ARCH" != "x86_64" ]; then
-        LINKER="/system/bin/linker"
-    fi
-
-    exec "$PROOT" $ARGS /bin/sh
+    exec $PROOT_EXEC $ARGS /bin/sh
 else
-    exec "$PROOT" $ARGS /bin/sh "$PREFIX/init-alpine.sh" "$@"
+    exec $PROOT_EXEC $ARGS /bin/sh "$PREFIX/init-alpine.sh" "$@"
 fi

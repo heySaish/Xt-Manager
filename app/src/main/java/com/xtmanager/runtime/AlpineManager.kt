@@ -93,21 +93,17 @@ class AlpineManager(private val context: Context) {
 
         for (libName in nativeLibs) {
             val nativeFile = File(nativeDir, libName)
-            if (nativeFile.exists()) {
-                Log.d(TAG, "Native library $libName exists in nativeLibraryDir: ${nativeFile.absolutePath}")
-                val filesFile = File(filesDir, libName)
-                if (filesFile.exists()) {
-                    filesFile.delete()
+            val outFile = File(filesDir, libName)
+            if (!nativeFile.exists() || !outFile.exists()) {
+                try {
+                    copyAssetFile("$nativeLibsDir/$libName", outFile)
+                    makeExecutable(outFile)
+                    Log.d(TAG, "Copied native library $libName to ${outFile.absolutePath}")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Optional asset copy skipped for $libName: ${e.message}")
                 }
-                continue
-            }
-            try {
-                val outFile = File(filesDir, libName)
-                copyAssetFile("$nativeLibsDir/$libName", outFile)
+            } else {
                 makeExecutable(outFile)
-                Log.d(TAG, "Copied native library $libName to ${outFile.absolutePath}")
-            } catch (e: Exception) {
-                Log.w(TAG, "Optional asset copy skipped for $libName: ${e.message}")
             }
         }
 
@@ -295,8 +291,14 @@ class AlpineManager(private val context: Context) {
         val prootBinInNative = File(nativeDir, "libproot-xed.so").takeIf { it.exists() }?.absolutePath
             ?: File(nativeDir, "libproot.so").takeIf { it.exists() }?.absolutePath
 
-        val prootBinInFiles = File(filesDir, "libproot-xed.so").takeIf { it.exists() }?.absolutePath
+        var prootBinInFiles = File(filesDir, "libproot-xed.so").takeIf { it.exists() }?.absolutePath
             ?: File(filesDir, "libproot.so").takeIf { it.exists() }?.absolutePath
+
+        if (prootBinInNative == null && prootBinInFiles == null) {
+            copyNativeBinaries("arm64")
+            prootBinInFiles = File(filesDir, "libproot-xed.so").takeIf { it.exists() }?.absolutePath
+                ?: File(filesDir, "libproot.so").takeIf { it.exists() }?.absolutePath
+        }
 
         val prootBin = prootBinInNative ?: prootBinInFiles ?: File(filesDir, "libproot-xed.so").absolutePath
         val initSandboxScript = File(filesDir, "init-sandbox.sh").absolutePath
