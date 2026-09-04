@@ -20,15 +20,19 @@ class CliArchiveManager(
     ) = withContext(Dispatchers.IO) {
         if (sources.isEmpty()) return@withContext
 
-        // Try 7z CLI execution first if available
         val has7z = isBinaryAvailable("7z")
         if (has7z) {
-            run7zCompress(sources, output, format, level, password, onProgress)
+            android.util.Log.d("XtArchive", "⚡ Active Engine: 7z CLI Engine for $output")
+            run7zCompress(sources, output, format, level, password) { progress, file ->
+                onProgress(progress, "⚡ [7z CLI] $file")
+            }
             return@withContext
         }
 
-        // Fallback to native Zip/Tar engine
-        fallbackManager.compress(sources, output, format, level, password, onProgress)
+        android.util.Log.d("XtArchive", "🐢 Active Engine: Java Native Fallback for $output")
+        fallbackManager.compress(sources, output, format, level, password) { progress, file ->
+            onProgress(progress, "🐢 [Java Core] $file")
+        }
     }
 
     override suspend fun extract(
@@ -43,12 +47,17 @@ class CliArchiveManager(
 
         val has7z = isBinaryAvailable("7z")
         if (has7z) {
-            run7zExtract(archiveFile, destDir, password, onProgress)
+            android.util.Log.d("XtArchive", "⚡ Active Engine: 7z CLI Engine extracting $archive")
+            run7zExtract(archiveFile, destDir, password) { progress, file ->
+                onProgress(progress, "⚡ [7z CLI] $file")
+            }
             return@withContext
         }
 
-        // Fallback to native Zip/Tar engine
-        fallbackManager.extract(archive, destination, password, onProgress)
+        android.util.Log.d("XtArchive", "🐢 Active Engine: Java Native Fallback extracting $archive")
+        fallbackManager.extract(archive, destination, password) { progress, file ->
+            onProgress(progress, "🐢 [Java Core] $file")
+        }
     }
 
     private fun run7zCompress(
