@@ -1,5 +1,6 @@
 package com.xtmanager.core.filesystem
 
+import android.util.Log
 import com.xtmanager.core.model.FileEntry
 import com.xtmanager.core.model.FileType
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +20,15 @@ class LocalFileSystem : FileSystem {
         val isArchive: Boolean
     )
 
+    class FsScanMetrics(
+        val scanUs: Long,
+        val sortUs: Long,
+        val totalUs: Long,
+        val count: Int
+    )
+
     companion object {
+        private const val TAG = "XtFsMetrics"
         private var isNativeLoaded = false
         init {
             try {
@@ -32,6 +41,9 @@ class LocalFileSystem : FileSystem {
 
         @JvmStatic
         private external fun nativeListFiles(path: String): Array<RawFileItem>?
+
+        @JvmStatic
+        private external fun nativeGetLastMetrics(): FsScanMetrics?
     }
 
     override suspend fun list(path: String): List<FileEntry> = withContext(Dispatchers.IO) {
@@ -40,12 +52,21 @@ class LocalFileSystem : FileSystem {
             return@withContext emptyList()
         }
 
+        val cached = FileSystemCache.get(directory.absolutePath)
+        if (cached != null) {
+            Log.d(TAG, "Cache HIT for ${directory.absolutePath} (${cached.size} items)")
+            return@withContext cached
+        }
+
+        val startTime = System.nanoTime()
+
         if (isNativeLoaded) {
             try {
                 val rawItems = nativeListFiles(directory.absolutePath)
-                if (rawItems != null && rawItems.isNotEmpty()) {
+                if (rawItems != null) {
+                    val metrics = nativeGetLastMetrics()
                     val basePath = if (directory.absolutePath.endsWith("/")) directory.absolutePath else "${directory.absolutePath}/"
-                    return@withContext rawItems.map { item ->
+                    val result = rawItems.map { item ->
                         val type = when {
                             item.isDir -> FileType.DIRECTORY
                             item.isArchive -> FileType.ARCHIVE
@@ -60,8 +81,21 @@ class LocalFileSystem : FileSystem {
                             type = type
                         )
                     }
+
+                    val totalMs = (System.nanoTime() - startTime) / 1_000_000.0
+                    val rustScanMs = (metrics?.scanUs ?: 0L) / 1000.0
+                    val rustSortMs = (metrics?.sortUs ?: 0L) / 1000.0
+                    Log.d(TAG, String.format(
+                        "Rust Scan -> Path: %s | Items: %d | RustScan: %.2fms | RustSort: %.2fms | Total: %.2fms",
+                        directory.name, result.size, rustScanMs, rustSortMs, totalMs
+                    ))
+
+                    FileSystemCache.put(directory.absolutePath, result)
+                    return@withContext result
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                Log.e(TAG, "Native scan error: ${e.message}")
+            }
         }
 
         var filesList: Array<File>? = directory.listFiles()

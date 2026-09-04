@@ -14,6 +14,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.File
 
+import com.xtmanager.core.filesystem.FileSystemCache
+import kotlinx.coroutines.delay
+
 class FileManagerViewModel(
     private val fileSystem: FileSystem,
     private val operationManager: OperationManager
@@ -47,20 +50,39 @@ class FileManagerViewModel(
         refreshPane(PaneType.RIGHT)
     }
 
+    private suspend fun loadAndEmitChunked(
+        paneType: PaneType,
+        path: String,
+        stateBuilder: (List<FileEntry>) -> PaneState
+    ) {
+        val allFiles = fileSystem.list(path)
+        val filteredFiles = if (_showHiddenFiles.value) {
+            allFiles
+        } else {
+            allFiles.filter { !it.name.startsWith(".") }
+        }
+
+        if (filteredFiles.size <= 500) {
+            updatePane(paneType, stateBuilder(filteredFiles))
+        } else {
+            // First chunk of 500 items for instant UI frame rendering (<16ms)
+            val firstChunk = filteredFiles.take(500)
+            updatePane(paneType, stateBuilder(firstChunk))
+            
+            delay(10)
+            updatePane(paneType, stateBuilder(filteredFiles))
+        }
+    }
+
     fun refreshPane(paneType: PaneType) {
         val state = if (paneType == PaneType.LEFT) _leftPaneState.value else _rightPaneState.value
+        FileSystemCache.invalidate(state.path)
         viewModelScope.launch {
             try {
-                val allFiles = fileSystem.list(state.path)
-                val filteredFiles = if (_showHiddenFiles.value) {
-                    allFiles
-                } else {
-                    allFiles.filter { !it.name.startsWith(".") }
+                loadAndEmitChunked(paneType, state.path) { files ->
+                    state.copy(files = files, selected = emptySet())
                 }
-                
-                updatePane(paneType, state.copy(files = filteredFiles, selected = emptySet()))
             } catch (e: Exception) {
-                // Keep empty files if list fails
                 updatePane(paneType, state.copy(files = emptyList(), selected = emptySet()))
             }
         }
@@ -75,23 +97,15 @@ class FileManagerViewModel(
 
         viewModelScope.launch {
             try {
-                val allFiles = fileSystem.list(normalizedPath)
-                val filteredFiles = if (_showHiddenFiles.value) {
-                    allFiles
-                } else {
-                    allFiles.filter { !it.name.startsWith(".") }
-                }
-                
-                updatePane(
-                    paneType,
+                loadAndEmitChunked(paneType, normalizedPath) { files ->
                     PaneState(
                         path = normalizedPath,
-                        files = filteredFiles,
+                        files = files,
                         selected = emptySet(),
                         history = newHistory,
                         historyIndex = newIndex
                     )
-                )
+                }
             } catch (e: Exception) {
                 // Handle navigation error
             }
@@ -104,21 +118,16 @@ class FileManagerViewModel(
             val newIndex = state.historyIndex - 1
             val newPath = state.history[newIndex]
             viewModelScope.launch {
-                val allFiles = fileSystem.list(newPath)
-                val filteredFiles = if (_showHiddenFiles.value) {
-                    allFiles
-                } else {
-                    allFiles.filter { !it.name.startsWith(".") }
-                }
-                updatePane(
-                    paneType,
-                    state.copy(
-                        path = newPath,
-                        files = filteredFiles,
-                        selected = emptySet(),
-                        historyIndex = newIndex
-                    )
-                )
+                try {
+                    loadAndEmitChunked(paneType, newPath) { files ->
+                        state.copy(
+                            path = newPath,
+                            files = files,
+                            selected = emptySet(),
+                            historyIndex = newIndex
+                        )
+                    }
+                } catch (e: Exception) {}
             }
         }
     }
@@ -129,21 +138,16 @@ class FileManagerViewModel(
             val newIndex = state.historyIndex + 1
             val newPath = state.history[newIndex]
             viewModelScope.launch {
-                val allFiles = fileSystem.list(newPath)
-                val filteredFiles = if (_showHiddenFiles.value) {
-                    allFiles
-                } else {
-                    allFiles.filter { !it.name.startsWith(".") }
-                }
-                updatePane(
-                    paneType,
-                    state.copy(
-                        path = newPath,
-                        files = filteredFiles,
-                        selected = emptySet(),
-                        historyIndex = newIndex
-                    )
-                )
+                try {
+                    loadAndEmitChunked(paneType, newPath) { files ->
+                        state.copy(
+                            path = newPath,
+                            files = files,
+                            selected = emptySet(),
+                            historyIndex = newIndex
+                        )
+                    }
+                } catch (e: Exception) {}
             }
         }
     }
