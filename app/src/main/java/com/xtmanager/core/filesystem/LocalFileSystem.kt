@@ -35,7 +35,12 @@ class LocalFileSystem : FileSystem {
                 System.loadLibrary("xt_fs")
                 isNativeLoaded = true
             } catch (_: Throwable) {
-                isNativeLoaded = false
+                try {
+                    System.loadLibrary("native_fs")
+                    isNativeLoaded = true
+                } catch (_: Throwable) {
+                    isNativeLoaded = false
+                }
             }
         }
 
