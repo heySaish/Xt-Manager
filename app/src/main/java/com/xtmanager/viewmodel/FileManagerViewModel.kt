@@ -256,6 +256,15 @@ class FileManagerViewModel(
         }
     }
 
+    fun deletePaths(paths: List<String>) {
+        if (paths.isEmpty()) return
+        operationManager.enqueueDelete(paths)
+        viewModelScope.launch {
+            refreshPane(PaneType.LEFT)
+            refreshPane(PaneType.RIGHT)
+        }
+    }
+
     fun deleteSelected(paneType: PaneType) {
         val state = if (paneType == PaneType.LEFT) _leftPaneState.value else _rightPaneState.value
         if (state.selected.isEmpty()) return

@@ -94,6 +94,7 @@ import com.xtmanager.core.model.PaneType
 import com.xtmanager.ui.dialogs.ConfirmDialog
 import com.xtmanager.ui.dialogs.CreateDialog
 import com.xtmanager.ui.dialogs.RenameDialog
+import com.xtmanager.ui.dialogs.FileContextMenuDialog
 import com.xtmanager.ui.SettingsScreen
 import androidx.compose.material.icons.filled.Settings
 import com.xtmanager.viewmodel.FileManagerViewModel
@@ -139,6 +140,8 @@ fun FileManagerScreen(
     var showJumpToPathDialog by remember { mutableStateOf(false) }
     var showTerminal by remember { mutableStateOf(false) }
     var terminalInitialPath by remember { mutableStateOf<String?>(null) }
+    var contextMenuTargetFile by remember { mutableStateOf<FileEntry?>(null) }
+    var showSingleDeleteDialog by remember { mutableStateOf<FileEntry?>(null) }
 
     var topMenuExpanded by remember { mutableStateOf(false) }
     var lastBackPressTime by remember { mutableStateOf(0L) }
@@ -508,7 +511,7 @@ fun FileManagerScreen(
                         },
                         onFileLongClick = { file ->
                             viewModel.setActivePane(PaneType.LEFT)
-                            viewModel.toggleFileSelection(PaneType.LEFT, file.path)
+                            contextMenuTargetFile = file
                         },
                         onPathClick = { path ->
                             viewModel.setActivePane(PaneType.LEFT)
@@ -542,7 +545,7 @@ fun FileManagerScreen(
                         },
                         onFileLongClick = { file ->
                             viewModel.setActivePane(PaneType.RIGHT)
-                            viewModel.toggleFileSelection(PaneType.RIGHT, file.path)
+                            contextMenuTargetFile = file
                         },
                         onPathClick = { path ->
                             viewModel.setActivePane(PaneType.RIGHT)
@@ -908,6 +911,56 @@ fun FileManagerScreen(
         SettingsScreen(
             onClose = { showSettingsScreen = false },
             modifier = Modifier.fillMaxSize()
+        )
+    }
+
+    // 2-Column Floating Context Menu Dialog on Long Press
+    contextMenuTargetFile?.let { file ->
+        FileContextMenuDialog(
+            fileEntry = file,
+            onDismiss = { contextMenuTargetFile = null },
+            onCopy = {
+                val destPath = inactiveState.path
+                viewModel.copyPaths(listOf(file.path), destPath)
+                Toast.makeText(context, "Copying ${file.name} to $destPath", Toast.LENGTH_SHORT).show()
+                contextMenuTargetFile = null
+            },
+            onMove = {
+                val destPath = inactiveState.path
+                viewModel.movePaths(listOf(file.path), destPath)
+                Toast.makeText(context, "Moving ${file.name} to $destPath", Toast.LENGTH_SHORT).show()
+                contextMenuTargetFile = null
+            },
+            onDelete = {
+                showSingleDeleteDialog = file
+                contextMenuTargetFile = null
+            },
+            onRename = {
+                showRenameDialog = file
+                contextMenuTargetFile = null
+            },
+            onCompress = {
+                showCompressDialog = true
+                contextMenuTargetFile = null
+            },
+            onExtract = {
+                showExtractDialog = file
+                contextMenuTargetFile = null
+            }
+        )
+    }
+
+    // Single item Delete Confirmation Dialog
+    showSingleDeleteDialog?.let { file ->
+        ConfirmDialog(
+            title = "Delete ${file.name}",
+            message = "Are you sure you want to delete '${file.name}'? This action cannot be undone.",
+            confirmText = "Delete",
+            onDismiss = { showSingleDeleteDialog = null },
+            onConfirm = {
+                viewModel.deletePaths(listOf(file.path))
+                showSingleDeleteDialog = null
+            }
         )
     }
     }
