@@ -160,7 +160,7 @@ class LocalFileSystem : FileSystem {
                 lastModified = file.lastModified(),
                 type = type
             )
-        }.sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase() }))
+        }.sortedWith(compareBy<FileEntry> { !it.isDirectory }.thenComparator { a, b -> naturalCompare(a.name, b.name) })
     }
 
     override suspend fun copy(
@@ -263,6 +263,43 @@ class LocalFileSystem : FileSystem {
                 throw IOException("Failed to rename $source to $destination")
             }
         }
+    }
+
+    private fun naturalCompare(s1: String, s2: String): Int {
+        var i = 0
+        var j = 0
+        val n1 = s1.length
+        val n2 = s2.length
+
+        while (i < n1 && j < n2) {
+            val c1 = s1[i]
+            val c2 = s2[j]
+
+            if (c1.isDigit() && c2.isDigit()) {
+                var num1 = 0L
+                while (i < n1 && s1[i].isDigit()) {
+                    num1 = num1 * 10 + (s1[i] - '0')
+                    i++
+                }
+                var num2 = 0L
+                while (j < n2 && s2[j].isDigit()) {
+                    num2 = num2 * 10 + (s2[j] - '0')
+                    j++
+                }
+                if (num1 != num2) {
+                    return num1.compareTo(num2)
+                }
+            } else {
+                val lc1 = c1.lowercaseChar()
+                val lc2 = c2.lowercaseChar()
+                if (lc1 != lc2) {
+                    return lc1.compareTo(lc2)
+                }
+                i++
+                j++
+            }
+        }
+        return n1.compareTo(n2)
     }
 
     private fun isArchiveFile(fileName: String): Boolean {

@@ -11,6 +11,54 @@ static mut LAST_SORT_US: u64 = 0;
 static mut LAST_TOTAL_US: u64 = 0;
 static mut LAST_ENTRY_COUNT: usize = 0;
 
+fn natural_cmp(s1: &str, s2: &str) -> std::cmp::Ordering {
+    let mut c1 = s1.chars().peekable();
+    let mut c2 = s2.chars().peekable();
+
+    loop {
+        match (c1.peek(), c2.peek()) {
+            (None, None) => return std::cmp::Ordering::Equal,
+            (None, Some(_)) => return std::cmp::Ordering::Less,
+            (Some(_), None) => return std::cmp::Ordering::Greater,
+            (Some(&ch1), Some(&ch2)) => {
+                if ch1.is_ascii_digit() && ch2.is_ascii_digit() {
+                    let mut n1: u64 = 0;
+                    while let Some(&d) = c1.peek() {
+                        if d.is_ascii_digit() {
+                            n1 = n1.saturating_mul(10).saturating_add((d as u8 - b'0') as u64);
+                            c1.next();
+                        } else {
+                            break;
+                        }
+                    }
+
+                    let mut n2: u64 = 0;
+                    while let Some(&d) = c2.peek() {
+                        if d.is_ascii_digit() {
+                            n2 = n2.saturating_mul(10).saturating_add((d as u8 - b'0') as u64);
+                            c2.next();
+                        } else {
+                            break;
+                        }
+                    }
+
+                    if n1 != n2 {
+                        return n1.cmp(&n2);
+                    }
+                } else {
+                    let l1 = ch1.to_lowercase().next().unwrap_or(ch1);
+                    let l2 = ch2.to_lowercase().next().unwrap_or(ch2);
+                    if l1 != l2 {
+                        return l1.cmp(&l2);
+                    }
+                    c1.next();
+                    c2.next();
+                }
+            }
+        }
+    }
+}
+
 #[no_mangle]
 pub extern "system" fn Java_com_xtmanager_core_filesystem_LocalFileSystem_nativeGetLastMetrics<'local>(
     mut env: JNIEnv<'local>,
@@ -92,10 +140,10 @@ pub extern "system" fn Java_com_xtmanager_core_filesystem_LocalFileSystem_native
     }
     let scan_dur = start_scan.elapsed();
 
-    // Fast Rust Sorting: Folders first, then case-insensitive alphabetical
+    // Fast Rust Natural Sorting: Folders first, then human natural alphanumeric sort (1, 2, 10, 100)
     let start_sort = Instant::now();
     raw_items.sort_unstable_by(|a, b| {
-        b.1.cmp(&a.1).then_with(|| a.0.to_lowercase().cmp(&b.0.to_lowercase()))
+        b.1.cmp(&a.1).then_with(|| natural_cmp(&a.0, &b.0))
     });
     let sort_dur = start_sort.elapsed();
 
