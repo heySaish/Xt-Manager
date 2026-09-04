@@ -123,9 +123,24 @@ case "$PROOT" in
         ;;
 esac
 
-if [ "$FAILSAFE" = true ] && [ "$INSTALLING" != true ]; then
+if [ -f "$PREFIX/.alpine_installed" ]; then
+    INSTALLED=true
+else
+    INSTALLED=false
+fi
+
+if [ "$FAILSAFE" = true ]; then
     echo "$$" > "$PREFIX/pid"
     exec $PROOT_EXEC $ARGS /bin/sh
+elif [ "$INSTALLED" = true ]; then
+    echo "$$" > "$PREFIX/pid"
+    if [ -x "$PREFIX/alpine/bin/bash" ]; then
+        exec $PROOT_EXEC $ARGS /bin/bash --rcfile /initrc -i
+    elif [ -x "$PREFIX/alpine/usr/bin/bash" ]; then
+        exec $PROOT_EXEC $ARGS /usr/bin/bash --rcfile /initrc -i
+    else
+        exec $PROOT_EXEC $ARGS /bin/sh
+    fi
 else
     exec $PROOT_EXEC $ARGS /bin/sh "$PREFIX/init-alpine.sh" "$@"
 fi

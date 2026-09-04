@@ -3,8 +3,10 @@ package com.xtmanager.ui
 import android.app.Activity
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -130,11 +132,13 @@ fun FileManagerScreen(
     var showJumpToPathDialog by remember { mutableStateOf(false) }
     var showTerminal by remember { mutableStateOf(false) }
     var terminalInitialPath by remember { mutableStateOf<String?>(null) }
+    var isTerminalFailsafe by remember { mutableStateOf(false) }
 
     if (showTerminal) {
         TerminalScreen(
             onClose = { showTerminal = false },
             initialPath = terminalInitialPath,
+            isFailsafe = isTerminalFailsafe,
             modifier = modifier
         )
         return
@@ -251,18 +255,40 @@ fun FileManagerScreen(
                         modifier = Modifier.padding(vertical = 8.dp)
                     )
 
-                    NavigationDrawerItem(
-                        icon = { Icon(Icons.Default.Terminal, contentDescription = null) },
-                        label = { Text("Terminal") },
-                        selected = showTerminal,
-                        onClick = {
-                            showTerminal = true
-                            scope.launch { drawerState.close() }
-                        },
-                        colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .combinedClickable(
+                                onClick = {
+                                    terminalInitialPath = null
+                                    isTerminalFailsafe = false
+                                    showTerminal = true
+                                    scope.launch { drawerState.close() }
+                                },
+                                onLongClick = {
+                                    Toast.makeText(context, "Failsafe Mode Activated (First-Time Setup Skipped)", Toast.LENGTH_SHORT).show()
+                                    terminalInitialPath = null
+                                    isTerminalFailsafe = true
+                                    showTerminal = true
+                                    scope.launch { drawerState.close() }
+                                }
+                            )
+                    ) {
+                        NavigationDrawerItem(
+                            icon = { Icon(Icons.Default.Terminal, contentDescription = null) },
+                            label = { Text("Terminal") },
+                            selected = showTerminal,
+                            onClick = {
+                                terminalInitialPath = null
+                                isTerminalFailsafe = false
+                                showTerminal = true
+                                scope.launch { drawerState.close() }
+                            },
+                            colors = NavigationDrawerItemDefaults.colors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer
+                            )
                         )
-                    )
+                    }
                     
                     Spacer(modifier = Modifier.weight(1f))
 
@@ -361,13 +387,26 @@ fun FileManagerScreen(
 
 
                         
-                        IconButton(onClick = {
-                            terminalInitialPath = activeState.path
-                            showTerminal = true
-                        }) {
+                        Box(
+                            modifier = Modifier
+                                .combinedClickable(
+                                    onClick = {
+                                        terminalInitialPath = activeState.path
+                                        isTerminalFailsafe = false
+                                        showTerminal = true
+                                    },
+                                    onLongClick = {
+                                        Toast.makeText(context, "Failsafe Mode Activated (First-Time Setup Skipped)", Toast.LENGTH_SHORT).show()
+                                        terminalInitialPath = activeState.path
+                                        isTerminalFailsafe = true
+                                        showTerminal = true
+                                    }
+                                )
+                                .padding(12.dp)
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Terminal,
-                                contentDescription = "Open in Terminal",
+                                contentDescription = "Open in Terminal (Hold for Safe Mode)",
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }

@@ -75,6 +75,7 @@ import androidx.activity.compose.BackHandler
 fun TerminalScreen(
     onClose: () -> Unit,
     initialPath: String? = null,
+    isFailsafe: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     BackHandler {
@@ -119,7 +120,7 @@ fun TerminalScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
-                                text = "Alpine Linux Shell",
+                                text = if (isFailsafe) "Alpine Linux (Failsafe)" else "Alpine Linux Shell",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -170,7 +171,7 @@ fun TerminalScreen(
                         val client = NativeTerminalClient(context)
                         clientRef = client
                         terminalViewRef?.post {
-                            val session = alpineManager.createAlpineTerminalSession(client, initialPath)
+                            val session = alpineManager.createAlpineTerminalSession(client, initialPath, isFailsafe)
                             currentSession = session
                             terminalViewRef?.attachSession(session)
                             statusText = "Alpine Linux Active"
@@ -231,7 +232,7 @@ fun TerminalScreen(
 
                             if (ready) {
                                 view.post {
-                                    val session = alpineManager.createAlpineTerminalSession(client, initialPath)
+                                    val session = alpineManager.createAlpineTerminalSession(client, initialPath, isFailsafe)
                                     currentSession = session
                                     view.attachSession(session)
                                     statusText = "Alpine Linux Active"
