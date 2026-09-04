@@ -6,30 +6,22 @@ mkdir -p "$PREFIX/public"
 
 export PROOT_TMP_DIR=$PREFIX/tmp
 
-if [ "$FDROID" = "true" ]; then
+if [ -f "$NATIVE_DIR/libproot.so" ]; then
+    export PROOT_LOADER="$NATIVE_DIR/libproot.so"
+elif [ -f "$PREFIX/libproot.so" ]; then
+    export PROOT_LOADER="$PREFIX/libproot.so"
+fi
 
-    if [ -f "$PREFIX/libproot.so" ]; then
-        export PROOT_LOADER="$PREFIX/libproot.so"
-    fi
+if [ -f "$NATIVE_DIR/libproot32.so" ]; then
+    export PROOT_LOADER32="$NATIVE_DIR/libproot32.so"
+elif [ -f "$PREFIX/libproot32.so" ]; then
+    export PROOT_LOADER32="$PREFIX/libproot32.so"
+fi
 
-    if [ -f "$PREFIX/libproot32.so" ]; then
-        export PROOT_LOADER32="$PREFIX/libproot32.so"
-    fi
-
-    export PROOT="$PREFIX/libproot-xed.so"
-    for f in "$PREFIX"/*.so "$PREFIX"/*.sh; do
-        [ -f "$f" ] && [ ! -L "$f" ] && chmod +x "$f" 2>/dev/null || true
-    done
-else
-    if [ -f "$NATIVE_DIR/libproot.so" ]; then
-        export PROOT_LOADER="$NATIVE_DIR/libproot.so"
-    fi
-
-    if [ -f "$NATIVE_DIR/libproot32.so" ]; then
-        export PROOT_LOADER32="$NATIVE_DIR/libproot32.so"
-    fi
-
+if [ -f "$NATIVE_DIR/libproot-xed.so" ]; then
     export PROOT="$NATIVE_DIR/libproot-xed.so"
+elif [ -f "$PREFIX/libproot-xed.so" ]; then
+    export PROOT="$PREFIX/libproot-xed.so"
 fi
 
 # Ensure libtalloc.so.2 link is created for the linker

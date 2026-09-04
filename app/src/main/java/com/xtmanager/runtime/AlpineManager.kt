@@ -314,8 +314,7 @@ class AlpineManager(private val context: Context) {
 
         val envList = arrayOf(
             "PREFIX=$filesPath",
-            "NATIVE_DIR=${if (prootBinInNative != null) nativeDir else filesPath}",
-            "FDROID=true",
+            "NATIVE_DIR=$nativeDir",
             "HOME=/public",
             "TERM=xterm-256color",
             "PROOT=$prootBin",
