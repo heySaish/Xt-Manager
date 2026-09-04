@@ -13,7 +13,7 @@ static mut LAST_ENTRY_COUNT: usize = 0;
 
 #[no_mangle]
 pub extern "system" fn Java_com_xtmanager_core_filesystem_LocalFileSystem_nativeGetLastMetrics<'local>(
-    env: JNIEnv<'local>,
+    mut env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> JObject<'local> {
     let metrics_class = match env.find_class("com/xtmanager/core/filesystem/LocalFileSystem$FsScanMetrics") {
