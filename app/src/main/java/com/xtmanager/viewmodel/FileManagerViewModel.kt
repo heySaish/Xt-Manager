@@ -277,6 +277,8 @@ class FileManagerViewModel(
             refreshPane(PaneType.LEFT)
             refreshPane(PaneType.RIGHT)
         }
+    }
+
     fun copyPaths(paths: List<String>, destDir: String) {
         if (paths.isEmpty()) return
         operationManager.enqueueCopy(paths, destDir)
