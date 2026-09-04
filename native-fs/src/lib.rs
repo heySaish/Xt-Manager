@@ -138,6 +138,45 @@ pub extern "system" fn Java_com_xtmanager_core_filesystem_LocalFileSystem_native
             raw_items.push((file_name, is_dir, size, last_mod, is_archive));
         }
     }
+
+    // Fallback/enrichment for system root paths in non-root environment (like MT Manager)
+    let clean_path = path_str.trim_end_matches('/');
+    let known_paths: &[&str] = match clean_path {
+        "" => &[
+            "apex", "bin", "bugreports", "config", "data", "dev", "etc",
+            "init", "linkerconfig", "mnt", "odm", "oem", "proc", "product",
+            "res", "sdcard", "storage", "sys", "system", "vendor"
+        ],
+        "/storage" => &["emulated", "self", "sdcard0", "0"],
+        "/storage/emulated" => &["0"],
+        "/system" => &["app", "bin", "etc", "fonts", "framework", "lib", "lib64", "media", "priv-app", "usr"],
+        _ => &[],
+    };
+
+    for name in known_paths {
+        if !raw_items.iter().any(|(n, _, _, _, _)| n == *name) {
+            let child = if clean_path.is_empty() {
+                Path::new("/").join(name)
+            } else {
+                dir_path.join(name)
+            };
+
+            if child.exists() {
+                let metadata = child.metadata();
+                let (is_dir, size, last_mod) = match metadata {
+                    Ok(m) => {
+                        let is_d = m.is_dir();
+                        let sz = if is_d { 0 } else { m.len() as i64 };
+                        let mtime = m.mtime() * 1000;
+                        (is_d, sz, mtime)
+                    }
+                    Err(_) => (true, 0i64, 0i64),
+                };
+                raw_items.push((name.to_string(), is_dir, size, last_mod, false));
+            }
+        }
+    }
+
     let scan_dur = start_scan.elapsed();
 
     // Fast Rust Natural Sorting: Folders first, then human natural alphanumeric sort (1, 2, 10, 100)

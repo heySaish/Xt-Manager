@@ -70,7 +70,7 @@ class LocalFileSystem : FileSystem {
         if (isNativeLoaded) {
             try {
                 val rawItems = nativeListFiles(directory.absolutePath)
-                if (rawItems != null) {
+                if (rawItems != null && rawItems.isNotEmpty()) {
                     val metrics = nativeGetLastMetrics()
                     val basePath = if (directory.absolutePath.endsWith("/")) directory.absolutePath else "${directory.absolutePath}/"
                     val result = rawItems.map { item ->
