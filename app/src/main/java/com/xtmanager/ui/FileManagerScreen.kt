@@ -95,6 +95,7 @@ import com.xtmanager.ui.dialogs.ConfirmDialog
 import com.xtmanager.ui.dialogs.CreateDialog
 import com.xtmanager.ui.dialogs.RenameDialog
 import com.xtmanager.ui.dialogs.FileContextMenuDialog
+import com.xtmanager.ui.dialogs.CreateArchiveDialog
 import com.xtmanager.ui.SettingsScreen
 import androidx.compose.material.icons.filled.Settings
 import com.xtmanager.viewmodel.FileManagerViewModel
@@ -142,6 +143,7 @@ fun FileManagerScreen(
     var terminalInitialPath by remember { mutableStateOf<String?>(null) }
     var contextMenuTargetFile by remember { mutableStateOf<FileEntry?>(null) }
     var showSingleDeleteDialog by remember { mutableStateOf<FileEntry?>(null) }
+    var compressTargetItem by remember { mutableStateOf<FileEntry?>(null) }
 
     var topMenuExpanded by remember { mutableStateOf(false) }
     var lastBackPressTime by remember { mutableStateOf(0L) }
@@ -613,82 +615,21 @@ fun FileManagerScreen(
         )
     }
 
-    // Compress Dialog
+    // Create Archive Dialog (Bottom bar multi-select compress)
     if (showCompressDialog) {
-        var archiveName by remember { mutableStateOf("archive.zip") }
-        var selectedFormat by remember { mutableStateOf(ArchiveFormat.ZIP) }
-        
-        AlertDialog(
-            onDismissRequest = { showCompressDialog = false },
-            title = { Text("Compress Files") },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = archiveName,
-                        onValueChange = { archiveName = it },
-                        label = { Text("Archive Name") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text("Select Format:", style = MaterialTheme.typography.titleSmall)
-                    
-                    ArchiveFormat.values().forEach { format ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { 
-                                    selectedFormat = format
-                                    val baseName = File(archiveName).nameWithoutExtension
-                                    val ext = when (format) {
-                                        ArchiveFormat.ZIP -> "zip"
-                                        ArchiveFormat.TAR -> "tar"
-                                        ArchiveFormat.TAR_GZ -> "tar.gz"
-                                        ArchiveFormat.TAR_XZ -> "tar.xz"
-                                        ArchiveFormat.SEVEN_Z -> "7z"
-                                    }
-                                    archiveName = "$baseName.$ext"
-                                }
-                                .padding(vertical = 4.dp)
-                        ) {
-                            RadioButton(
-                                selected = selectedFormat == format,
-                                onClick = { 
-                                    selectedFormat = format
-                                    val baseName = File(archiveName).nameWithoutExtension
-                                    val ext = when (format) {
-                                        ArchiveFormat.ZIP -> "zip"
-                                        ArchiveFormat.TAR -> "tar"
-                                        ArchiveFormat.TAR_GZ -> "tar.gz"
-                                        ArchiveFormat.TAR_XZ -> "tar.xz"
-                                        ArchiveFormat.SEVEN_Z -> "7z"
-                                    }
-                                    archiveName = "$baseName.$ext"
-                                }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = format.name)
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (archiveName.isNotBlank()) {
-                            viewModel.compressSelected(activePane, archiveName, selectedFormat)
-                            showCompressDialog = false
-                        }
-                    }
-                ) {
-                    Text("Compress")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCompressDialog = false }) {
-                    Text("Cancel")
-                }
+        val firstItemName = activeState.selected.firstOrNull()?.let { File(it).name } ?: "archive"
+        CreateArchiveDialog(
+            initialItemName = firstItemName,
+            onDismiss = { showCompressDialog = false },
+            onConfirm = { archiveName, format, level, password ->
+                viewModel.compressSelected(
+                    paneType = activePane,
+                    archiveName = archiveName,
+                    format = format,
+                    level = level,
+                    password = password
+                )
+                showCompressDialog = false
             }
         )
     }
@@ -940,12 +881,31 @@ fun FileManagerScreen(
                 contextMenuTargetFile = null
             },
             onCompress = {
-                showCompressDialog = true
+                compressTargetItem = file
                 contextMenuTargetFile = null
             },
             onExtract = {
                 showExtractDialog = file
                 contextMenuTargetFile = null
+            }
+        )
+    }
+
+    // Single item Create Archive Dialog (from Context Menu)
+    compressTargetItem?.let { file ->
+        CreateArchiveDialog(
+            initialItemName = file.name,
+            onDismiss = { compressTargetItem = null },
+            onConfirm = { archiveName, format, level, password ->
+                viewModel.compressPaths(
+                    paths = listOf(file.path),
+                    destFolder = activeState.path,
+                    archiveName = archiveName,
+                    format = format,
+                    level = level,
+                    password = password
+                )
+                compressTargetItem = null
             }
         )
     }

@@ -309,22 +309,38 @@ class FileManagerViewModel(
         }
     }
 
-    fun compressSelected(paneType: PaneType, archiveName: String, format: ArchiveFormat) {
-        val state = if (paneType == PaneType.LEFT) _leftPaneState.value else _rightPaneState.value
-        if (state.selected.isEmpty()) return
-
-        val outputArchive = File(state.path, archiveName).absolutePath
-        operationManager.enqueueCompress(state.selected.toList(), outputArchive, format)
-        updatePane(paneType, state.copy(selected = emptySet()))
-
+    fun compressPaths(
+        paths: List<String>,
+        destFolder: String,
+        archiveName: String,
+        format: ArchiveFormat,
+        level: Int = 5,
+        password: String? = null
+    ) {
+        if (paths.isEmpty()) return
+        val outputArchive = File(destFolder, archiveName).absolutePath
+        operationManager.enqueueCompress(paths, outputArchive, format, level, password)
         viewModelScope.launch {
             refreshPane(PaneType.LEFT)
             refreshPane(PaneType.RIGHT)
         }
     }
 
-    fun extractSelected(paneType: PaneType, archivePath: String, destDir: String) {
-        operationManager.enqueueExtract(archivePath, destDir)
+    fun compressSelected(
+        paneType: PaneType,
+        archiveName: String,
+        format: ArchiveFormat,
+        level: Int = 5,
+        password: String? = null
+    ) {
+        val state = if (paneType == PaneType.LEFT) _leftPaneState.value else _rightPaneState.value
+        if (state.selected.isEmpty()) return
+        compressPaths(state.selected.toList(), state.path, archiveName, format, level, password)
+        updatePane(paneType, state.copy(selected = emptySet()))
+    }
+
+    fun extractSelected(paneType: PaneType, archivePath: String, destDir: String, password: String? = null) {
+        operationManager.enqueueExtract(archivePath, destDir, password)
         viewModelScope.launch {
             refreshPane(PaneType.LEFT)
             refreshPane(PaneType.RIGHT)

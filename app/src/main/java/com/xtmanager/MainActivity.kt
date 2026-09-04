@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
 
         // Initialize dependencies
         val fileSystem = LocalFileSystem()
-        val archiveManager = LocalArchiveManager()
+        val archiveManager = com.xtmanager.archive.CliArchiveManager()
         val operationManager = OperationManager(fileSystem, archiveManager)
 
         viewModel = FileManagerViewModel(

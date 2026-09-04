@@ -16,6 +16,8 @@ class LocalArchiveManager : ArchiveManager {
         sources: List<String>,
         output: String,
         format: ArchiveFormat,
+        level: Int,
+        password: String?,
         onProgress: (progress: Float, currentFile: String) -> Unit
     ) = withContext(Dispatchers.IO) {
         if (format != ArchiveFormat.ZIP) {
@@ -57,6 +59,7 @@ class LocalArchiveManager : ArchiveManager {
     override suspend fun extract(
         archive: String,
         destination: String,
+        password: String?,
         onProgress: (progress: Float, currentFile: String) -> Unit
     ) = withContext(Dispatchers.IO) {
         val archiveFile = File(archive)

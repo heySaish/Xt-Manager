@@ -106,7 +106,13 @@ class OperationManager(
         }
     }
 
-    fun enqueueCompress(sources: List<String>, outputArchive: String, format: ArchiveFormat) {
+    fun enqueueCompress(
+        sources: List<String>,
+        outputArchive: String,
+        format: ArchiveFormat,
+        level: Int = 5,
+        password: String? = null
+    ) {
         val id = UUID.randomUUID().toString()
         val operation = Operation(
             id = id,
@@ -120,7 +126,7 @@ class OperationManager(
         scope.launch {
             updateStatus(id, OperationStatus.RUNNING)
             try {
-                archiveManager.compress(sources, outputArchive, format) { progress, currentFile ->
+                archiveManager.compress(sources, outputArchive, format, level, password) { progress, currentFile ->
                     val processed = (progress * 100).toLong()
                     updateProgress(id, processed, 100, currentFile)
                 }
@@ -131,7 +137,7 @@ class OperationManager(
         }
     }
 
-    fun enqueueExtract(archivePath: String, destinationDir: String) {
+    fun enqueueExtract(archivePath: String, destinationDir: String, password: String? = null) {
         val id = UUID.randomUUID().toString()
         val operation = Operation(
             id = id,
@@ -145,7 +151,7 @@ class OperationManager(
         scope.launch {
             updateStatus(id, OperationStatus.RUNNING)
             try {
-                archiveManager.extract(archivePath, destinationDir) { progress, currentFile ->
+                archiveManager.extract(archivePath, destinationDir, password) { progress, currentFile ->
                     val processed = (progress * 100).toLong()
                     updateProgress(id, processed, 100, currentFile)
                 }
