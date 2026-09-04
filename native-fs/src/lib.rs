@@ -74,8 +74,9 @@ pub extern "system" fn Java_com_xtmanager_core_filesystem_LocalFileSystem_native
             Err(_) => continue,
         };
 
+        let name_obj = JObject::from(name_jstr);
         let args = [
-            JValue::Object(&name_jstr.into()),
+            JValue::Object(&name_obj),
             JValue::Bool(if is_dir { 1 } else { 0 }),
             JValue::Long(size),
             JValue::Long(last_mod),
