@@ -1,5 +1,5 @@
-use jni::objects::{JClass, JObject, JString};
-use jni::sys::{jboolean, jlong, jobjectArray};
+use jni::objects::{JClass, JObject, JString, JValue};
+use jni::sys::jobjectArray;
 use jni::JNIEnv;
 use std::fs;
 use std::os::unix::fs::MetadataExt;
@@ -18,11 +18,6 @@ pub extern "system" fn Java_com_xtmanager_core_filesystem_LocalFileSystem_native
 
     let item_class = match env.find_class("com/xtmanager/core/filesystem/LocalFileSystem$RawFileItem") {
         Ok(c) => c,
-        Err(_) => return std::ptr::null_mut(),
-    };
-
-    let constructor = match env.get_method_id(&item_class, "<init>", "(Ljava/lang/String;ZJJZ)V") {
-        Ok(m) => m,
         Err(_) => return std::ptr::null_mut(),
     };
 
@@ -80,14 +75,14 @@ pub extern "system" fn Java_com_xtmanager_core_filesystem_LocalFileSystem_native
         };
 
         let args = [
-            (&name_jstr).into(),
-            jboolean::from(is_dir).into(),
-            jlong::from(size).into(),
-            jlong::from(last_mod).into(),
-            jboolean::from(is_archive).into(),
+            JValue::Object(&name_jstr.into()),
+            JValue::Bool(if is_dir { 1 } else { 0 }),
+            JValue::Long(size),
+            JValue::Long(last_mod),
+            JValue::Bool(if is_archive { 1 } else { 0 }),
         ];
 
-        let item_obj = match env.new_object_unchecked(&item_class, constructor, &args) {
+        let item_obj = match env.new_object(&item_class, "(Ljava/lang/String;ZJJZ)V", &args) {
             Ok(o) => o,
             Err(_) => continue,
         };
