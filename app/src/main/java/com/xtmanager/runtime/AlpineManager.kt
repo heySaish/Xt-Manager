@@ -283,8 +283,7 @@ class AlpineManager(private val context: Context) {
 
     fun createAlpineTerminalSession(
         client: com.termux.terminal.TerminalSessionClient,
-        initialPath: String? = null,
-        isFailsafe: Boolean = false
+        initialPath: String? = null
     ): com.termux.terminal.TerminalSession {
         val nativeDir = context.applicationInfo.nativeLibraryDir
         val filesPath = filesDir.absolutePath
@@ -324,11 +323,7 @@ class AlpineManager(private val context: Context) {
         )
 
         val shellPath = "/system/bin/sh"
-        val args = if (isFailsafe) {
-            arrayOf("/system/bin/sh", initSandboxScript, "--failsafe")
-        } else {
-            arrayOf("/system/bin/sh", initSandboxScript)
-        }
+        val args = arrayOf("/system/bin/sh", initSandboxScript)
 
         return com.termux.terminal.TerminalSession(
             shellPath,

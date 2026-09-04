@@ -234,7 +234,6 @@ fi
 
 
 chmod +x "$PREFIX/alpine/initrc"
-touch "$PREFIX/.alpine_installed" 2>/dev/null || true
 
 if [ "$FAILSAFE" != true ]; then
     # everytime a terminal is started initrc will run

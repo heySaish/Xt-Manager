@@ -1,11 +1,8 @@
 export LD_LIBRARY_PATH=$PREFIX
-export PROOT_NO_SECCOMP=1
 
 mkdir -p "$PREFIX/tmp"
 mkdir -p "$PREFIX/alpine/tmp"
 mkdir -p "$PREFIX/public"
-
-chmod -R 755 "$PREFIX/alpine/sbin" "$PREFIX/alpine/bin" "$PREFIX/alpine/usr/bin" "$PREFIX/alpine/usr/sbin" 2>/dev/null || true
 
 export PROOT_TMP_DIR=$PREFIX/tmp
 
@@ -126,24 +123,9 @@ case "$PROOT" in
         ;;
 esac
 
-if [ -f "$PREFIX/.alpine_installed" ]; then
-    INSTALLED=true
-else
-    INSTALLED=false
-fi
-
-if [ "$FAILSAFE" = true ]; then
+if [ "$FAILSAFE" = true ] && [ "$INSTALLING" != true ]; then
     echo "$$" > "$PREFIX/pid"
     exec $PROOT_EXEC $ARGS /bin/sh
-elif [ "$INSTALLED" = true ]; then
-    echo "$$" > "$PREFIX/pid"
-    if [ -x "$PREFIX/alpine/bin/bash" ]; then
-        exec $PROOT_EXEC $ARGS /bin/bash --rcfile /initrc -i
-    elif [ -x "$PREFIX/alpine/usr/bin/bash" ]; then
-        exec $PROOT_EXEC $ARGS /usr/bin/bash --rcfile /initrc -i
-    else
-        exec $PROOT_EXEC $ARGS /bin/sh
-    fi
 else
     exec $PROOT_EXEC $ARGS /bin/sh "$PREFIX/init-alpine.sh" "$@"
 fi
