@@ -29,7 +29,8 @@ class LocalFileSystem : FileSystem {
 
     companion object {
         private const val TAG = "XtFsMetrics"
-        private var isNativeLoaded = false
+        val isNativeEngineActive: Boolean
+            get() = isNativeLoaded
         init {
             try {
                 System.loadLibrary("xt_fs")

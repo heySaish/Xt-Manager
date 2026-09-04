@@ -90,6 +90,8 @@ import com.xtmanager.core.model.PaneType
 import com.xtmanager.ui.dialogs.ConfirmDialog
 import com.xtmanager.ui.dialogs.CreateDialog
 import com.xtmanager.ui.dialogs.RenameDialog
+import com.xtmanager.ui.dialogs.SettingsDialog
+import androidx.compose.material.icons.filled.Settings
 import com.xtmanager.viewmodel.FileManagerViewModel
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -127,6 +129,7 @@ fun FileManagerScreen(
     var showCompressDialog by remember { mutableStateOf(false) }
     var showExtractDialog by remember { mutableStateOf<FileEntry?>(null) }
     var showOperationsDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
     var showJumpToPathDialog by remember { mutableStateOf(false) }
     var showTerminal by remember { mutableStateOf(false) }
     var terminalInitialPath by remember { mutableStateOf<String?>(null) }
@@ -447,6 +450,19 @@ fun FileManagerScreen(
                                     topMenuExpanded = false
                                 }
                             )
+                            DropdownMenuItem(
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(20.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Settings & Logs")
+                                    }
+                                },
+                                onClick = {
+                                    showSettingsDialog = true
+                                    topMenuExpanded = false
+                                }
+                            )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -750,6 +766,12 @@ fun FileManagerScreen(
                     Text("Cancel")
                 }
             }
+        )
+    }
+
+    if (showSettingsDialog) {
+        SettingsDialog(
+            onDismiss = { showSettingsDialog = false }
         )
     }
 
