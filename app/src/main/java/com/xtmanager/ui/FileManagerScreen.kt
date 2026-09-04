@@ -91,8 +91,6 @@ import com.xtmanager.ui.dialogs.ConfirmDialog
 import com.xtmanager.ui.dialogs.CreateDialog
 import com.xtmanager.ui.dialogs.RenameDialog
 import com.xtmanager.viewmodel.FileManagerViewModel
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import kotlinx.coroutines.launch
