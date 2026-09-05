@@ -44,31 +44,12 @@ impl ArchiveBackend for IsoBackend {
             let mut stack = vec![(String::new(), fs.root)];
 
             while let Some((parent_path, dir)) = stack.pop() {
-                if let Ok(entries) = dir.read() {
-                    for entry_res in entries {
-                        if let Ok(entry) = entry_res {
-                            match entry {
-                                DirectoryEntry::Directory(d) => {
-                                    let name = d.identifier.clone();
-                                    if name != "." && name != ".." {
-                                        let vpath = if parent_path.is_empty() {
-                                            name.clone()
-                                        } else {
-                                            format!("{}/{}", parent_path, name)
-                                        };
-                                        items.push(ArchiveEntryItem {
-                                            name,
-                                            virtual_path: vpath.clone(),
-                                            is_dir: true,
-                                            uncompressed_size: 0,
-                                            last_modified: 0,
-                                            is_encrypted: false,
-                                        });
-                                        stack.push((vpath, d));
-                                    }
-                                }
-                                DirectoryEntry::File(f) => {
-                                    let name = f.identifier.clone();
+                for entry_res in dir.contents() {
+                    if let Ok(entry) = entry_res {
+                        match entry {
+                            DirectoryEntry::Directory(d) => {
+                                let name = d.identifier.clone();
+                                if name != "." && name != ".." {
                                     let vpath = if parent_path.is_empty() {
                                         name.clone()
                                     } else {
@@ -76,13 +57,30 @@ impl ArchiveBackend for IsoBackend {
                                     };
                                     items.push(ArchiveEntryItem {
                                         name,
-                                        virtual_path: vpath,
-                                        is_dir: false,
-                                        uncompressed_size: f.size as u64,
+                                        virtual_path: vpath.clone(),
+                                        is_dir: true,
+                                        uncompressed_size: 0,
                                         last_modified: 0,
                                         is_encrypted: false,
                                     });
+                                    stack.push((vpath, d));
                                 }
+                            }
+                            DirectoryEntry::File(f) => {
+                                let name = f.identifier.clone();
+                                let vpath = if parent_path.is_empty() {
+                                    name.clone()
+                                } else {
+                                    format!("{}/{}", parent_path, name)
+                                };
+                                items.push(ArchiveEntryItem {
+                                    name,
+                                    virtual_path: vpath,
+                                    is_dir: false,
+                                    uncompressed_size: f.size() as u64,
+                                    last_modified: 0,
+                                    is_encrypted: false,
+                                });
                             }
                         }
                     }
@@ -120,60 +118,57 @@ impl ArchiveBackend for IsoBackend {
                 return Err(ArchiveError::Cancelled);
             }
 
-            if let Ok(entries) = dir.read() {
-                for entry_res in entries {
-                    if let Ok(entry) = entry_res {
-                        match entry {
-                            DirectoryEntry::Directory(d) => {
-                                let name = d.identifier.clone();
-                                if name != "." && name != ".." {
-                                    let vpath = if parent_path.is_empty() {
-                                        name
-                                    } else {
-                                        format!("{}/{}", parent_path, name)
-                                    };
-                                    let _ = staging.prepare_staging_target(&vpath, true);
-                                    stack.push((vpath, d));
-                                }
-                            }
-                            DirectoryEntry::File(f) => {
-                                let name = f.identifier.clone();
+            for entry_res in dir.contents() {
+                if let Ok(entry) = entry_res {
+                    match entry {
+                        DirectoryEntry::Directory(d) => {
+                            let name = d.identifier.clone();
+                            if name != "." && name != ".." {
                                 let vpath = if parent_path.is_empty() {
                                     name
                                 } else {
                                     format!("{}/{}", parent_path, name)
                                 };
-                                let target_path = match staging.prepare_staging_target(&vpath, false) {
-                                    Ok(p) => p,
-                                    Err(_) => continue,
-                                };
-
-                                if let Ok(mut file_reader) = f.read() {
-                                    let mut out_file = File::create(&target_path)?;
-                                    let mut buf = [0u8; 64 * 1024];
-                                    loop {
-                                        if cancel_flag.load(Ordering::SeqCst) {
-                                            staging.purge();
-                                            return Err(ArchiveError::Cancelled);
-                                        }
-                                        let bytes = file_reader.read(&mut buf)?;
-                                        if bytes == 0 {
-                                            break;
-                                        }
-                                        out_file.write_all(&buf[..bytes])?;
-                                        processed_bytes += bytes as u64;
-                                        progress_cb(ArchiveProgress {
-                                            processed_bytes,
-                                            total_bytes: 0,
-                                            processed_entries,
-                                            total_entries: 0,
-                                            current_entry: vpath.clone(),
-                                            cancellable: true,
-                                        });
-                                    }
-                                }
-                                processed_entries += 1;
+                                let _ = staging.prepare_staging_target(&vpath, true);
+                                stack.push((vpath, d));
                             }
+                        }
+                        DirectoryEntry::File(f) => {
+                            let name = f.identifier.clone();
+                            let vpath = if parent_path.is_empty() {
+                                name
+                            } else {
+                                format!("{}/{}", parent_path, name)
+                            };
+                            let target_path = match staging.prepare_staging_target(&vpath, false) {
+                                Ok(p) => p,
+                                Err(_) => continue,
+                            };
+
+                            let mut file_reader = f.read();
+                            let mut out_file = File::create(&target_path)?;
+                            let mut buf = [0u8; 64 * 1024];
+                            loop {
+                                if cancel_flag.load(Ordering::SeqCst) {
+                                    staging.purge();
+                                    return Err(ArchiveError::Cancelled);
+                                }
+                                let bytes = file_reader.read(&mut buf)?;
+                                if bytes == 0 {
+                                    break;
+                                }
+                                out_file.write_all(&buf[..bytes])?;
+                                processed_bytes += bytes as u64;
+                                progress_cb(ArchiveProgress {
+                                    processed_bytes,
+                                    total_bytes: 0,
+                                    processed_entries,
+                                    total_entries: 0,
+                                    current_entry: vpath.clone(),
+                                    cancellable: true,
+                                });
+                            }
+                            processed_entries += 1;
                         }
                     }
                 }

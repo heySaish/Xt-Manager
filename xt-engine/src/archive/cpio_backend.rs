@@ -34,7 +34,10 @@ impl ArchiveBackend for CpioBackend {
                 Ok(f) => f,
                 Err(_) => return Vec::new(),
             };
-            let mut reader = cpio::NewcReader::new(file);
+            let mut reader = match cpio::NewcReader::new(file) {
+                Ok(r) => r,
+                Err(_) => return Vec::new(),
+            };
             let mut items = Vec::new();
 
             while let Ok(Some(entry)) = reader.next() {
@@ -54,7 +57,10 @@ impl ArchiveBackend for CpioBackend {
                     last_modified: entry.mtime() as u64,
                     is_encrypted: false,
                 });
-                let _ = reader.finish();
+                reader = match entry.finish() {
+                    Ok(r) => r,
+                    Err(_) => break,
+                };
             }
             items
         });
@@ -74,7 +80,7 @@ impl ArchiveBackend for CpioBackend {
         progress_cb: &dyn Fn(ArchiveProgress),
     ) -> Result<(), ArchiveError> {
         let file = File::open(archive_path)?;
-        let mut reader = cpio::NewcReader::new(file);
+        let mut reader = cpio::NewcReader::new(file).map_err(|e| ArchiveError::FormatError(e.to_string()))?;
         let mut staging = AtomicStagingContext::new(destination_dir)?;
 
         let mut processed_bytes = 0u64;
@@ -95,7 +101,10 @@ impl ArchiveBackend for CpioBackend {
             let target_path = match staging.prepare_staging_target(&name, is_dir) {
                 Ok(p) => p,
                 Err(_) => {
-                    let _ = reader.finish();
+                    reader = match entry.finish() {
+                        Ok(r) => r,
+                        Err(_) => break,
+                    };
                     continue;
                 }
             };
@@ -126,7 +135,10 @@ impl ArchiveBackend for CpioBackend {
             }
 
             processed_entries += 1;
-            let _ = reader.finish();
+            reader = match entry.finish() {
+                Ok(r) => r,
+                Err(_) => break,
+            };
         }
 
         staging.commit(
