@@ -20,8 +20,24 @@ android {
         }
     }
 
+    signingConfigs {
+        create("fixedRelease") {
+            val ksFile = file("release.keystore")
+            if (ksFile.exists()) {
+                storeFile = ksFile
+            }
+            storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: "xtmanager_secure_password_2026"
+            keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: "xtmanagerkey"
+            keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: "xtmanager_secure_password_2026"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("fixedRelease")
+        }
         release {
+            signingConfig = signingConfigs.getByName("fixedRelease")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
