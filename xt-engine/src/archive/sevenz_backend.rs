@@ -30,7 +30,7 @@ impl ArchiveBackend for SevenZipBackend {
     ) -> Result<Vec<ArchiveEntryItem>, ArchiveError> {
         let all_entries = ArchiveSessionManager::get_or_insert(archive_path, || {
             let mut items = Vec::new();
-            if let Ok(reader) = SevenZReader::open(archive_path, &[]) {
+            if let Ok(reader) = SevenZReader::open(archive_path, sevenz_rust::Password::empty()) {
                 for entry in &reader.archive().files {
                     let raw_name = entry.name.clone();
                     let is_dir = entry.is_directory;
