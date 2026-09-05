@@ -939,8 +939,8 @@ fun FileManagerScreen(
         ) + fadeOut(animationSpec = tween(durationMillis = 300))
     ) {
         PaneDensityPreviewScreen(
-            currentDensity = densityScale,
-            onDensityChange = { viewModel.setDensityScale(it) },
+            currentScale = densityScale,
+            onApply = { viewModel.setDensityScale(it) },
             onClose = { showDensityPreviewScreen = false },
             modifier = Modifier.fillMaxSize()
         )
