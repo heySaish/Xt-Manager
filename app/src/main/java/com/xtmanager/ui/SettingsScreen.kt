@@ -82,6 +82,8 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    showHiddenFiles: Boolean = false,
+    onToggleShowHiddenFiles: () -> Unit = {},
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -92,7 +94,6 @@ fun SettingsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    var showHiddenFiles by remember { mutableStateOf(false) }
     var naturalSort by remember { mutableStateOf(true) }
     var logsText by remember { mutableStateOf("Fetching logs...") }
     var isSaving by remember { mutableStateOf(false) }
@@ -118,8 +119,8 @@ fun SettingsScreen(
                 title = {
                     Text(
                         text = "Settings",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge
                     )
                 },
                 navigationIcon = {
@@ -131,11 +132,12 @@ fun SettingsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         },
-        modifier = modifier.fillMaxSize()
+        modifier = modifier
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -202,7 +204,7 @@ fun SettingsScreen(
                     trailingWidget = {
                         Switch(
                             checked = showHiddenFiles,
-                            onCheckedChange = { showHiddenFiles = it },
+                            onCheckedChange = { onToggleShowHiddenFiles() },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                                 checkedTrackColor = MaterialTheme.colorScheme.primary,

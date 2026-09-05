@@ -905,6 +905,8 @@ fun FileManagerScreen(
         ) + fadeOut(animationSpec = tween(durationMillis = 300))
     ) {
         SettingsScreen(
+            showHiddenFiles = showHiddenFiles,
+            onToggleShowHiddenFiles = { viewModel.toggleShowHiddenFiles() },
             onClose = { showSettingsScreen = false },
             modifier = Modifier.fillMaxSize()
         )
