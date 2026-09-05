@@ -8,7 +8,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,7 +19,6 @@ import androidx.core.content.ContextCompat
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
-import com.xtmanager.archive.LocalArchiveManager
 import com.xtmanager.core.filesystem.LocalFileSystem
 import com.xtmanager.core.operations.OperationManager
 import com.xtmanager.ui.FileManagerScreen
@@ -61,8 +59,7 @@ class MainActivity : ComponentActivity() {
         // Initialize dependencies
         val alpineManager = com.xtmanager.runtime.AlpineManager(this)
         val fileSystem = LocalFileSystem()
-        val archiveManager = com.xtmanager.archive.CliArchiveManager(alpineManager = alpineManager)
-        val operationManager = OperationManager(fileSystem, archiveManager)
+        val operationManager = OperationManager(fileSystem)
 
         viewModel = FileManagerViewModel(
             fileSystem = fileSystem,

@@ -87,7 +87,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.xtmanager.archive.ArchiveFormat
 import com.xtmanager.core.model.FileEntry
 import com.xtmanager.core.model.FileType
 import com.xtmanager.core.model.Operation
@@ -98,7 +97,6 @@ import com.xtmanager.ui.dialogs.ConfirmDialog
 import com.xtmanager.ui.dialogs.CreateDialog
 import com.xtmanager.ui.dialogs.RenameDialog
 import com.xtmanager.ui.dialogs.FileContextMenuDialog
-import com.xtmanager.ui.dialogs.CreateArchiveDialog
 import com.xtmanager.ui.SettingsScreen
 import androidx.compose.material.icons.filled.Settings
 import com.xtmanager.viewmodel.FileManagerViewModel
@@ -137,8 +135,6 @@ fun FileManagerScreen(
     var showCreateDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf<FileEntry?>(null) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
-    var showCompressDialog by remember { mutableStateOf(false) }
-    var showExtractDialog by remember { mutableStateOf<FileEntry?>(null) }
     var showOperationsDialog by remember { mutableStateOf(false) }
     var showSettingsScreen by remember { mutableStateOf(false) }
     var showJumpToPathDialog by remember { mutableStateOf(false) }
@@ -146,7 +142,6 @@ fun FileManagerScreen(
     var terminalInitialPath by remember { mutableStateOf<String?>(null) }
     var contextMenuTargetFile by remember { mutableStateOf<FileEntry?>(null) }
     var showSingleDeleteDialog by remember { mutableStateOf<FileEntry?>(null) }
-    var compressTargetItem by remember { mutableStateOf<FileEntry?>(null) }
 
     var topMenuExpanded by remember { mutableStateOf(false) }
     var lastBackPressTime by remember { mutableStateOf(0L) }
@@ -481,14 +476,6 @@ fun FileManagerScreen(
                         }
                     },
                     onDelete = { showDeleteConfirmDialog = true },
-                    onCompress = { showCompressDialog = true },
-                    onExtract = {
-                        val selectedPath = activeState.selected.firstOrNull()
-                        val file = activeState.files.firstOrNull { it.path == selectedPath }
-                        if (file != null && file.type == FileType.ARCHIVE) {
-                            showExtractDialog = file
-                        }
-                    },
                     onMenuClick = { scope.launch { drawerState.open() } }
                 )
             }
@@ -710,66 +697,7 @@ fun FileManagerScreen(
         )
     }
 
-    // Create Archive Dialog (Bottom bar multi-select compress)
-    if (showCompressDialog) {
-        val firstItemName = activeState.selected.firstOrNull()?.let { File(it).name } ?: "archive"
-        CreateArchiveDialog(
-            initialItemName = firstItemName,
-            onDismiss = { showCompressDialog = false },
-            onConfirm = { archiveName, format, level, password ->
-                viewModel.compressSelected(
-                    paneType = activePane,
-                    archiveName = archiveName,
-                    format = format,
-                    level = level,
-                    password = password
-                )
-                showCompressDialog = false
-                showOperationsDialog = true
-            }
-        )
-    }
 
-    // Extract Dialog
-    showExtractDialog?.let { file ->
-        var destDir by remember { mutableStateOf(inactiveState.path) }
-        
-        AlertDialog(
-            onDismissRequest = { showExtractDialog = null },
-            title = { Text("Extract Archive") },
-            text = {
-                Column {
-                    Text("Archive: ${file.name}", style = MaterialTheme.typography.bodyMedium)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = destDir,
-                        onValueChange = { destDir = it },
-                        label = { Text("Extract To") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (destDir.isNotBlank()) {
-                            viewModel.extractSelected(activePane, file.path, destDir)
-                            showExtractDialog = null
-                            showOperationsDialog = true
-                        }
-                    }
-                ) {
-                    Text("Extract")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showExtractDialog = null }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
 
     // Operations Manager list Dialog
     if (showOperationsDialog) {
@@ -976,34 +904,6 @@ fun FileManagerScreen(
             onRename = {
                 showRenameDialog = file
                 contextMenuTargetFile = null
-            },
-            onCompress = {
-                compressTargetItem = file
-                contextMenuTargetFile = null
-            },
-            onExtract = {
-                showExtractDialog = file
-                contextMenuTargetFile = null
-            }
-        )
-    }
-
-    // Single item Create Archive Dialog (from Context Menu)
-    compressTargetItem?.let { file ->
-        CreateArchiveDialog(
-            initialItemName = file.name,
-            onDismiss = { compressTargetItem = null },
-            onConfirm = { archiveName, format, level, password ->
-                viewModel.compressPaths(
-                    paths = listOf(file.path),
-                    destFolder = activeState.path,
-                    archiveName = archiveName,
-                    format = format,
-                    level = level,
-                    password = password
-                )
-                compressTargetItem = null
-                showOperationsDialog = true
             }
         )
     }

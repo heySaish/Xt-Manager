@@ -3,9 +3,7 @@ package com.xtmanager.core.model
 enum class OperationType {
     COPY,
     MOVE,
-    DELETE,
-    COMPRESS,
-    EXTRACT
+    DELETE
 }
 
 enum class OperationStatus {

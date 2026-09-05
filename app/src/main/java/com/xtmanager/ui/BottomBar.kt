@@ -40,8 +40,6 @@ fun BottomBar(
     onMove: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
-    onCompress: () -> Unit,
-    onExtract: () -> Unit,
     onMenuClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -94,22 +92,6 @@ fun BottomBar(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete",
                             tint = MaterialTheme.colorScheme.error
-                        )
-                    }
-
-                    IconButton(onClick = onCompress) {
-                        Icon(
-                            imageVector = Icons.Default.FileUpload,
-                            contentDescription = "Compress",
-                            tint = MaterialTheme.colorScheme.secondary
-                        )
-                    }
-
-                    IconButton(onClick = onExtract) {
-                        Icon(
-                            imageVector = Icons.Default.FileDownload,
-                            contentDescription = "Extract",
-                            tint = MaterialTheme.colorScheme.secondary
                         )
                     }
                 } else {

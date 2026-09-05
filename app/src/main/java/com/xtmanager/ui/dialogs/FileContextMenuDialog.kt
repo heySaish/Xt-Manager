@@ -45,15 +45,8 @@ fun FileContextMenuDialog(
     onCopy: () -> Unit,
     onMove: () -> Unit,
     onDelete: () -> Unit,
-    onRename: () -> Unit,
-    onCompress: () -> Unit,
-    onExtract: () -> Unit
+    onRename: () -> Unit
 ) {
-    val isArchive = remember(fileEntry) {
-        val ext = java.io.File(fileEntry.path).extension.lowercase()
-        ext in setOf("zip", "apk", "tar", "gz", "7z", "rar", "bz2", "xz") || fileEntry.type == FileType.ARCHIVE
-    }
-
     AlertDialog(
         onDismissRequest = onDismiss,
         title = null,
@@ -90,7 +83,7 @@ fun FileContextMenuDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Left Column: Copy, Delete, Compress
+                    // Left Column: Copy, Delete
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -113,18 +106,9 @@ fun FileContextMenuDialog(
                                 onDelete()
                             }
                         )
-                        ContextMenuItemRow(
-                            icon = Icons.Default.FileDownload,
-                            label = "Compress",
-                            iconColor = Color(0xFF10B981),
-                            onClick = {
-                                onDismiss()
-                                onCompress()
-                            }
-                        )
                     }
 
-                    // Right Column: Move, Rename, Extract to... (conditionally shown for archives)
+                    // Right Column: Move, Rename
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -147,17 +131,6 @@ fun FileContextMenuDialog(
                                 onRename()
                             }
                         )
-                        if (isArchive) {
-                            ContextMenuItemRow(
-                                icon = Icons.Default.Unarchive,
-                                label = "Extract to...",
-                                iconColor = Color(0xFF06B6D4),
-                                onClick = {
-                                    onDismiss()
-                                    onExtract()
-                                }
-                            )
-                        }
                     }
                 }
             }

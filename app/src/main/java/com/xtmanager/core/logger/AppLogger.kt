@@ -33,7 +33,7 @@ object AppLogger {
 
     fun getAllLogs(): String {
         return if (logBuffer.isEmpty()) {
-            "No active operation logs captured yet.\nPerform copy, move, compress, or extract operations to view real-time engine telemetry."
+            "No active operation logs captured yet.\nPerform copy, move, or delete operations to view real-time engine telemetry."
         } else {
             logBuffer.joinToString("\n")
         }
