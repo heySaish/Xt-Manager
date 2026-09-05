@@ -1,13 +1,14 @@
 package com.xtmanager.archive
 
 import com.xtmanager.core.logger.AppLogger
+import com.xtmanager.runtime.AlpineManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
 
 class CliArchiveManager(
+    private val alpineManager: AlpineManager? = null,
     private val fallbackManager: LocalArchiveManager = LocalArchiveManager()
 ) : ArchiveManager {
 
@@ -21,10 +22,21 @@ class CliArchiveManager(
     ) = withContext(Dispatchers.IO) {
         if (sources.isEmpty()) return@withContext
 
+        val hasAlpine7z = alpineManager?.hasAlpineBinary("7z") == true || alpineManager?.hasAlpineBinary("7za") == true
         val binPath = findBinaryPath("7z") ?: findBinaryPath("7za")
+
+        if (hasAlpine7z && alpineManager != null) {
+            val 7zBin = if (alpineManager.hasAlpineBinary("7z")) "/usr/bin/7z" else "/usr/bin/7za"
+            AppLogger.i("ARCHIVE", "⚡ Active Engine: 7z CLI (Alpine PRoot) for target '$output'")
+            run7zCompressAlpine(alpineManager, 7zBin, sources, output, format, level, password) { progress, file ->
+                onProgress(progress, "⚡ [7z Alpine] $file")
+            }
+            return@withContext
+        }
+
         if (binPath != null) {
             AppLogger.i("ARCHIVE", "⚡ Active Engine: 7z CLI ($binPath) for target '$output'")
-            run7zCompress(binPath, sources, output, format, level, password) { progress, file ->
+            run7zCompressDirect(binPath, sources, output, format, level, password) { progress, file ->
                 onProgress(progress, "⚡ [7z CLI] $file")
             }
             return@withContext
@@ -46,10 +58,21 @@ class CliArchiveManager(
         val destDir = File(destination)
         if (!destDir.exists()) destDir.mkdirs()
 
+        val hasAlpine7z = alpineManager?.hasAlpineBinary("7z") == true || alpineManager?.hasAlpineBinary("7za") == true
         val binPath = findBinaryPath("7z") ?: findBinaryPath("7za")
+
+        if (hasAlpine7z && alpineManager != null) {
+            val 7zBin = if (alpineManager.hasAlpineBinary("7z")) "/usr/bin/7z" else "/usr/bin/7za"
+            AppLogger.i("ARCHIVE", "⚡ Active Engine: 7z CLI (Alpine PRoot) extracting '$archive'")
+            run7zExtractAlpine(alpineManager, 7zBin, archiveFile, destDir, password) { progress, file ->
+                onProgress(progress, "⚡ [7z Alpine] $file")
+            }
+            return@withContext
+        }
+
         if (binPath != null) {
             AppLogger.i("ARCHIVE", "⚡ Active Engine: 7z CLI ($binPath) extracting '$archive'")
-            run7zExtract(binPath, archiveFile, destDir, password) { progress, file ->
+            run7zExtractDirect(binPath, archiveFile, destDir, password) { progress, file ->
                 onProgress(progress, "⚡ [7z CLI] $file")
             }
             return@withContext
@@ -61,7 +84,47 @@ class CliArchiveManager(
         }
     }
 
-    private fun run7zCompress(
+    private fun build7zCompressArgs(
+        bin: String,
+        sources: List<String>,
+        output: String,
+        format: ArchiveFormat,
+        level: Int,
+        password: String?
+    ): List<String> {
+        val cmd = mutableListOf(bin, "a", "-bsp1", "-y", "-mx=$level")
+        when (format) {
+            ArchiveFormat.ZIP -> cmd.add("-tzip")
+            ArchiveFormat.TAR -> cmd.add("-ttar")
+            ArchiveFormat.TAR_GZ -> cmd.add("-ttar")
+            ArchiveFormat.TAR_XZ -> cmd.add("-ttar")
+            ArchiveFormat.SEVEN_Z -> cmd.add("-t7z")
+        }
+        if (!password.isNullOrEmpty()) {
+            cmd.add("-p$password")
+        }
+        cmd.add(output)
+        cmd.addAll(sources)
+        return cmd
+    }
+
+    private fun run7zCompressAlpine(
+        alpineManager: AlpineManager,
+        7zBin: String,
+        sources: List<String>,
+        output: String,
+        format: ArchiveFormat,
+        level: Int,
+        password: String?,
+        onProgress: (Float, String) -> Unit
+    ) {
+        val cmd = build7zCompressArgs(7zBin, sources, output, format, level, password)
+        AppLogger.d("ARCHIVE", "⚡ Executing Alpine PRoot: ${cmd.joinToString(" ")}")
+        val pb = alpineManager.createAlpineProcessBuilder(cmd)
+        executeProcessWithParser(pb, SevenZipOutputParser(), onProgress)
+    }
+
+    private fun run7zCompressDirect(
         binPath: String,
         sources: List<String>,
         output: String,
@@ -70,33 +133,30 @@ class CliArchiveManager(
         password: String?,
         onProgress: (Float, String) -> Unit
     ) {
-        val cmd = mutableListOf(binPath, "a", "-bsp1", "-y")
-        
-        // Compression level -mx0 to -mx9
-        cmd.add("-mx=$level")
+        val cmd = build7zCompressArgs(binPath, sources, output, format, level, password)
+        AppLogger.d("ARCHIVE", "⚡ Executing Direct CLI: ${cmd.joinToString(" ")}")
+        val pb = ProcessBuilder(cmd)
+        executeProcessWithParser(pb, SevenZipOutputParser(), onProgress)
+    }
 
-        // Format
-        when (format) {
-            ArchiveFormat.ZIP -> cmd.add("-tzip")
-            ArchiveFormat.TAR -> cmd.add("-ttar")
-            ArchiveFormat.TAR_GZ -> cmd.add("-ttar")
-            ArchiveFormat.TAR_XZ -> cmd.add("-ttar")
-            ArchiveFormat.SEVEN_Z -> cmd.add("-t7z")
-        }
-
-        // Password protection
+    private fun run7zExtractAlpine(
+        alpineManager: AlpineManager,
+        7zBin: String,
+        archiveFile: File,
+        destDir: File,
+        password: String?,
+        onProgress: (Float, String) -> Unit
+    ) {
+        val cmd = mutableListOf(7zBin, "x", archiveFile.absolutePath, "-o${destDir.absolutePath}", "-bsp1", "-y")
         if (!password.isNullOrEmpty()) {
             cmd.add("-p$password")
         }
-
-        cmd.add(output)
-        cmd.addAll(sources)
-
-        AppLogger.d("ARCHIVE", "⚡ Executing command: ${cmd.joinToString(" ")}")
-        executeProcessWithParser(cmd, SevenZipOutputParser(), onProgress)
+        AppLogger.d("ARCHIVE", "⚡ Executing Alpine PRoot: ${cmd.joinToString(" ")}")
+        val pb = alpineManager.createAlpineProcessBuilder(cmd)
+        executeProcessWithParser(pb, SevenZipOutputParser(), onProgress)
     }
 
-    private fun run7zExtract(
+    private fun run7zExtractDirect(
         binPath: String,
         archiveFile: File,
         destDir: File,
@@ -107,18 +167,17 @@ class CliArchiveManager(
         if (!password.isNullOrEmpty()) {
             cmd.add("-p$password")
         }
-
-        AppLogger.d("ARCHIVE", "⚡ Executing command: ${cmd.joinToString(" ")}")
-        executeProcessWithParser(cmd, SevenZipOutputParser(), onProgress)
+        AppLogger.d("ARCHIVE", "⚡ Executing Direct CLI: ${cmd.joinToString(" ")}")
+        val pb = ProcessBuilder(cmd)
+        executeProcessWithParser(pb, SevenZipOutputParser(), onProgress)
     }
 
     private fun executeProcessWithParser(
-        cmd: List<String>,
+        pb: ProcessBuilder,
         parser: ArchiveOutputParser,
         onProgress: (Float, String) -> Unit
     ) {
         onProgress(0.05f, "Starting CLI archive engine...")
-        val pb = ProcessBuilder(cmd)
         pb.redirectErrorStream(true)
         val process = pb.start()
 
@@ -171,8 +230,6 @@ class CliArchiveManager(
             "/data/data/com.xtmanager/files/alpine/usr/bin/$binaryName",
             "/data/data/com.xtmanager/files/alpine/bin/$binaryName",
             "/data/data/com.xtmanager/files/alpine/usr/bin/7za",
-            "/data/data/com.termux/files/usr/bin/$binaryName",
-            "/data/data/com.termux/files/usr/bin/7za",
             "/system/bin/$binaryName",
             "/system/xbin/$binaryName",
             "/vendor/bin/$binaryName",

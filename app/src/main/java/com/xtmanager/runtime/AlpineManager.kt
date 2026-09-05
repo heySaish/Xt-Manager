@@ -336,4 +336,65 @@ class AlpineManager(private val context: Context) {
             client
         )
     }
+
+    fun hasAlpineBinary(binaryName: String): Boolean {
+        if (!isInstalled) return false
+        val alpineUsrBin = File(alpineDir, "usr/bin/$binaryName")
+        val alpineBin = File(alpineDir, "bin/$binaryName")
+        return alpineUsrBin.exists() || alpineBin.exists()
+    }
+
+    fun createAlpineProcessBuilder(commandInAlpine: List<String>): ProcessBuilder {
+        val nativeDir = context.applicationInfo.nativeLibraryDir
+        val filesPath = filesDir.absolutePath
+
+        val prootBinInNative = File(nativeDir, "libproot-xed.so").takeIf { it.exists() }?.absolutePath
+            ?: File(nativeDir, "libproot.so").takeIf { it.exists() }?.absolutePath
+
+        var prootBinInFiles = File(filesDir, "libproot-xed.so").takeIf { it.exists() }?.absolutePath
+            ?: File(filesDir, "libproot.so").takeIf { it.exists() }?.absolutePath
+
+        if (prootBinInNative == null && prootBinInFiles == null) {
+            copyNativeBinaries(getArchName())
+            prootBinInFiles = File(filesDir, "libproot-xed.so").takeIf { it.exists() }?.absolutePath
+                ?: File(filesDir, "libproot.so").takeIf { it.exists() }?.absolutePath
+        }
+
+        val prootBin = prootBinInNative ?: prootBinInFiles ?: File(filesDir, "libproot-xed.so").absolutePath
+        val linker = if (File("/system/bin/linker64").exists()) "/system/bin/linker64" else "/system/bin/linker"
+
+        val prootExec = if (prootBin.startsWith("/data/app/")) {
+            listOf(prootBin)
+        } else {
+            listOf(linker, prootBin)
+        }
+
+        val cmd = mutableListOf<String>()
+        cmd.addAll(prootExec)
+        cmd.addAll(listOf(
+            "--kill-on-exit",
+            "-b", "/sdcard",
+            "-b", "/storage",
+            "-b", "/dev",
+            "-b", "/data",
+            "-b", filesPath,
+            "-b", nativeDir,
+            "-r", "$filesPath/alpine",
+            "-0",
+            "-L"
+        ))
+
+        cmd.addAll(commandInAlpine)
+
+        val pb = ProcessBuilder(cmd)
+        val env = pb.environment()
+        env["PREFIX"] = filesPath
+        env["NATIVE_DIR"] = nativeDir
+        env["HOME"] = "/root"
+        env["TERM"] = "xterm-256color"
+        env["PROOT_TMP_DIR"] = "$filesPath/tmp"
+        env["LD_LIBRARY_PATH"] = "$filesPath:$nativeDir"
+
+        return pb
+    }
 }

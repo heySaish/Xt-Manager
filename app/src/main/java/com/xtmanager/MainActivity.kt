@@ -59,8 +59,9 @@ class MainActivity : ComponentActivity() {
         }
 
         // Initialize dependencies
+        val alpineManager = com.xtmanager.runtime.AlpineManager(this)
         val fileSystem = LocalFileSystem()
-        val archiveManager = com.xtmanager.archive.CliArchiveManager()
+        val archiveManager = com.xtmanager.archive.CliArchiveManager(alpineManager = alpineManager)
         val operationManager = OperationManager(fileSystem, archiveManager)
 
         viewModel = FileManagerViewModel(
