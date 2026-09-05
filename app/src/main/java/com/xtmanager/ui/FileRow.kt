@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import com.xtmanager.core.model.FileEntry
 import com.xtmanager.core.model.FileType
 
+import androidx.compose.ui.unit.sp
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FileRow(
@@ -42,6 +44,7 @@ fun FileRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     onSwipe: () -> Unit = {},
+    densityScale: Float = 1.0f,
     modifier: Modifier = Modifier
 ) {
     val backgroundColor = if (isSelected) {
@@ -61,6 +64,11 @@ fun FileRow(
         FileType.ARCHIVE -> MaterialTheme.colorScheme.secondary
         FileType.FILE -> MaterialTheme.colorScheme.onSurfaceVariant
     }
+
+    val verticalPadding = (4.dp * densityScale).coerceIn(1.dp, 12.dp)
+    val iconSize = (22.dp * densityScale).coerceIn(16.dp, 32.dp)
+    val titleFontSize = (14 * densityScale).sp
+    val labelFontSize = (11 * densityScale).sp
 
     val density = LocalDensity.current
     val minSwipeThresholdPx = remember(density) { with(density) { 35.dp.toPx() } }
@@ -104,14 +112,14 @@ fun FileRow(
                     onLongClick()
                 }
             )
-            .padding(vertical = 4.dp, horizontal = 8.dp),
+            .padding(vertical = verticalPadding, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = iconColor,
-            modifier = Modifier.size(22.dp)
+            modifier = Modifier.size(iconSize)
         )
         
         Spacer(modifier = Modifier.width(8.dp))
@@ -119,7 +127,7 @@ fun FileRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = fileEntry.name,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = titleFontSize),
                 color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1
             )
@@ -127,14 +135,14 @@ fun FileRow(
             Row(modifier = Modifier.padding(top = 1.dp)) {
                 Text(
                     text = fileEntry.formattedDate,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = labelFontSize),
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
                 if (!fileEntry.isDirectory) {
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = fileEntry.formattedSize,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = labelFontSize),
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
                 }

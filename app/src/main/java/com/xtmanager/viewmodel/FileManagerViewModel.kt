@@ -35,12 +35,19 @@ class FileManagerViewModel(
     private val _showHiddenFiles = MutableStateFlow(false)
     val showHiddenFiles: StateFlow<Boolean> = _showHiddenFiles.asStateFlow()
 
+    private val _densityScale = MutableStateFlow(1.0f)
+    val densityScale: StateFlow<Float> = _densityScale.asStateFlow()
+
     init {
         // Initial load is deferred to MainActivity's onResume when permissions are active
     }
 
     fun setActivePane(paneType: PaneType) {
         _activePane.value = paneType
+    }
+
+    fun setDensityScale(scale: Float) {
+        _densityScale.value = scale.coerceIn(0.7f, 1.4f)
     }
 
     fun toggleShowHiddenFiles() {

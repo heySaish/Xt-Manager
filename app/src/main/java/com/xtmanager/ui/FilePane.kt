@@ -75,6 +75,7 @@ fun FilePane(
     onPaneClick: () -> Unit,
     onRefresh: () -> Unit,
     onFileSwipe: (Int) -> Unit = {},
+    densityScale: Float = 1.0f,
     modifier: Modifier = Modifier
 ) {
     val borderColor = if (isActive) {
@@ -258,7 +259,8 @@ fun FilePane(
                                         isSelected = paneState.selected.contains(file.path),
                                         onClick = { onFileClick(file) },
                                         onLongClick = { onFileLongClick(file) },
-                                        onSwipe = { onFileSwipe(index) }
+                                        onSwipe = { onFileSwipe(index) },
+                                        densityScale = densityScale
                                     )
                                 }
                                 Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))

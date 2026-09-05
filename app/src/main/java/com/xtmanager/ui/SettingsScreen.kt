@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CheckCircle
@@ -84,6 +85,8 @@ import java.util.Locale
 fun SettingsScreen(
     showHiddenFiles: Boolean = false,
     onToggleShowHiddenFiles: () -> Unit = {},
+    densityScale: Float = 1.0f,
+    onOpenDensityPreview: () -> Unit = {},
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -210,6 +213,24 @@ fun SettingsScreen(
                                 checkedTrackColor = MaterialTheme.colorScheme.primary,
                                 checkedBorderColor = Color.Transparent
                             )
+                        )
+                    }
+                )
+
+                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                // Item 4: Pane Display Density / Item Size
+                SettingsRowItem(
+                    icon = Icons.Default.AspectRatio,
+                    iconBgColor = Color(0xFF10B981),
+                    title = "Pane Display Density / Item Size",
+                    subtitle = "Adjust row height, icon scale & visible items count (${String.format(Locale.US, "%.2f", densityScale)}x)",
+                    onClick = { onOpenDensityPreview() },
+                    trailingWidget = {
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 )

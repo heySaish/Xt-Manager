@@ -126,6 +126,7 @@ fun FileManagerScreen(
     val operations by viewModel.operations.collectAsState()
     
     val showHiddenFiles by viewModel.showHiddenFiles.collectAsState()
+    val densityScale by viewModel.densityScale.collectAsState()
 
     val activeState = if (activePane == PaneType.LEFT) leftPaneState else rightPaneState
     val inactivePane = if (activePane == PaneType.LEFT) PaneType.RIGHT else PaneType.LEFT
@@ -139,6 +140,7 @@ fun FileManagerScreen(
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var showOperationsDialog by remember { mutableStateOf(false) }
     var showSettingsScreen by remember { mutableStateOf(false) }
+    var showDensityPreviewScreen by remember { mutableStateOf(false) }
     var showJumpToPathDialog by remember { mutableStateOf(false) }
     var showTerminal by remember { mutableStateOf(false) }
     var terminalInitialPath by remember { mutableStateOf<String?>(null) }
@@ -151,13 +153,21 @@ fun FileManagerScreen(
     var lastBackPressTime by remember { mutableStateOf(0L) }
 
     // Intercept Back button:
-    // 1. Selection mode active -> cancel selection
-    // 2. Drawer open -> close drawer
-    // 3. Can go back in history -> go back in history
-    // 4. Has parent folder -> navigate to parent directory
-    // 5. At Root directory level -> double back press confirmation to exit app
+    // 1. Density Preview Screen open -> close density preview screen
+    // 2. Settings Screen open -> close settings screen
+    // 3. Selection mode active -> cancel selection
+    // 4. Drawer open -> close drawer
+    // 5. Can go back in history -> go back in history
+    // 6. Has parent folder -> navigate to parent directory
+    // 7. At Root directory level -> double back press confirmation to exit app
     BackHandler(enabled = true) {
         when {
+            showDensityPreviewScreen -> {
+                showDensityPreviewScreen = false
+            }
+            showSettingsScreen -> {
+                showSettingsScreen = false
+            }
             activeState.isSelectionMode -> {
                 viewModel.clearSelection(activePane)
             }
@@ -508,6 +518,7 @@ fun FileManagerScreen(
                     FilePane(
                         paneState = leftPaneState,
                         isActive = activePane == PaneType.LEFT,
+                        densityScale = densityScale,
                         onFileClick = { file ->
                             viewModel.setActivePane(PaneType.LEFT)
                             if (leftPaneState.isSelectionMode) {
@@ -547,6 +558,7 @@ fun FileManagerScreen(
                     FilePane(
                         paneState = rightPaneState,
                         isActive = activePane == PaneType.RIGHT,
+                        densityScale = densityScale,
                         onFileClick = { file ->
                             viewModel.setActivePane(PaneType.RIGHT)
                             if (rightPaneState.isSelectionMode) {
@@ -907,7 +919,29 @@ fun FileManagerScreen(
         SettingsScreen(
             showHiddenFiles = showHiddenFiles,
             onToggleShowHiddenFiles = { viewModel.toggleShowHiddenFiles() },
+            densityScale = densityScale,
+            onOpenDensityPreview = { showDensityPreviewScreen = true },
             onClose = { showSettingsScreen = false },
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+
+    // Animated Pane Density Preview Screen Overlay (Right-to-Left Slide)
+    AnimatedVisibility(
+        visible = showDensityPreviewScreen,
+        enter = slideInHorizontally(
+            initialOffsetX = { fullWidth -> fullWidth },
+            animationSpec = tween(durationMillis = 300)
+        ) + fadeIn(animationSpec = tween(durationMillis = 300)),
+        exit = slideOutHorizontally(
+            targetOffsetX = { fullWidth -> fullWidth },
+            animationSpec = tween(durationMillis = 300)
+        ) + fadeOut(animationSpec = tween(durationMillis = 300))
+    ) {
+        PaneDensityPreviewScreen(
+            currentDensity = densityScale,
+            onDensityChange = { viewModel.setDensityScale(it) },
+            onClose = { showDensityPreviewScreen = false },
             modifier = Modifier.fillMaxSize()
         )
     }
