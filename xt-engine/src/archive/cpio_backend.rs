@@ -59,7 +59,11 @@ impl ArchiveBackend for CpioBackend {
                     is_encrypted: false,
                 });
 
-                reader = match reader.finish() {
+                let file_stream = match reader.finish() {
+                    Ok(f) => f,
+                    Err(_) => break,
+                };
+                reader = match cpio::NewcReader::new(file_stream) {
                     Ok(r) => r,
                     Err(_) => break,
                 };
@@ -103,7 +107,11 @@ impl ArchiveBackend for CpioBackend {
             let target_path = match staging.prepare_staging_target(&name, is_dir) {
                 Ok(p) => p,
                 Err(_) => {
-                    reader = match reader.finish() {
+                    let file_stream = match reader.finish() {
+                        Ok(f) => f,
+                        Err(_) => break,
+                    };
+                    reader = match cpio::NewcReader::new(file_stream) {
                         Ok(r) => r,
                         Err(_) => break,
                     };
@@ -137,7 +145,11 @@ impl ArchiveBackend for CpioBackend {
             }
 
             processed_entries += 1;
-            reader = match reader.finish() {
+            let file_stream = match reader.finish() {
+                Ok(f) => f,
+                Err(_) => break,
+            };
+            reader = match cpio::NewcReader::new(file_stream) {
                 Ok(r) => r,
                 Err(_) => break,
             };
