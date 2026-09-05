@@ -161,25 +161,25 @@ fun FilePane(
                 AnimatedContent(
                     targetState = paneState.path,
                     transitionSpec = {
-                        val isForward = targetState.length >= initialState.length
+                        val isForward = targetState.startsWith(initialState) || targetState.length > initialState.length
                         if (isForward) {
                             (slideInHorizontally(
-                                animationSpec = tween(220, easing = FastOutSlowInEasing),
-                                initialOffsetX = { fullWidth -> fullWidth / 4 }
-                            ) + fadeIn(animationSpec = tween(220))) togetherWith
+                                animationSpec = tween(200, easing = FastOutSlowInEasing),
+                                initialOffsetX = { fullWidth -> fullWidth / 3 }
+                            ) + fadeIn(animationSpec = tween(200))) togetherWith
                             (slideOutHorizontally(
-                                animationSpec = tween(220, easing = FastOutSlowInEasing),
-                                targetOffsetX = { fullWidth -> -fullWidth / 4 }
-                            ) + fadeOut(animationSpec = tween(220)))
+                                animationSpec = tween(200, easing = FastOutSlowInEasing),
+                                targetOffsetX = { fullWidth -> -fullWidth / 3 }
+                            ) + fadeOut(animationSpec = tween(200)))
                         } else {
                             (slideInHorizontally(
-                                animationSpec = tween(220, easing = FastOutSlowInEasing),
-                                initialOffsetX = { fullWidth -> -fullWidth / 4 }
-                            ) + fadeIn(animationSpec = tween(220))) togetherWith
+                                animationSpec = tween(200, easing = FastOutSlowInEasing),
+                                initialOffsetX = { fullWidth -> -fullWidth / 3 }
+                            ) + fadeIn(animationSpec = tween(200))) togetherWith
                             (slideOutHorizontally(
-                                animationSpec = tween(220, easing = FastOutSlowInEasing),
-                                targetOffsetX = { fullWidth -> fullWidth / 4 }
-                            ) + fadeOut(animationSpec = tween(220)))
+                                animationSpec = tween(200, easing = FastOutSlowInEasing),
+                                targetOffsetX = { fullWidth -> fullWidth / 3 }
+                            ) + fadeOut(animationSpec = tween(200)))
                         }.using(SizeTransform(clip = false))
                     },
                     label = "FolderNavigationTransition",
@@ -253,16 +253,14 @@ fun FilePane(
                                 items = paneState.files,
                                 key = { _, file -> file.path }
                             ) { index, file ->
-                                Box(modifier = Modifier.animateItemPlacement(tween(200))) {
-                                    FileRow(
-                                        fileEntry = file,
-                                        isSelected = paneState.selected.contains(file.path),
-                                        onClick = { onFileClick(file) },
-                                        onLongClick = { onFileLongClick(file) },
-                                        onSwipe = { onFileSwipe(index) },
-                                        densityScale = densityScale
-                                    )
-                                }
+                                FileRow(
+                                    fileEntry = file,
+                                    isSelected = paneState.selected.contains(file.path),
+                                    onClick = { onFileClick(file) },
+                                    onLongClick = { onFileLongClick(file) },
+                                    onSwipe = { onFileSwipe(index) },
+                                    densityScale = densityScale
+                                )
                                 Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
                             }
                         }
