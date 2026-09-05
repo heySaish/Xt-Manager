@@ -1,0 +1,516 @@
+#!/data/data/com.termux/files/usr/bin/env python3
+"""
+⚡ swift-arc - High Performance Terminal Compression & Extraction System
+"""
+
+import sys
+import os
+import shutil
+import subprocess
+import argparse
+import time
+import zipfile
+import tarfile
+import math
+import re
+import glob
+from concurrent.futures import ThreadPoolExecutor
+
+# ANSI Color Definitions & Formatting
+class Colors:
+    CYAN = '\033[38;5;51m'
+    BLUE = '\033[38;5;39m'
+    PURPLE = '\033[38;5;141m'
+    GREEN = '\033[38;5;84m'
+    YELLOW = '\033[38;5;220m'
+    RED = '\033[38;5;196m'
+    GRAY = '\033[38;5;245m'
+    BOLD = '\033[1m'
+    RESET = '\033[0m'
+    BG_DARK = '\033[48;5;235m'
+
+def format_size(bytes_val):
+    if bytes_val == 0:
+        return "0 B"
+    units = ["B", "KB", "MB", "GB", "TB"]
+    i = int(math.floor(math.log(bytes_val, 1024)))
+    p = math.pow(1024, i)
+    s = round(bytes_val / p, 2)
+    return f"{s} {units[i]}"
+
+def print_banner():
+    banner = f"""
+{Colors.CYAN}{Colors.BOLD}⚡ SWIFT-ARC {Colors.GRAY}v1.0 {Colors.PURPLE}— Terminal Archive Accelerator{Colors.RESET}
+{Colors.GRAY}------------------------------------------------------------{Colors.RESET}"""
+    print(banner)
+
+def get_cpu_threads():
+    try:
+        return os.cpu_count() or 4
+    except Exception:
+        return 4
+
+def check_available_tools():
+    tools = ['7z', '7za', 'tar', 'zstd', 'pigz', 'unzip', 'zip', 'rar', 'unrar']
+    available = {}
+    for tool in tools:
+        available[tool] = shutil.which(tool) is not None
+    return available
+
+SYSTEM_TOOLS = check_available_tools()
+
+def detect_archive_type(filepath):
+    """Detect archive type using file magic bytes & extension"""
+    if not os.path.exists(filepath):
+        return None
+        
+    ext = filepath.lower()
+    if ext.endswith('.tar.gz') or ext.endswith('.tgz'):
+        return 'tar.gz'
+    elif ext.endswith('.tar.bz2') or ext.endswith('.tbz2'):
+        return 'tar.bz2'
+    elif ext.endswith('.tar.xz') or ext.endswith('.txz'):
+        return 'tar.xz'
+    elif ext.endswith('.tar.zst') or ext.endswith('.tzst'):
+        return 'tar.zst'
+    elif ext.endswith('.tar'):
+        return 'tar'
+    elif ext.endswith('.zip') or ext.endswith('.jar') or ext.endswith('.apk'):
+        return 'zip'
+    elif ext.endswith('.7z'):
+        return '7z'
+    elif ext.endswith('.rar'):
+        return 'rar'
+    elif ext.endswith('.gz'):
+        return 'gz'
+    elif ext.endswith('.bz2'):
+        return 'bz2'
+    elif ext.endswith('.xz'):
+        return 'xz'
+    elif ext.endswith('.zst'):
+        return 'zst'
+
+    # Fallback to inspecting magic header bytes
+    try:
+        with open(filepath, 'rb') as f:
+            header = f.read(12)
+            if header.startswith(b'PK\x03\x04'):
+                return 'zip'
+            elif header.startswith(b'7z\xbc\xaf\x27\x1c'):
+                return '7z'
+            elif header.startswith(b'\x1f\x8b'):
+                return 'gz'
+            elif header.startswith(b'BZh'):
+                return 'bz2'
+            elif header.startswith(b'\xfd7zXZ\x00'):
+                return 'xz'
+            elif header.startswith(b'Rar!\x1a\x07'):
+                return 'rar'
+            elif header.startswith(b'(\xb5/\xfd'):
+                return 'zst'
+    except Exception:
+        pass
+        
+    return 'unknown'
+
+def extract_archive(archive_path, output_dir=None, password=None):
+    if not os.path.isfile(archive_path):
+        print(f"{Colors.RED}❌ Error: File '{archive_path}' does not exist.{Colors.RESET}")
+        return False
+
+    archive_path = os.path.abspath(archive_path)
+    file_name = os.path.basename(archive_path)
+    archive_type = detect_archive_type(archive_path)
+
+    # Determine default destination output directory
+    if not output_dir:
+        base_name = file_name
+        for ext in ['.tar.gz', '.tar.bz2', '.tar.xz', '.tar.zst', '.tgz', '.tbz2', '.txz', '.tzst',
+                    '.zip', '.7z', '.rar', '.gz', '.bz2', '.xz', '.zst', '.apk', '.jar']:
+            if base_name.lower().endswith(ext):
+                base_name = base_name[:-len(ext)]
+                break
+        output_dir = os.path.join(os.path.dirname(archive_path), base_name)
+    else:
+        output_dir = os.path.abspath(output_dir)
+
+    os.makedirs(output_dir, exist_ok=True)
+    threads = get_cpu_threads()
+
+    print(f"{Colors.CYAN}📦 Extracting:{Colors.RESET} {Colors.BOLD}{file_name}{Colors.RESET}")
+    print(f"{Colors.GRAY}↳ Format: {Colors.YELLOW}{archive_type.upper()}{Colors.GRAY} | Threads: {Colors.GREEN}{threads}{Colors.GRAY} | Output: {Colors.BLUE}{output_dir}{Colors.RESET}")
+
+    start_time = time.time()
+    success = False
+
+    # Strategy 1: Use 7z CLI if available (supports almost everything & multi-threaded)
+    if (SYSTEM_TOOLS.get('7z') or SYSTEM_TOOLS.get('7za')) and archive_type in ['7z', 'zip', 'rar', 'tar', 'tar.gz', 'tar.bz2', 'tar.xz', 'tar.zst', 'gz', 'bz2', 'xz', 'zst']:
+        bin_7z = '7z' if SYSTEM_TOOLS.get('7z') else '7za'
+        cmd = [bin_7z, 'x', archive_path, f'-o{output_dir}', f'-mmt={threads}', '-y', '-bsp1']
+        if password:
+            cmd.append(f'-p{password}')
+        
+        try:
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+            for line in p.stdout:
+                line_str = line.strip()
+                if '%' in line_str:
+                    match = re.search(r'(\d+)%', line_str)
+                    if match:
+                        pct = match.group(1)
+                        sys.stdout.write(f"\r{Colors.GREEN}⚡ Extracting... [{pct}%]{Colors.RESET} ")
+                        sys.stdout.flush()
+            p.wait()
+            if p.returncode == 0:
+                print(f"\r{Colors.GREEN}✔ Extracted successfully using {bin_7z}!{Colors.RESET}")
+                success = True
+        except Exception:
+            pass
+
+    # Strategy 2: Use fast CLI tools (tar, unzip, unrar, zstd)
+    if not success:
+        if archive_type in ['tar', 'tar.gz', 'tar.bz2', 'tar.xz', 'tar.zst'] and SYSTEM_TOOLS.get('tar'):
+            cmd = ['tar']
+            if archive_type == 'tar.gz' and SYSTEM_TOOLS.get('pigz'):
+                cmd.extend(['--use-compress-program=pigz', '-xf', archive_path, '-C', output_dir])
+            elif archive_type == 'tar.zst' and SYSTEM_TOOLS.get('zstd'):
+                cmd.extend(['--use-compress-program=zstd', '-xf', archive_path, '-C', output_dir])
+            else:
+                cmd.extend(['-xf', archive_path, '-C', output_dir])
+            
+            try:
+                res = subprocess.run(cmd, capture_output=True, text=True)
+                if res.returncode == 0:
+                    print(f"\r{Colors.GREEN}✔ Extracted successfully using tar!{Colors.RESET}")
+                    success = True
+            except Exception:
+                pass
+
+        elif archive_type == 'zip' and SYSTEM_TOOLS.get('unzip'):
+            cmd = ['unzip', '-o', archive_path, '-d', output_dir]
+            if password:
+                cmd.extend(['-P', password])
+            try:
+                res = subprocess.run(cmd, capture_output=True, text=True)
+                if res.returncode == 0:
+                    print(f"\r{Colors.GREEN}✔ Extracted successfully using unzip!{Colors.RESET}")
+                    success = True
+            except Exception:
+                pass
+
+    # Strategy 3: Pure Python Fallback
+    if not success:
+        try:
+            if archive_type == 'zip':
+                with zipfile.ZipFile(archive_path, 'r') as zf:
+                    pwd_bytes = password.encode('utf-8') if password else None
+                    zf.extractall(path=output_dir, pwd=pwd_bytes)
+                print(f"\r{Colors.GREEN}✔ Extracted successfully using Python zip engine!{Colors.RESET}")
+                success = True
+            elif archive_type in ['tar', 'tar.gz', 'tar.bz2', 'tar.xz']:
+                with tarfile.open(archive_path, 'r:*') as tf:
+                    tf.extractall(path=output_dir)
+                print(f"\r{Colors.GREEN}✔ Extracted successfully using Python tar engine!{Colors.RESET}")
+                success = True
+        except Exception as e:
+            print(f"\n{Colors.RED}❌ Extraction failed: {e}{Colors.RESET}")
+            return False
+
+    elapsed = round(time.time() - start_time, 2)
+    if success:
+        total_files = 0
+        total_size = 0
+        for root, dirs, files in os.walk(output_dir):
+            total_files += len(files)
+            for f in files:
+                try:
+                    total_size += os.path.getsize(os.path.join(root, f))
+                except Exception:
+                    pass
+                    
+        print(f"{Colors.CYAN}✨ Completed in {elapsed}s {Colors.GRAY}| Files: {Colors.YELLOW}{total_files}{Colors.GRAY} | Size: {Colors.GREEN}{format_size(total_size)}{Colors.RESET}\n")
+        return True
+    return False
+
+def compress_sources(sources, output_path=None, format_type='zip', level=5, password=None):
+    if not sources:
+        print(f"{Colors.RED}❌ Error: No input files or directories specified.{Colors.RESET}")
+        return False
+
+    valid_sources = []
+    for s in sources:
+        expanded = glob.glob(s)
+        if expanded:
+            valid_sources.extend(expanded)
+        elif os.path.exists(s):
+            valid_sources.append(s)
+
+    if not valid_sources:
+        print(f"{Colors.RED}❌ Error: None of the specified source files exist.{Colors.RESET}")
+        return False
+
+    threads = get_cpu_threads()
+    
+    # Calculate source size
+    initial_bytes = 0
+    for s in valid_sources:
+        if os.path.isfile(s):
+            initial_bytes += os.path.getsize(s)
+        elif os.path.isdir(s):
+            for root, _, files in os.walk(s):
+                for f in files:
+                    try:
+                        initial_bytes += os.path.getsize(os.path.join(root, f))
+                    except Exception:
+                        pass
+
+    # Normalize output archive filename
+    first_src = os.path.basename(os.path.abspath(valid_sources[0]))
+    if not output_path:
+        ext_map = {
+            'zip': '.zip',
+            '7z': '.7z',
+            'tar': '.tar',
+            'tar.gz': '.tar.gz',
+            'tgz': '.tar.gz',
+            'tar.xz': '.tar.xz',
+            'txz': '.tar.xz',
+            'tar.zst': '.tar.zst',
+            'gz': '.gz',
+            'bz2': '.bz2',
+            'xz': '.xz'
+        }
+        ext = ext_map.get(format_type.lower(), f".{format_type}")
+        output_path = f"{first_src}{ext}"
+
+    output_path = os.path.abspath(output_path)
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    print(f"{Colors.CYAN}⚡ Compressing:{Colors.RESET} {Colors.BOLD}{len(valid_sources)} source item(s){Colors.RESET} -> {Colors.BLUE}{os.path.basename(output_path)}{Colors.RESET}")
+    print(f"{Colors.GRAY}↳ Format: {Colors.YELLOW}{format_type.upper()}{Colors.GRAY} | Compression Level: {Colors.PURPLE}{level}/9{Colors.GRAY} | Threads: {Colors.GREEN}{threads}{Colors.GRAY} | Raw Size: {Colors.CYAN}{format_size(initial_bytes)}{Colors.RESET}")
+
+    start_time = time.time()
+    success = False
+
+    # Strategy 1: 7z CLI for maximum speed & multi-threading
+    if (SYSTEM_TOOLS.get('7z') or SYSTEM_TOOLS.get('7za')):
+        bin_7z = '7z' if SYSTEM_TOOLS.get('7z') else '7za'
+        cmd = [bin_7z, 'a', f'-mx={level}', f'-mmt={threads}', '-y', '-bsp1']
+        
+        t_flag = {
+            'zip': '-tzip',
+            '7z': '-t7z',
+            'tar': '-ttar',
+            'tar.gz': '-ttar',
+            'tar.xz': '-ttar',
+        }.get(format_type.lower())
+        
+        if t_flag:
+            cmd.append(t_flag)
+        if password:
+            cmd.append(f'-p{password}')
+            
+        cmd.append(output_path)
+        cmd.extend(valid_sources)
+
+        try:
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+            for line in p.stdout:
+                line_str = line.strip()
+                if '%' in line_str:
+                    match = re.search(r'(\d+)%', line_str)
+                    if match:
+                        pct = match.group(1)
+                        sys.stdout.write(f"\r{Colors.GREEN}⚡ Packing... [{pct}%]{Colors.RESET} ")
+                        sys.stdout.flush()
+            p.wait()
+            if p.returncode == 0:
+                print(f"\r{Colors.GREEN}✔ Compressed successfully using {bin_7z}!{Colors.RESET}")
+                success = True
+        except Exception:
+            pass
+
+    # Strategy 2: Fast Linux tool (tar + pigz / zstd / xz)
+    if not success and format_type in ['tar.gz', 'tgz', 'tar.zst', 'tar']:
+        if SYSTEM_TOOLS.get('tar'):
+            cmd = ['tar']
+            if format_type in ['tar.gz', 'tgz'] and SYSTEM_TOOLS.get('pigz'):
+                cmd.extend([f'--use-compress-program="pigz -p {threads} -{level}"', '-cf', output_path])
+            elif format_type == 'tar.zst' and SYSTEM_TOOLS.get('zstd'):
+                cmd.extend([f'--use-compress-program="zstd -T{threads} -{level}"', '-cf', output_path])
+            elif format_type in ['tar.gz', 'tgz']:
+                cmd.extend(['-czf', output_path])
+            else:
+                cmd.extend(['-cf', output_path])
+            
+            cmd.extend(valid_sources)
+            try:
+                res = subprocess.run(' '.join(cmd), shell=True, capture_output=True, text=True)
+                if res.returncode == 0:
+                    print(f"\r{Colors.GREEN}✔ Compressed successfully using fast tar!{Colors.RESET}")
+                    success = True
+            except Exception:
+                pass
+
+    # Strategy 3: Python Fallback
+    if not success:
+        try:
+            if format_type == 'zip':
+                compression_type = zipfile.ZIP_DEFLATED
+                with zipfile.ZipFile(output_path, 'w', compression=compression_type, compresslevel=level) as zf:
+                    for s in valid_sources:
+                        if os.path.isfile(s):
+                            zf.write(s, os.path.basename(s))
+                        elif os.path.isdir(s):
+                            for root, _, files in os.walk(s):
+                                for f in files:
+                                    full_p = os.path.join(root, f)
+                                    rel_p = os.path.relpath(full_p, os.path.dirname(s))
+                                    zf.write(full_p, rel_p)
+                print(f"\r{Colors.GREEN}✔ Compressed successfully using Python zip engine!{Colors.RESET}")
+                success = True
+            elif format_type in ['tar.gz', 'tgz', 'tar.bz2', 'tar.xz', 'tar']:
+                mode = 'w'
+                if format_type in ['tar.gz', 'tgz']:
+                    mode = 'w:gz'
+                elif format_type == 'tar.bz2':
+                    mode = 'w:bz2'
+                elif format_type == 'tar.xz':
+                    mode = 'w:xz'
+                
+                with tarfile.open(output_path, mode) as tf:
+                    for s in valid_sources:
+                        tf.add(s, arcname=os.path.basename(s))
+                print(f"\r{Colors.GREEN}✔ Compressed successfully using Python tar engine!{Colors.RESET}")
+                success = True
+        except Exception as e:
+            print(f"\n{Colors.RED}❌ Compression failed: {e}{Colors.RESET}")
+            return False
+
+    elapsed = round(time.time() - start_time, 2)
+    if success and os.path.exists(output_path):
+        final_bytes = os.path.getsize(output_path)
+        saved_bytes = max(0, initial_bytes - final_bytes)
+        ratio = round((saved_bytes / initial_bytes * 100), 1) if initial_bytes > 0 else 0
+        
+        print(f"{Colors.CYAN}✨ Completed in {elapsed}s{Colors.RESET}")
+        print(f"{Colors.GRAY}  Raw Size: {Colors.YELLOW}{format_size(initial_bytes)}{Colors.GRAY} -> Compressed: {Colors.GREEN}{format_size(final_bytes)}{Colors.GRAY} ({Colors.PURPLE}{ratio}% size saved{Colors.GRAY}){Colors.RESET}\n")
+        return True
+    return False
+
+def show_info(archive_path):
+    if not os.path.exists(archive_path):
+        print(f"{Colors.RED}❌ File '{archive_path}' not found.{Colors.RESET}")
+        return
+
+    archive_type = detect_archive_type(archive_path)
+    file_size = os.path.getsize(archive_path)
+
+    print(f"\n{Colors.CYAN}{Colors.BOLD}📊 ARCHIVE INFORMATION{Colors.RESET}")
+    print(f"{Colors.GRAY}------------------------------------------------------------{Colors.RESET}")
+    print(f" File Name        : {Colors.BOLD}{os.path.basename(archive_path)}{Colors.RESET}")
+    print(f" File Size        : {Colors.GREEN}{format_size(file_size)}{Colors.RESET}")
+    print(f" Detected Format  : {Colors.YELLOW}{archive_type.upper()}{Colors.RESET}")
+
+    # Inspect contents using 7z if available
+    if SYSTEM_TOOLS.get('7z') or SYSTEM_TOOLS.get('7za'):
+        bin_7z = '7z' if SYSTEM_TOOLS.get('7z') else '7za'
+        try:
+            res = subprocess.run([bin_7z, 'l', archive_path], capture_output=True, text=True)
+            if res.returncode == 0:
+                lines = res.stdout.splitlines()
+                print(f"\n{Colors.CYAN}📁 Content Preview (7z engine):{Colors.RESET}")
+                count = 0
+                for line in lines:
+                    if re.match(r'^\d{4}-\d{2}-\d{2}', line.strip()) or 'files' in line or 'folders' in line:
+                        print(f"  {Colors.GRAY}{line}{Colors.RESET}")
+                        count += 1
+                        if count > 20:
+                            print(f"  {Colors.GRAY}... and more items.{Colors.RESET}")
+                            break
+                return
+        except Exception:
+            pass
+
+    # Inspect using Zip engine
+    if archive_type == 'zip':
+        try:
+            with zipfile.ZipFile(archive_path, 'r') as zf:
+                infos = zf.infolist()
+                uncompressed = sum(i.file_size for i in infos)
+                print(f" Total Entries    : {Colors.PURPLE}{len(infos)}{Colors.RESET}")
+                print(f" Uncompressed Size: {Colors.CYAN}{format_size(uncompressed)}{Colors.RESET}")
+                if uncompressed > 0:
+                    ratio = round((1 - file_size / uncompressed) * 100, 1)
+                    print(f" Compression Ratio: {Colors.GREEN}{ratio}% ratio{Colors.RESET}")
+                print(f"\n{Colors.CYAN}📁 Files in archive:{Colors.RESET}")
+                for i in infos[:15]:
+                    print(f"  {Colors.GRAY}• {i.filename} ({format_size(i.file_size)}){Colors.RESET}")
+                if len(infos) > 15:
+                    print(f"  {Colors.GRAY}... and {len(infos) - 15} more files.{Colors.RESET}")
+        except Exception as e:
+            print(f"{Colors.RED}Failed to read zip contents: {e}{Colors.RESET}")
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog='swift-arc',
+        description='⚡ Ultra-fast terminal archive compression and extraction tool',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='Examples:\n  swift-arc extract archive.tar.gz\n  swift-arc compress myfolder/ -f 7z -l 9\n  swift-arc info backup.zip'
+    )
+
+    subparsers = parser.add_subparsers(dest='command', help='Command to run')
+
+    # Extract command
+    ext_parser = subparsers.add_parser('extract', aliases=['x', 'unpack'], help='Extract an archive')
+    ext_parser.add_argument('archive', help='Path to archive file')
+    ext_parser.add_argument('-o', '--output', help='Destination directory')
+    ext_parser.add_argument('-p', '--password', help='Archive password')
+
+    # Compress command
+    comp_parser = subparsers.add_parser('compress', aliases=['c', 'pack'], help='Compress files or directories')
+    comp_parser.add_argument('sources', nargs='+', help='Files or directories to compress')
+    comp_parser.add_argument('-o', '--output', help='Output archive file path')
+    comp_parser.add_argument('-f', '--format', default='zip', choices=['zip', '7z', 'tar', 'tar.gz', 'tgz', 'tar.xz', 'txz', 'tar.zst', 'gz', 'bz2', 'xz'], help='Compression format (default: zip)')
+    comp_parser.add_argument('-l', '--level', type=int, default=5, choices=range(1, 10), help='Compression level 1-9 (default: 5)')
+    comp_parser.add_argument('-p', '--password', help='Password for encryption (7z/zip)')
+    comp_parser.add_argument('--fast', action='store_true', help='Use level 1 for maximum speed')
+    comp_parser.add_argument('--ultra', action='store_true', help='Use level 9 for maximum compression')
+
+    # Info command
+    info_parser = subparsers.add_parser('info', aliases=['i'], help='Display information about an archive')
+    info_parser.add_argument('archive', help='Path to archive file')
+
+    invoked_as = os.path.basename(sys.argv[0])
+    if invoked_as in ['extract', 'ex', 'unpack']:
+        sys.argv.insert(1, 'extract')
+    elif invoked_as in ['compress', 'cm', 'pack']:
+        sys.argv.insert(1, 'compress')
+
+    if len(sys.argv) == 1:
+        print_banner()
+        parser.print_help()
+        sys.exit(0)
+
+    args = parser.parse_args()
+
+    if args.command in ['extract', 'x', 'unpack']:
+        print_banner()
+        extract_archive(args.archive, args.output, args.password)
+    elif args.command in ['compress', 'c', 'pack']:
+        print_banner()
+        lvl = args.level
+        if args.fast:
+            lvl = 1
+        elif args.ultra:
+            lvl = 9
+        compress_sources(args.sources, args.output, args.format, lvl, args.password)
+    elif args.command in ['info', 'i']:
+        print_banner()
+        show_info(args.archive)
+    else:
+        print_banner()
+        parser.print_help()
+
+if __name__ == '__main__':
+    main()

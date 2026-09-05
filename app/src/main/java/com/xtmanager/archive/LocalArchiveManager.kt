@@ -10,6 +10,10 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
+/**
+ * LocalArchiveManager - Java/Kotlin fallback engine.
+ * Only handles .zip format. Throws explicit error for all non-ZIP formats when Alpine binaries are missing.
+ */
 class LocalArchiveManager : ArchiveManager {
 
     override suspend fun compress(
@@ -27,18 +31,18 @@ class LocalArchiveManager : ArchiveManager {
             throw IOException("No valid files to compress.")
         }
 
-        if (format == ArchiveFormat.TAR || format == ArchiveFormat.TAR_GZ || format == ArchiveFormat.TAR_XZ) {
-            compressTarUsingSystem(sources, output, format, onProgress)
-            return@withContext
+        if (format != ArchiveFormat.ZIP) {
+            val reqBinary = when (format) {
+                ArchiveFormat.TAR, ArchiveFormat.TAR_GZ, ArchiveFormat.TAR_XZ -> "tar"
+                ArchiveFormat.SEVEN_Z -> "7z"
+            }
+            throw IOException("Binary '$reqBinary' not found in Alpine environment. Format not supported by fallback engine.")
         }
 
-        if (format != ArchiveFormat.ZIP) {
-            throw IOException("Format $format requires 7z CLI binary which was not found in system environment.")
-        }
-        
-        onProgress(0.1f, "Preparing ZIP archive...")
+        onProgress(0.1f, "Preparing ZIP archive via Java Fallback...")
         try {
             ZipOutputStream(FileOutputStream(outputFile)).use { zos ->
+                zos.setLevel(level.coerceIn(1, 9))
                 val totalFiles = countFiles(filesToCompress)
                 var processed = 0
                 
@@ -49,36 +53,9 @@ class LocalArchiveManager : ArchiveManager {
                     }
                 }
             }
+            onProgress(1.0f, "ZIP Compression completed successfully!")
         } catch (e: Exception) {
-            throw IOException("Compression failed: ${e.localizedMessage}")
-        }
-    }
-
-    private fun compressTarUsingSystem(
-        sources: List<String>,
-        output: String,
-        format: ArchiveFormat,
-        onProgress: (Float, String) -> Unit
-    ) {
-        try {
-            onProgress(0.2f, "Compressing TAR archive using system tool...")
-            val flag = when (format) {
-                ArchiveFormat.TAR_GZ -> "-czf"
-                ArchiveFormat.TAR_XZ -> "-cJf"
-                else -> "-cf"
-            }
-            
-            val cmd = mutableListOf("tar", flag, output)
-            cmd.addAll(sources)
-
-            val pb = ProcessBuilder(cmd).start()
-            val code = pb.waitFor()
-            if (code != 0) {
-                throw IOException("System tar command exited with code $code")
-            }
-            onProgress(1.0f, "TAR Compression completed successfully!")
-        } catch (e: Exception) {
-            throw IOException("TAR compression failed: ${e.localizedMessage}")
+            throw IOException(e.localizedMessage ?: "Java ZIP compression failed")
         }
     }
 
@@ -92,17 +69,18 @@ class LocalArchiveManager : ArchiveManager {
         val destDir = File(destination)
         if (!destDir.exists()) destDir.mkdirs()
 
-        if (!archive.lowercase().endsWith(".zip")) {
-            // If it's not a ZIP, try using system command for TAR
-            if (archive.lowercase().endsWith(".tar") || archive.lowercase().endsWith(".tar.gz") || archive.lowercase().endsWith(".tgz")) {
-                extractTarUsingSystem(archiveFile, destDir, onProgress)
-                return@withContext
+        val archiveLower = archive.lowercase()
+        if (!archiveLower.endsWith(".zip")) {
+            val reqBinary = when {
+                archiveLower.endsWith(".tar") || archiveLower.endsWith(".tar.gz") || archiveLower.endsWith(".tgz") || archiveLower.endsWith(".tar.xz") -> "tar"
+                archiveLower.endsWith(".7z") || archiveLower.endsWith(".rar") -> "7z"
+                else -> "7z"
             }
-            throw IOException("Unsupported archive format.")
+            throw IOException("Binary '$reqBinary' not found in Alpine environment. Format not supported by fallback engine.")
         }
 
         try {
-            onProgress(0.1f, "Opening ZIP archive...")
+            onProgress(0.1f, "Extracting ZIP archive via Java Fallback...")
             val totalSize = archiveFile.length()
             var extractedBytes = 0L
 
@@ -113,10 +91,9 @@ class LocalArchiveManager : ArchiveManager {
                     if (entry.isDirectory) {
                         newFile.mkdirs()
                     } else {
-                        // Create parent dirs if they don't exist
                         newFile.parentFile?.mkdirs()
                         FileOutputStream(newFile).use { fos ->
-                            val buffer = ByteArray(4096)
+                            val buffer = ByteArray(8192)
                             var len: Int
                             while (zis.read(buffer).also { len = it } > 0) {
                                 fos.write(buffer, 0, len)
@@ -130,9 +107,9 @@ class LocalArchiveManager : ArchiveManager {
                     entry = zis.nextEntry
                 }
             }
-            onProgress(1.0f, "Extraction completed successfully!")
+            onProgress(1.0f, "ZIP Extraction completed successfully!")
         } catch (e: Exception) {
-            throw IOException("Extraction failed: ${e.localizedMessage}")
+            throw IOException(e.localizedMessage ?: "Java ZIP extraction failed")
         }
     }
 
@@ -151,7 +128,7 @@ class LocalArchiveManager : ArchiveManager {
             FileInputStream(file).use { fis ->
                 val zipEntry = ZipEntry(path)
                 zos.putNextEntry(zipEntry)
-                val buffer = ByteArray(4096)
+                val buffer = ByteArray(8192)
                 var len: Int
                 while (fis.read(buffer).also { len = it } > 0) {
                     zos.write(buffer, 0, len)
@@ -178,25 +155,5 @@ class LocalArchiveManager : ArchiveManager {
             count += countFilesRecursive(f)
         }
         return count
-    }
-
-    private fun extractTarUsingSystem(archive: File, destination: File, onProgress: (Float, String) -> Unit) {
-        try {
-            onProgress(0.3f, "Extracting TAR archive using system tool...")
-            val pb = ProcessBuilder(
-                "tar",
-                "-xf",
-                archive.absolutePath,
-                "-C",
-                destination.absolutePath
-            ).start()
-            val code = pb.waitFor()
-            if (code != 0) {
-                throw IOException("System tar command returned non-zero code $code")
-            }
-            onProgress(1.0f, "Extraction completed successfully!")
-        } catch (e: Exception) {
-            throw IOException("TAR extraction failed: ${e.localizedMessage}")
-        }
     }
 }
