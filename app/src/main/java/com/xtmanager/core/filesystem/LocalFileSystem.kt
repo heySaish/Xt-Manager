@@ -51,6 +51,24 @@ class LocalFileSystem : FileSystem {
 
         @JvmStatic
         private external fun nativeGetLastMetrics(): FsScanMetrics?
+
+        @JvmStatic
+        external fun nativeCreateCancelToken(): Long
+
+        @JvmStatic
+        external fun nativeTriggerCancel(tokenId: Long)
+
+        @JvmStatic
+        external fun nativeFreeCancelToken(tokenId: Long)
+
+        @JvmStatic
+        external fun nativeListArchiveEntries(archivePath: String, virtualPrefix: String): Array<RawFileItem>?
+
+        @JvmStatic
+        external fun nativeExtractArchive(archivePath: String, destinationDir: String, overwritePolicy: Int, tokenId: Long, progressListener: Any?): Int
+
+        @JvmStatic
+        external fun nativeCompressArchive(sources: Array<String>, outputArchive: String, format: String, level: Int, tokenId: Long, progressListener: Any?): Int
     }
 
     override suspend fun list(path: String): List<FileEntry> = withContext(Dispatchers.IO) {

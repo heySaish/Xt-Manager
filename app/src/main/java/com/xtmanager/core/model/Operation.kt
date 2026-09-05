@@ -3,14 +3,17 @@ package com.xtmanager.core.model
 enum class OperationType {
     COPY,
     MOVE,
-    DELETE
+    DELETE,
+    COMPRESS,
+    EXTRACT
 }
 
 enum class OperationStatus {
     PENDING,
     RUNNING,
     COMPLETED,
-    FAILED
+    FAILED,
+    CANCELLED
 }
 
 data class Operation(
@@ -23,14 +26,24 @@ data class Operation(
     val currentFileName: String = "",
     val error: String? = null,
     val processedBytes: Long = 0,
-    val totalBytes: Long = 0
+    val totalBytes: Long = 0,
+    val processedEntries: Long = 0,
+    val totalEntries: Long = 0,
+    val cancelToken: Long = 0L,
+    val isCancellable: Boolean = true
 ) {
     val formattedProgress: String
         get() = String.format("%.0f%%", progress * 100)
 
     val formattedProcessedSize: String
         get() {
-            return "${formatSize(processedBytes)} / ${formatSize(totalBytes)}"
+            return if (totalBytes > 0) {
+                "${formatSize(processedBytes)} / ${formatSize(totalBytes)}"
+            } else if (totalEntries > 0) {
+                "$processedEntries / $totalEntries items"
+            } else {
+                formatSize(processedBytes)
+            }
         }
 
     private fun formatSize(bytes: Long): String {
