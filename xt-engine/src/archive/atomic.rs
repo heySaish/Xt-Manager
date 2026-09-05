@@ -26,8 +26,7 @@ impl AtomicStagingContext {
 
         let staging_dir = Builder::new()
             .prefix(".xt-tmp-")
-            .tempdir_in(destination_dir)
-            .map_err(|e| ArchiveError::Io(e))?
+            .tempdir_in(destination_dir)?
             .keep()
             .map_err(|e| ArchiveError::Io(e.error))?;
 
