@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use sevenz_rust::SevenZArchive;
+use sevenz_rust::SevenZReader;
 
 use super::atomic::AtomicStagingContext;
 use super::session::ArchiveSessionManager;
@@ -30,8 +30,8 @@ impl ArchiveBackend for SevenZipBackend {
     ) -> Result<Vec<ArchiveEntryItem>, ArchiveError> {
         let all_entries = ArchiveSessionManager::get_or_insert(archive_path, || {
             let mut items = Vec::new();
-            if let Ok(archive) = SevenZArchive::open(archive_path) {
-                for entry in archive.files {
+            if let Ok(reader) = SevenZReader::open(archive_path, &[]) {
+                for entry in &reader.archive().files {
                     let raw_name = entry.name.clone();
                     let is_dir = entry.is_directory;
                     let name = raw_name

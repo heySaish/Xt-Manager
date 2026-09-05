@@ -84,7 +84,7 @@ impl AtomicStagingContext {
     ) -> Result<(), ArchiveError> {
         let mut processed_entries: u64 = 0;
 
-        for action in self.commit_actions {
+        for action in &self.commit_actions {
             if cancel_flag.load(Ordering::SeqCst) {
                 self.purge();
                 return Err(ArchiveError::Cancelled);
