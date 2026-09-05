@@ -40,7 +40,7 @@ impl ArchiveBackend for CpioBackend {
             };
             let mut items = Vec::new();
 
-            while let Ok(Some(entry)) = reader.next() {
+            while let Ok(Some(entry)) = reader.entry() {
                 let name = entry.name().to_string();
                 if name == "TRAILER!!!" {
                     break;
@@ -86,7 +86,7 @@ impl ArchiveBackend for CpioBackend {
         let mut processed_bytes = 0u64;
         let mut processed_entries = 0u64;
 
-        while let Ok(Some(mut entry)) = reader.next() {
+        while let Ok(Some(mut entry)) = reader.entry() {
             if cancel_flag.load(Ordering::SeqCst) {
                 staging.purge();
                 return Err(ArchiveError::Cancelled);
