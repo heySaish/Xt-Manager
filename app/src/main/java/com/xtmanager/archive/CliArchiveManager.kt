@@ -141,7 +141,7 @@ class CliArchiveManager(
             }
             parser = SevenZipOutputParser()
         } else if (binPath == "tar") {
-            cmd.addAll(listOf("tar", "-xf", archiveFile.absolutePath, "-C", destDir.absolutePath))
+            cmd.addAll(listOf("tar", "--no-same-owner", "--no-same-permissions", "-xf", archiveFile.absolutePath, "-C", destDir.absolutePath))
             parser = SevenZipOutputParser()
         } else { // unzip
             cmd.addAll(listOf("unzip", "-o", archiveFile.absolutePath, "-d", destDir.absolutePath))
@@ -167,6 +167,7 @@ class CliArchiveManager(
 
         val reader = InputStreamReader(process.inputStream)
         val sb = StringBuilder()
+        val collectedLogs = mutableListOf<String>()
         var charCode = reader.read()
         var lastReportTime = 0L
 
@@ -175,6 +176,10 @@ class CliArchiveManager(
             if (ch == '\r' || ch == '\n') {
                 if (sb.isNotEmpty()) {
                     val line = sb.toString()
+                    collectedLogs.add(line)
+                    if (collectedLogs.size > 200) {
+                        collectedLogs.removeAt(0)
+                    }
                     val event = parser.parseLine(line)
                     if (event is ProgressEvent.Progressing) {
                         val now = System.currentTimeMillis()
@@ -190,12 +195,22 @@ class CliArchiveManager(
             }
             charCode = reader.read()
         }
+        if (sb.isNotEmpty()) {
+            collectedLogs.add(sb.toString())
+        }
 
         val exitCode = process.waitFor()
-        if (exitCode != 0) {
-            AppLogger.e("ARCHIVE", "❌ Alpine PRoot CLI operation failed with exit code $exitCode")
-            throw java.io.IOException("Alpine PRoot CLI operation failed with exit code $exitCode")
+        val isTar = pb.command().any { it.contains("tar") }
+
+        // GNU tar returns exit code 1 for non-fatal warnings (e.g., owner/chmod warnings on Android FUSE storage)
+        if (exitCode != 0 && !(exitCode == 1 && isTar)) {
+            val lastOutput = collectedLogs.takeLast(10).joinToString("\n")
+            AppLogger.e("ARCHIVE", "❌ Alpine PRoot CLI operation failed (exit code $exitCode):\n$lastOutput")
+            throw java.io.IOException("Alpine PRoot CLI operation failed (exit code $exitCode): ${collectedLogs.lastOrNull() ?: "Unknown error"}")
+        } else if (exitCode == 1 && isTar) {
+            AppLogger.w("ARCHIVE", "⚠️ tar CLI exited with warning code 1 (non-fatal permission/owner warning on Android storage)")
         }
+
         AppLogger.i("ARCHIVE", "✅ Alpine PRoot CLI operation completed successfully!")
         onProgress(1.0f, "Operation completed successfully!")
     }
