@@ -248,10 +248,11 @@ pub extern "system" fn Java_com_xtmanager_core_filesystem_LocalFileSystem_native
             Err(_) => continue,
         };
         let jstr = JString::from(item);
-        if let Ok(s) = env.get_string(&jstr) {
-            let path_str: String = s.into();
-            source_paths.push(PathBuf::from(path_str));
-        }
+        let path_str: String = match env.get_string(&jstr) {
+            Ok(s) => s.into(),
+            Err(_) => continue,
+        };
+        source_paths.push(PathBuf::from(path_str));
     }
 
     let backend = match get_backend_for_format(&fmt_str) {
