@@ -326,6 +326,27 @@ class FileManagerViewModel(
         }
     }
 
+    fun enqueueExtract(archivePath: String, destDir: String, overwritePolicy: Int = 0) {
+        operationManager.enqueueExtract(archivePath, destDir, overwritePolicy)
+        viewModelScope.launch {
+            refreshPane(PaneType.LEFT)
+            refreshPane(PaneType.RIGHT)
+        }
+    }
+
+    fun enqueueCompress(sources: List<String>, destArchive: String, format: String = "zip", level: Int = 5) {
+        if (sources.isEmpty()) return
+        operationManager.enqueueCompress(sources, destArchive, format, level)
+        viewModelScope.launch {
+            refreshPane(PaneType.LEFT)
+            refreshPane(PaneType.RIGHT)
+        }
+    }
+
+    fun cancelOperation(id: String) {
+        operationManager.cancelOperation(id)
+    }
+
     fun clearCompletedOperations() {
         operationManager.clearCompleted()
     }

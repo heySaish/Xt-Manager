@@ -97,6 +97,8 @@ import com.xtmanager.ui.dialogs.ConfirmDialog
 import com.xtmanager.ui.dialogs.CreateDialog
 import com.xtmanager.ui.dialogs.RenameDialog
 import com.xtmanager.ui.dialogs.FileContextMenuDialog
+import com.xtmanager.ui.dialogs.CompressDialog
+import com.xtmanager.ui.dialogs.ExtractDialog
 import com.xtmanager.ui.SettingsScreen
 import androidx.compose.material.icons.filled.Settings
 import com.xtmanager.viewmodel.FileManagerViewModel
@@ -142,6 +144,8 @@ fun FileManagerScreen(
     var terminalInitialPath by remember { mutableStateOf<String?>(null) }
     var contextMenuTargetFile by remember { mutableStateOf<FileEntry?>(null) }
     var showSingleDeleteDialog by remember { mutableStateOf<FileEntry?>(null) }
+    var showCompressDialogSources by remember { mutableStateOf<List<String>?>(null) }
+    var showExtractDialogPath by remember { mutableStateOf<String?>(null) }
 
     var topMenuExpanded by remember { mutableStateOf(false) }
     var lastBackPressTime by remember { mutableStateOf(0L) }
@@ -509,7 +513,9 @@ fun FileManagerScreen(
                             if (leftPaneState.isSelectionMode) {
                                 viewModel.toggleFileSelection(PaneType.LEFT, file.path)
                             } else {
-                                if (file.isDirectory) {
+                                val isArchive = file.type == FileType.ARCHIVE || 
+                                    listOf(".zip", ".apk", ".tar", ".tgz", ".7z").any { file.name.lowercase().endsWith(it) }
+                                if (file.isDirectory || isArchive) {
                                     viewModel.navigateTo(PaneType.LEFT, file.path)
                                 } else {
                                     viewModel.toggleFileSelection(PaneType.LEFT, file.path)
@@ -543,7 +549,9 @@ fun FileManagerScreen(
                             if (rightPaneState.isSelectionMode) {
                                 viewModel.toggleFileSelection(PaneType.RIGHT, file.path)
                             } else {
-                                if (file.isDirectory) {
+                                val isArchive = file.type == FileType.ARCHIVE || 
+                                    listOf(".zip", ".apk", ".tar", ".tgz", ".7z").any { file.name.lowercase().endsWith(it) }
+                                if (file.isDirectory || isArchive) {
                                     viewModel.navigateTo(PaneType.RIGHT, file.path)
                                 } else {
                                     viewModel.toggleFileSelection(PaneType.RIGHT, file.path)
@@ -737,16 +745,32 @@ fun FileManagerScreen(
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = FontWeight.Bold
                                         )
-                                        Text(
-                                            text = op.status.name,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = when (op.status) {
-                                                OperationStatus.RUNNING -> MaterialTheme.colorScheme.primary
-                                                OperationStatus.COMPLETED -> Color.Green
-                                                OperationStatus.FAILED -> MaterialTheme.colorScheme.error
-                                                else -> Color.Gray
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = op.status.name,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = when (op.status) {
+                                                    OperationStatus.RUNNING -> MaterialTheme.colorScheme.primary
+                                                    OperationStatus.COMPLETED -> Color.Green
+                                                    OperationStatus.FAILED -> MaterialTheme.colorScheme.error
+                                                    OperationStatus.CANCELLED -> Color(0xFFF59E0B)
+                                                    else -> Color.Gray
+                                                }
+                                            )
+                                            if (op.status == OperationStatus.RUNNING) {
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                IconButton(
+                                                    onClick = { viewModel.cancelOperation(op.id) },
+                                                    modifier = Modifier.size(20.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Close,
+                                                        contentDescription = "Cancel Operation",
+                                                        tint = MaterialTheme.colorScheme.error
+                                                    )
+                                                }
                                             }
-                                        )
+                                        }
                                     }
                                     if (op.status == OperationStatus.RUNNING) {
                                         Spacer(modifier = Modifier.height(4.dp))
@@ -904,6 +928,59 @@ fun FileManagerScreen(
             onRename = {
                 showRenameDialog = file
                 contextMenuTargetFile = null
+            },
+            onCompress = {
+                showCompressDialogSources = listOf(file.path)
+                contextMenuTargetFile = null
+            },
+            onExtractHere = {
+                viewModel.enqueueExtract(file.path, activeState.path)
+                showOperationsDialog = true
+                contextMenuTargetFile = null
+            },
+            onExtractTo = {
+                showExtractDialogPath = file.path
+                contextMenuTargetFile = null
+            },
+            onOpenArchive = {
+                viewModel.navigateTo(activePane, file.path)
+                contextMenuTargetFile = null
+            }
+        )
+    }
+
+    // Compress Dialog
+    showCompressDialogSources?.let { sources ->
+        val defaultName = if (sources.size == 1) {
+            val srcFile = File(sources[0])
+            "${srcFile.nameWithoutExtension}.zip"
+        } else {
+            "archive.zip"
+        }
+        CompressDialog(
+            initialName = defaultName,
+            onDismiss = { showCompressDialogSources = null },
+            onCompress = { archiveName, format, level ->
+                val destPath = File(activeState.path, archiveName).absolutePath
+                viewModel.enqueueCompress(sources, destPath, format, level)
+                showOperationsDialog = true
+                showCompressDialogSources = null
+            }
+        )
+    }
+
+    // Extract Dialog
+    showExtractDialogPath?.let { archivePath ->
+        val archiveFile = File(archivePath)
+        val defaultDest = File(activeState.path, archiveFile.nameWithoutExtension).absolutePath
+        ExtractDialog(
+            archiveName = archiveFile.name,
+            initialDestDir = defaultDest,
+            onDismiss = { showExtractDialogPath = null },
+            onExtract = { destDir, overwritePolicy ->
+                viewModel.enqueueExtract(archivePath, destDir, overwritePolicy)
+                showOperationsDialog = true
+                showExtractDialogPath = null
             }
         )
     }

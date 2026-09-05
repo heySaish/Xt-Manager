@@ -38,6 +38,10 @@ import androidx.compose.ui.unit.sp
 import com.xtmanager.core.model.FileEntry
 import com.xtmanager.core.model.FileType
 
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.FolderZip
+import androidx.compose.material.icons.filled.Unarchive
+
 @Composable
 fun FileContextMenuDialog(
     fileEntry: FileEntry,
@@ -45,8 +49,15 @@ fun FileContextMenuDialog(
     onCopy: () -> Unit,
     onMove: () -> Unit,
     onDelete: () -> Unit,
-    onRename: () -> Unit
+    onRename: () -> Unit,
+    onCompress: (() -> Unit)? = null,
+    onExtractHere: (() -> Unit)? = null,
+    onExtractTo: (() -> Unit)? = null,
+    onOpenArchive: (() -> Unit)? = null
 ) {
+    val isArchive = fileEntry.type == FileType.ARCHIVE || 
+        listOf(".zip", ".tar", ".gz", ".tgz", ".7z", ".apk").any { fileEntry.name.lowercase().endsWith(it) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = null,
@@ -83,7 +94,7 @@ fun FileContextMenuDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Left Column: Copy, Delete
+                    // Left Column: Copy, Delete, Compress / Extract Here
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -106,9 +117,30 @@ fun FileContextMenuDialog(
                                 onDelete()
                             }
                         )
+                        if (isArchive && onExtractHere != null) {
+                            ContextMenuItemRow(
+                                icon = Icons.Default.Unarchive,
+                                label = "Extract Here",
+                                iconColor = Color(0xFF10B981),
+                                onClick = {
+                                    onDismiss()
+                                    onExtractHere()
+                                }
+                            )
+                        } else if (onCompress != null) {
+                            ContextMenuItemRow(
+                                icon = Icons.Default.Archive,
+                                label = "Compress...",
+                                iconColor = Color(0xFF6366F1),
+                                onClick = {
+                                    onDismiss()
+                                    onCompress()
+                                }
+                            )
+                        }
                     }
 
-                    // Right Column: Move, Rename
+                    // Right Column: Move, Rename, Open/Extract To
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -131,6 +163,27 @@ fun FileContextMenuDialog(
                                 onRename()
                             }
                         )
+                        if (isArchive && onOpenArchive != null) {
+                            ContextMenuItemRow(
+                                icon = Icons.Default.FolderZip,
+                                label = "Browse Archive",
+                                iconColor = Color(0xFFEC4899),
+                                onClick = {
+                                    onDismiss()
+                                    onOpenArchive()
+                                }
+                            )
+                        } else if (isArchive && onExtractTo != null) {
+                            ContextMenuItemRow(
+                                icon = Icons.Default.Unarchive,
+                                label = "Extract To...",
+                                iconColor = Color(0xFF10B981),
+                                onClick = {
+                                    onDismiss()
+                                    onExtractTo()
+                                }
+                            )
+                        }
                     }
                 }
             }

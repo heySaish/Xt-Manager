@@ -72,6 +72,45 @@ class LocalFileSystem : FileSystem {
     }
 
     override suspend fun list(path: String): List<FileEntry> = withContext(Dispatchers.IO) {
+        // Check if path is an archive or inside an archive
+        val archiveExts = listOf(".zip", ".apk", ".tar.gz", ".tgz", ".tar", ".7z")
+        var archivePath: String? = null
+        var virtualPrefix = ""
+
+        for (ext in archiveExts) {
+            val idx = path.lowercase().indexOf(ext)
+            if (idx != -1) {
+                val endIdx = idx + ext.length
+                if (endIdx == path.length || path[endIdx] == '/') {
+                    archivePath = path.substring(0, endIdx)
+                    virtualPrefix = path.substring(endIdx).trimStart('/')
+                    break
+                }
+            }
+        }
+
+        if (archivePath != null && isNativeLoaded) {
+            val rawItems = nativeListArchiveEntries(archivePath, virtualPrefix)
+            if (rawItems != null) {
+                val basePath = if (path.endsWith("/")) path else "$path/"
+                return@withContext rawItems.map { item ->
+                    val type = when {
+                        item.isDir -> FileType.DIRECTORY
+                        item.isArchive -> FileType.ARCHIVE
+                        else -> FileType.FILE
+                    }
+                    FileEntry(
+                        name = item.name,
+                        path = "$basePath${item.name}",
+                        isDirectory = item.isDir,
+                        size = item.size,
+                        lastModified = item.lastMod,
+                        type = type
+                    )
+                }
+            }
+        }
+
         val directory = File(path)
         if (!directory.exists() || !directory.isDirectory) {
             return@withContext emptyList()
