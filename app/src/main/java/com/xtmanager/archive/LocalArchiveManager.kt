@@ -20,25 +20,23 @@ class LocalArchiveManager : ArchiveManager {
         password: String?,
         onProgress: (progress: Float, currentFile: String) -> Unit
     ) = withContext(Dispatchers.IO) {
-        if (format != ArchiveFormat.ZIP) {
-            throw IOException("Currently only ZIP format is supported natively.")
-        }
-        
-        onProgress(0.1f, "Preparing ZIP archive...")
         val outputFile = File(output)
-        val filesToCompress = mutableListOf<File>()
-        
-        for (sourcePath in sources) {
-            val file = File(sourcePath)
-            if (file.exists()) {
-                filesToCompress.add(file)
-            }
-        }
+        val filesToCompress = sources.map { File(it) }.filter { it.exists() }
         
         if (filesToCompress.isEmpty()) {
             throw IOException("No valid files to compress.")
         }
 
+        if (format == ArchiveFormat.TAR || format == ArchiveFormat.TAR_GZ || format == ArchiveFormat.TAR_XZ) {
+            compressTarUsingSystem(sources, output, format, onProgress)
+            return@withContext
+        }
+
+        if (format != ArchiveFormat.ZIP) {
+            throw IOException("Format $format requires 7z CLI binary which was not found in system environment.")
+        }
+        
+        onProgress(0.1f, "Preparing ZIP archive...")
         try {
             ZipOutputStream(FileOutputStream(outputFile)).use { zos ->
                 val totalFiles = countFiles(filesToCompress)
@@ -53,6 +51,34 @@ class LocalArchiveManager : ArchiveManager {
             }
         } catch (e: Exception) {
             throw IOException("Compression failed: ${e.localizedMessage}")
+        }
+    }
+
+    private fun compressTarUsingSystem(
+        sources: List<String>,
+        output: String,
+        format: ArchiveFormat,
+        onProgress: (Float, String) -> Unit
+    ) {
+        try {
+            onProgress(0.2f, "Compressing TAR archive using system tool...")
+            val flag = when (format) {
+                ArchiveFormat.TAR_GZ -> "-czf"
+                ArchiveFormat.TAR_XZ -> "-cJf"
+                else -> "-cf"
+            }
+            
+            val cmd = mutableListOf("tar", flag, output)
+            cmd.addAll(sources)
+
+            val pb = ProcessBuilder(cmd).start()
+            val code = pb.waitFor()
+            if (code != 0) {
+                throw IOException("System tar command exited with code $code")
+            }
+            onProgress(1.0f, "TAR Compression completed successfully!")
+        } catch (e: Exception) {
+            throw IOException("TAR compression failed: ${e.localizedMessage}")
         }
     }
 

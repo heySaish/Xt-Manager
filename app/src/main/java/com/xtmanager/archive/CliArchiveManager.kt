@@ -21,10 +21,10 @@ class CliArchiveManager(
     ) = withContext(Dispatchers.IO) {
         if (sources.isEmpty()) return@withContext
 
-        val has7z = isBinaryAvailable("7z")
-        if (has7z) {
-            AppLogger.i("ARCHIVE", "⚡ Active Engine: 7z CLI Engine for target '$output'")
-            run7zCompress(sources, output, format, level, password) { progress, file ->
+        val binPath = findBinaryPath("7z") ?: findBinaryPath("7za")
+        if (binPath != null) {
+            AppLogger.i("ARCHIVE", "⚡ Active Engine: 7z CLI ($binPath) for target '$output'")
+            run7zCompress(binPath, sources, output, format, level, password) { progress, file ->
                 onProgress(progress, "⚡ [7z CLI] $file")
             }
             return@withContext
@@ -46,10 +46,10 @@ class CliArchiveManager(
         val destDir = File(destination)
         if (!destDir.exists()) destDir.mkdirs()
 
-        val has7z = isBinaryAvailable("7z")
-        if (has7z) {
-            AppLogger.i("ARCHIVE", "⚡ Active Engine: 7z CLI Engine extracting '$archive'")
-            run7zExtract(archiveFile, destDir, password) { progress, file ->
+        val binPath = findBinaryPath("7z") ?: findBinaryPath("7za")
+        if (binPath != null) {
+            AppLogger.i("ARCHIVE", "⚡ Active Engine: 7z CLI ($binPath) extracting '$archive'")
+            run7zExtract(binPath, archiveFile, destDir, password) { progress, file ->
                 onProgress(progress, "⚡ [7z CLI] $file")
             }
             return@withContext
@@ -62,6 +62,7 @@ class CliArchiveManager(
     }
 
     private fun run7zCompress(
+        binPath: String,
         sources: List<String>,
         output: String,
         format: ArchiveFormat,
@@ -69,7 +70,7 @@ class CliArchiveManager(
         password: String?,
         onProgress: (Float, String) -> Unit
     ) {
-        val cmd = mutableListOf("7z", "a", "-bsp1", "-y")
+        val cmd = mutableListOf(binPath, "a", "-bsp1", "-y")
         
         // Compression level -mx0 to -mx9
         cmd.add("-mx=$level")
@@ -96,12 +97,13 @@ class CliArchiveManager(
     }
 
     private fun run7zExtract(
+        binPath: String,
         archiveFile: File,
         destDir: File,
         password: String?,
         onProgress: (Float, String) -> Unit
     ) {
-        val cmd = mutableListOf("7z", "x", archiveFile.absolutePath, "-o${destDir.absolutePath}", "-bsp1", "-y")
+        val cmd = mutableListOf(binPath, "x", archiveFile.absolutePath, "-o${destDir.absolutePath}", "-bsp1", "-y")
         if (!password.isNullOrEmpty()) {
             cmd.add("-p$password")
         }
@@ -156,13 +158,23 @@ class CliArchiveManager(
         onProgress(1.0f, "Operation completed successfully!")
     }
 
-    private fun isBinaryAvailable(binaryName: String): Boolean {
-        return try {
+    private fun findBinaryPath(binaryName: String): String? {
+        try {
             val process = Runtime.getRuntime().exec(arrayOf("which", binaryName))
-            val exitCode = process.waitFor()
-            exitCode == 0
-        } catch (e: Exception) {
-            false
-        }
+            val path = process.inputStream.bufferedReader().readLine()?.trim()
+            if (process.waitFor() == 0 && !path.isNullOrEmpty() && File(path).exists()) {
+                return path
+            }
+        } catch (_: Exception) {}
+
+        val candidates = listOf(
+            "/data/data/com.termux/files/usr/bin/$binaryName",
+            "/data/data/com.termux/files/usr/bin/7za",
+            "/system/bin/$binaryName",
+            "/system/xbin/$binaryName",
+            "/vendor/bin/$binaryName",
+            "/data/local/tmp/$binaryName"
+        )
+        return candidates.firstOrNull { File(it).exists() }
     }
 }
