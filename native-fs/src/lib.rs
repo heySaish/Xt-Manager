@@ -1,4 +1,4 @@
-use jni::objects::{JClass, JObject, JString, JValue};
+use jni::objects::{JClass, JObject, JObjectArray, JString, JValue};
 use jni::sys::{jint, jlong, jobjectArray};
 use jni::JNIEnv;
 use std::path::{Path, PathBuf};
@@ -176,7 +176,7 @@ pub extern "system" fn Java_com_xtmanager_core_filesystem_LocalFileSystem_native
     archive_path: JString<'local>,
     destination_dir: JString<'local>,
     overwrite_policy: jint,
-    token_id: jlong,
+    _token_id: jlong,
     _progress_listener: JObject<'local>,
 ) -> jint {
     let archive_str: String = match env.get_string(&archive_path) {
@@ -222,7 +222,7 @@ pub extern "system" fn Java_com_xtmanager_core_filesystem_LocalFileSystem_native
     output_archive: JString<'local>,
     format: JString<'local>,
     level: jint,
-    token_id: jlong,
+    _token_id: jlong,
     _progress_listener: JObject<'local>,
 ) -> jint {
     let out_str: String = match env.get_string(&output_archive) {
@@ -235,14 +235,15 @@ pub extern "system" fn Java_com_xtmanager_core_filesystem_LocalFileSystem_native
         Err(_) => "zip".to_string(),
     };
 
-    let count = match env.get_array_length(&sources) {
+    let sources_obj = unsafe { JObjectArray::from_raw(sources) };
+    let count = match env.get_array_length(&sources_obj) {
         Ok(l) => l,
         Err(_) => return -1,
     };
 
     let mut source_paths = Vec::new();
     for i in 0..count {
-        let item = match env.get_object_array_element(&sources, i) {
+        let item = match env.get_object_array_element(&sources_obj, i) {
             Ok(o) => o,
             Err(_) => continue,
         };
