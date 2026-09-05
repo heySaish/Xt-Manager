@@ -82,8 +82,14 @@ class CliArchiveManager(
         password: String?,
         onProgress: (Float, String) -> Unit
     ) {
+        val outputFile = File(output)
+        outputFile.parentFile?.mkdirs()
+
+        val firstFile = File(sources.first())
+        val parentDir = firstFile.parentFile?.absolutePath ?: "."
+        val relativeBasenames = sources.map { File(it).name }
+
         val binPath = if (binary == "7z" && !alpineManager.hasAlpineBinary("7z") && alpineManager.hasAlpineBinary("7za")) "7za" else binary
-        
         val cmd = mutableListOf<String>()
         val parser: ArchiveOutputParser
 
@@ -99,7 +105,7 @@ class CliArchiveManager(
             if (!password.isNullOrEmpty()) {
                 cmd.add("-p$password")
             }
-            cmd.add(output)
+            cmd.add(outputFile.absolutePath)
             cmd.addAll(sources)
             parser = SevenZipOutputParser()
         } else if (binPath == "tar") {
@@ -108,11 +114,11 @@ class CliArchiveManager(
                 ArchiveFormat.TAR_XZ -> "-cJf"
                 else -> "-cf"
             }
-            cmd.addAll(listOf("tar", flag, output))
-            cmd.addAll(sources)
+            cmd.addAll(listOf("tar", flag, outputFile.absolutePath, "-C", parentDir))
+            cmd.addAll(relativeBasenames)
             parser = SevenZipOutputParser()
         } else { // zip
-            cmd.addAll(listOf("zip", "-r", "-$level", output))
+            cmd.addAll(listOf("zip", "-r", "-$level", outputFile.absolutePath))
             cmd.addAll(sources)
             parser = SevenZipOutputParser()
         }
@@ -129,8 +135,9 @@ class CliArchiveManager(
         password: String?,
         onProgress: (Float, String) -> Unit
     ) {
+        if (!destDir.exists()) destDir.mkdirs()
+
         val binPath = if (binary == "7z" && !alpineManager.hasAlpineBinary("7z") && alpineManager.hasAlpineBinary("7za")) "7za" else binary
-        
         val cmd = mutableListOf<String>()
         val parser: ArchiveOutputParser
 
