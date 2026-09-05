@@ -168,6 +168,9 @@ class CliArchiveManager(
         } catch (_: Exception) {}
 
         val candidates = listOf(
+            "/data/data/com.xtmanager/files/alpine/usr/bin/$binaryName",
+            "/data/data/com.xtmanager/files/alpine/bin/$binaryName",
+            "/data/data/com.xtmanager/files/alpine/usr/bin/7za",
             "/data/data/com.termux/files/usr/bin/$binaryName",
             "/data/data/com.termux/files/usr/bin/7za",
             "/system/bin/$binaryName",
