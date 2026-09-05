@@ -154,7 +154,9 @@ fun FileManagerScreen(
     // Intercept Back button:
     // 1. Selection mode active -> cancel selection
     // 2. Drawer open -> close drawer
-    // 3. Otherwise -> double back press confirmation to exit app
+    // 3. Can go back in history -> go back in history
+    // 4. Has parent folder -> navigate to parent directory
+    // 5. At Root directory level -> double back press confirmation to exit app
     BackHandler(enabled = true) {
         when {
             activeState.isSelectionMode -> {
@@ -162,6 +164,13 @@ fun FileManagerScreen(
             }
             drawerState.isOpen -> {
                 scope.launch { drawerState.close() }
+            }
+            activeState.canGoBack -> {
+                viewModel.goBack(activePane)
+            }
+            File(activeState.path).parentFile != null && activeState.path != "/" -> {
+                val parentPath = File(activeState.path).parentFile?.absolutePath ?: "/"
+                viewModel.navigateTo(activePane, parentPath)
             }
             else -> {
                 val currentTime = System.currentTimeMillis()
