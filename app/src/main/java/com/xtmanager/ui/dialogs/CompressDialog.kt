@@ -72,17 +72,26 @@ fun CompressDialog(
                     fontWeight = FontWeight.Medium
                 )
                 Spacer(modifier = Modifier.height(6.dp))
-                Row(
+                androidx.compose.foundation.lazy.LazyRow(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    listOf("zip" to "ZIP", "tar.gz" to "TAR.GZ", "7z" to "7Z").forEach { (formatKey, label) ->
+                    val formats = listOf(
+                        "zip" to "ZIP",
+                        "7z" to "7Z",
+                        "tar.gz" to "TAR.GZ",
+                        "tar.bz2" to "TAR.BZ2",
+                        "tar.xz" to "TAR.XZ",
+                        "tar.zst" to "TAR.ZST",
+                        "tar.lz4" to "TAR.LZ4"
+                    )
+                    items(formats.size) { idx ->
+                        val (formatKey, label) = formats[idx]
                         FilterChip(
                             selected = selectedFormat == formatKey,
                             onClick = {
                                 selectedFormat = formatKey
-                                // Auto adjust extension
-                                val baseName = archiveName.substringBeforeLast(".")
-                                archiveName = if (formatKey == "tar.gz") "$baseName.tar.gz" else "$baseName.$formatKey"
+                                val cleanBase = archiveName.replace(Regex("\\.(zip|7z|tar\\.gz|tgz|tar\\.bz2|tbz2|tar\\.xz|txz|tar\\.zst|tzst|tar\\.lz4|tlz4)$", RegexOption.IGNORE_CASE), "")
+                                archiveName = "$cleanBase.$formatKey"
                             },
                             label = { Text(label) },
                             modifier = Modifier.padding(end = 6.dp)

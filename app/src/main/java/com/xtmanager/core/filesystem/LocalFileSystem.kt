@@ -73,7 +73,11 @@ class LocalFileSystem : FileSystem {
 
     override suspend fun list(path: String): List<FileEntry> = withContext(Dispatchers.IO) {
         // Check if path is an archive or inside an archive
-        val archiveExts = listOf(".zip", ".apk", ".tar.gz", ".tgz", ".tar", ".7z")
+        val archiveExts = listOf(
+            ".tar.gz", ".tgz", ".tar.bz2", ".tbz2", ".tbz", ".tar.xz", ".txz", ".tar.zst", ".tzst", ".tar.lz4", ".tlz4",
+            ".zip", ".apk", ".7z", ".tar", ".gz", ".bz2", ".xz", ".zst", ".lz4",
+            ".rar", ".cab", ".iso", ".cpio"
+        )
         var archivePath: String? = null
         var virtualPrefix = ""
 
@@ -362,7 +366,11 @@ class LocalFileSystem : FileSystem {
     }
 
     private fun isArchiveFile(fileName: String): Boolean {
-        val archiveExtensions = listOf(".zip", ".tar", ".gz", ".xz", ".bz2", ".7z", ".rar", ".tgz")
+        val archiveExtensions = listOf(
+            ".zip", ".apk", ".7z", ".tar", ".gz", ".bz2", ".xz", ".zst", ".lz4",
+            ".tar.gz", ".tgz", ".tar.bz2", ".tbz2", ".tar.xz", ".txz", ".tar.zst", ".tzst", ".tar.lz4",
+            ".rar", ".cab", ".iso", ".cpio"
+        )
         return archiveExtensions.any { fileName.lowercase().endsWith(it) }
     }
 

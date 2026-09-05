@@ -514,7 +514,10 @@ fun FileManagerScreen(
                                 viewModel.toggleFileSelection(PaneType.LEFT, file.path)
                             } else {
                                 val isArchive = file.type == FileType.ARCHIVE || 
-                                    listOf(".zip", ".apk", ".tar", ".tgz", ".7z").any { file.name.lowercase().endsWith(it) }
+                                    listOf(
+                                        ".zip", ".apk", ".7z", ".tar", ".gz", ".bz2", ".xz", ".zst", ".lz4",
+                                        ".tgz", ".tbz2", ".txz", ".tzst", ".tlz4", ".rar", ".cab", ".iso", ".cpio"
+                                    ).any { file.name.lowercase().endsWith(it) }
                                 if (file.isDirectory || isArchive) {
                                     viewModel.navigateTo(PaneType.LEFT, file.path)
                                 } else {
@@ -550,7 +553,10 @@ fun FileManagerScreen(
                                 viewModel.toggleFileSelection(PaneType.RIGHT, file.path)
                             } else {
                                 val isArchive = file.type == FileType.ARCHIVE || 
-                                    listOf(".zip", ".apk", ".tar", ".tgz", ".7z").any { file.name.lowercase().endsWith(it) }
+                                    listOf(
+                                        ".zip", ".apk", ".7z", ".tar", ".gz", ".bz2", ".xz", ".zst", ".lz4",
+                                        ".tgz", ".tbz2", ".txz", ".tzst", ".tlz4", ".rar", ".cab", ".iso", ".cpio"
+                                    ).any { file.name.lowercase().endsWith(it) }
                                 if (file.isDirectory || isArchive) {
                                     viewModel.navigateTo(PaneType.RIGHT, file.path)
                                 } else {

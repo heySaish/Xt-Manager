@@ -56,7 +56,10 @@ fun FileContextMenuDialog(
     onOpenArchive: (() -> Unit)? = null
 ) {
     val isArchive = fileEntry.type == FileType.ARCHIVE || 
-        listOf(".zip", ".tar", ".gz", ".tgz", ".7z", ".apk").any { fileEntry.name.lowercase().endsWith(it) }
+        listOf(
+            ".zip", ".apk", ".7z", ".tar", ".gz", ".bz2", ".xz", ".zst", ".lz4",
+            ".tgz", ".tbz2", ".txz", ".tzst", ".tlz4", ".rar", ".cab", ".iso", ".cpio"
+        ).any { fileEntry.name.lowercase().endsWith(it) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
