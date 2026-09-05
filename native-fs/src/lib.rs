@@ -249,7 +249,8 @@ pub extern "system" fn Java_com_xtmanager_core_filesystem_LocalFileSystem_native
         };
         let jstr = JString::from(item);
         if let Ok(s) = env.get_string(&jstr) {
-            source_paths.push(PathBuf::from(String::from(s)));
+            let path_str: String = s.into();
+            source_paths.push(PathBuf::from(path_str));
         }
     }
 
