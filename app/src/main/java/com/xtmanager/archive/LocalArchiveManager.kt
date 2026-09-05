@@ -35,6 +35,7 @@ class LocalArchiveManager : ArchiveManager {
             val reqBinary = when (format) {
                 ArchiveFormat.TAR, ArchiveFormat.TAR_GZ, ArchiveFormat.TAR_XZ -> "tar"
                 ArchiveFormat.SEVEN_Z -> "7z"
+                ArchiveFormat.ZIP -> "zip"
             }
             throw IOException("Binary '$reqBinary' not found in Alpine environment. Format not supported by fallback engine.")
         }
