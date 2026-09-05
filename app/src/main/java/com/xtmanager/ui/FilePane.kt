@@ -54,7 +54,17 @@ import androidx.compose.ui.unit.dp
 import com.xtmanager.core.model.FileEntry
 import com.xtmanager.core.model.PaneState
 
-@OptIn(ExperimentalMaterial3Api::class)
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.ExperimentalFoundationApi
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun FilePane(
     paneState: PaneState,
@@ -147,82 +157,112 @@ fun FilePane(
                     }
                 }
 
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            translationY = state.verticalOffset
-                        }
-                ) {
-                    // "Go Up" directory item (..)
-                    if (paneState.path != "/" && paneState.path != "") {
-                        item {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        val parentFile = java.io.File(paneState.path).parent
-                                        if (parentFile != null) {
-                                            onPathClick(parentFile)
+                AnimatedContent(
+                    targetState = paneState.path,
+                    transitionSpec = {
+                        val isForward = targetState.length >= initialState.length
+                        if (isForward) {
+                            (slideInHorizontally(
+                                animationSpec = tween(220, easing = FastOutSlowInEasing),
+                                initialOffsetX = { fullWidth -> fullWidth / 4 }
+                            ) + fadeIn(animationSpec = tween(220))) togetherWith
+                            (slideOutHorizontally(
+                                animationSpec = tween(220, easing = FastOutSlowInEasing),
+                                targetOffsetX = { fullWidth -> -fullWidth / 4 }
+                            ) + fadeOut(animationSpec = tween(220)))
+                        } else {
+                            (slideInHorizontally(
+                                animationSpec = tween(220, easing = FastOutSlowInEasing),
+                                initialOffsetX = { fullWidth -> -fullWidth / 4 }
+                            ) + fadeIn(animationSpec = tween(220))) togetherWith
+                            (slideOutHorizontally(
+                                animationSpec = tween(220, easing = FastOutSlowInEasing),
+                                targetOffsetX = { fullWidth -> fullWidth / 4 }
+                            ) + fadeOut(animationSpec = tween(220)))
+                        }.using(SizeTransform(clip = false))
+                    },
+                    label = "FolderNavigationTransition",
+                    modifier = Modifier.fillMaxSize()
+                ) { targetPath ->
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                translationY = state.verticalOffset
+                            }
+                    ) {
+                        // "Go Up" directory item (..)
+                        if (targetPath != "/" && targetPath != "") {
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            val parentFile = java.io.File(targetPath).parent
+                                            if (parentFile != null) {
+                                                onPathClick(parentFile)
+                                            }
                                         }
-                                    }
-                                    .padding(vertical = 4.dp, horizontal = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.FolderOpen,
-                                    contentDescription = "Go up",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "..",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1
+                                        .padding(vertical = 4.dp, horizontal = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.FolderOpen,
+                                        contentDescription = "Go up",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(22.dp)
                                     )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "..",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1
+                                        )
+                                        Text(
+                                            text = "Parent Directory",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                        )
+                                    }
+                                }
+                                Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                            }
+                        }
+
+                        if (paneState.files.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 64.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
                                     Text(
-                                        text = "Parent Directory",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                        text = "Empty Directory",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                     )
                                 }
                             }
-                            Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-                        }
-                    }
-
-                    if (paneState.files.isEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 64.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "Empty Directory",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                )
+                        } else {
+                            itemsIndexed(
+                                items = paneState.files,
+                                key = { _, file -> file.path }
+                            ) { index, file ->
+                                Box(modifier = Modifier.animateItemPlacement(tween(200))) {
+                                    FileRow(
+                                        fileEntry = file,
+                                        isSelected = paneState.selected.contains(file.path),
+                                        onClick = { onFileClick(file) },
+                                        onLongClick = { onFileLongClick(file) },
+                                        onSwipe = { onFileSwipe(index) }
+                                    )
+                                }
+                                Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
                             }
-                        }
-                    } else {
-                        itemsIndexed(
-                            items = paneState.files,
-                            key = { _, file -> file.path }
-                        ) { index, file ->
-                            FileRow(
-                                fileEntry = file,
-                                isSelected = paneState.selected.contains(file.path),
-                                onClick = { onFileClick(file) },
-                                onLongClick = { onFileLongClick(file) },
-                                onSwipe = { onFileSwipe(index) }
-                            )
-                            Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
                         }
                     }
                 }
