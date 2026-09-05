@@ -180,7 +180,13 @@ impl ArchiveBackend for IsoBackend {
             }
         }
 
-        staging.commit(overwrite_policy)?;
+        staging.commit(
+            overwrite_policy,
+            cancel_flag,
+            progress_cb,
+            processed_bytes,
+            processed_entries,
+        )?;
         Ok(())
     }
 

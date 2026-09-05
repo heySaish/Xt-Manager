@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use cab::Cabinet;
@@ -35,7 +35,7 @@ impl ArchiveBackend for CabBackend {
                 Ok(f) => f,
                 Err(_) => return Vec::new(),
             };
-            let mut cabinet = match Cabinet::new(file) {
+            let cabinet = match Cabinet::new(file) {
                 Ok(c) => c,
                 Err(_) => return Vec::new(),
             };
@@ -112,7 +112,13 @@ impl ArchiveBackend for CabBackend {
             });
         }
 
-        staging.commit(overwrite_policy)?;
+        staging.commit(
+            overwrite_policy,
+            cancel_flag,
+            progress_cb,
+            processed_bytes,
+            processed_entries,
+        )?;
         Ok(())
     }
 

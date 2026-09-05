@@ -185,7 +185,13 @@ impl ArchiveBackend for TarBackend {
             processed_entries += 1;
         }
 
-        staging.commit(overwrite_policy)?;
+        staging.commit(
+            overwrite_policy,
+            cancel_flag,
+            progress_cb,
+            processed_bytes,
+            processed_entries,
+        )?;
         Ok(())
     }
 
@@ -241,7 +247,7 @@ impl ArchiveBackend for TarBackend {
                     }
                 }
             } else if src.is_file() {
-                builder.append_path_with_name(src, &base_name)?;
+                builder.append_path_with_name(src, Path::new(base_name.as_ref()))?;
                 let len = std::fs::metadata(src).map(|m| m.len()).unwrap_or(0);
                 processed_bytes += len;
                 processed_entries += 1;
