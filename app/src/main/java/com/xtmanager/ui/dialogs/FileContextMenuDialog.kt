@@ -45,6 +45,7 @@ import androidx.compose.material.icons.filled.Unarchive
 @Composable
 fun FileContextMenuDialog(
     fileEntry: FileEntry,
+    selectedCount: Int = 1,
     onDismiss: () -> Unit,
     onCopy: () -> Unit,
     onMove: () -> Unit,
@@ -76,14 +77,14 @@ fun FileContextMenuDialog(
                     modifier = Modifier.padding(bottom = 12.dp, start = 4.dp, end = 4.dp)
                 ) {
                     Icon(
-                        imageVector = if (fileEntry.isDirectory) Icons.Default.Folder else Icons.Default.Description,
+                        imageVector = if (selectedCount > 1) Icons.Default.Folder else if (fileEntry.isDirectory) Icons.Default.Folder else Icons.Default.Description,
                         contentDescription = null,
-                        tint = if (fileEntry.isDirectory) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+                        tint = if (selectedCount > 1) Color(0xFF3B82F6) else if (fileEntry.isDirectory) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = fileEntry.name,
+                        text = if (selectedCount > 1) "$selectedCount items selected" else fileEntry.name,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -104,7 +105,7 @@ fun FileContextMenuDialog(
                     ) {
                         ContextMenuItemRow(
                             icon = Icons.Default.ContentCopy,
-                            label = "<- Copy",
+                            label = if (selectedCount > 1) "<- Copy ($selectedCount)" else "<- Copy",
                             iconColor = Color(0xFF3B82F6),
                             onClick = {
                                 onDismiss()
@@ -113,14 +114,14 @@ fun FileContextMenuDialog(
                         )
                         ContextMenuItemRow(
                             icon = Icons.Default.Delete,
-                            label = "Delete",
+                            label = if (selectedCount > 1) "Delete ($selectedCount)" else "Delete",
                             iconColor = Color(0xFFEF4444),
                             onClick = {
                                 onDismiss()
                                 onDelete()
                             }
                         )
-                        if (isArchive && onExtractHere != null) {
+                        if (isArchive && selectedCount <= 1 && onExtractHere != null) {
                             ContextMenuItemRow(
                                 icon = Icons.Default.Unarchive,
                                 label = "Extract Here",
@@ -133,7 +134,7 @@ fun FileContextMenuDialog(
                         } else if (onCompress != null) {
                             ContextMenuItemRow(
                                 icon = Icons.Default.Archive,
-                                label = "Compress...",
+                                label = if (selectedCount > 1) "Compress ($selectedCount)..." else "Compress...",
                                 iconColor = Color(0xFF6366F1),
                                 onClick = {
                                     onDismiss()
@@ -150,23 +151,25 @@ fun FileContextMenuDialog(
                     ) {
                         ContextMenuItemRow(
                             icon = Icons.Default.ContentCut,
-                            label = "<- Move",
+                            label = if (selectedCount > 1) "<- Move ($selectedCount)" else "<- Move",
                             iconColor = Color(0xFFF59E0B),
                             onClick = {
                                 onDismiss()
                                 onMove()
                             }
                         )
-                        ContextMenuItemRow(
-                            icon = Icons.Default.Edit,
-                            label = "Rename",
-                            iconColor = Color(0xFF8B5CF6),
-                            onClick = {
-                                onDismiss()
-                                onRename()
-                            }
-                        )
-                        if (isArchive && onOpenArchive != null) {
+                        if (selectedCount <= 1) {
+                            ContextMenuItemRow(
+                                icon = Icons.Default.Edit,
+                                label = "Rename",
+                                iconColor = Color(0xFF8B5CF6),
+                                onClick = {
+                                    onDismiss()
+                                    onRename()
+                                }
+                            )
+                        }
+                        if (isArchive && selectedCount <= 1 && onOpenArchive != null) {
                             ContextMenuItemRow(
                                 icon = Icons.Default.FolderZip,
                                 label = "Browse Archive",
@@ -176,7 +179,7 @@ fun FileContextMenuDialog(
                                     onOpenArchive()
                                 }
                             )
-                        } else if (isArchive && onExtractTo != null) {
+                        } else if (isArchive && selectedCount <= 1 && onExtractTo != null) {
                             ContextMenuItemRow(
                                 icon = Icons.Default.Unarchive,
                                 label = "Extract To...",

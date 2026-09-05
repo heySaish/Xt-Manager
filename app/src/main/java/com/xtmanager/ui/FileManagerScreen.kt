@@ -538,6 +538,9 @@ fun FileManagerScreen(
                         },
                         onFileLongClick = { file ->
                             viewModel.setActivePane(PaneType.LEFT)
+                            if (leftPaneState.selected.isNotEmpty() && !leftPaneState.selected.contains(file.path)) {
+                                viewModel.toggleFileSelection(PaneType.LEFT, file.path)
+                            }
                             contextMenuTargetFile = file
                         },
                         onPathClick = { path ->
@@ -578,6 +581,9 @@ fun FileManagerScreen(
                         },
                         onFileLongClick = { file ->
                             viewModel.setActivePane(PaneType.RIGHT)
+                            if (rightPaneState.selected.isNotEmpty() && !rightPaneState.selected.contains(file.path)) {
+                                viewModel.toggleFileSelection(PaneType.RIGHT, file.path)
+                            }
                             contextMenuTargetFile = file
                         },
                         onPathClick = { path ->
@@ -948,23 +954,35 @@ fun FileManagerScreen(
 
     // 2-Column Floating Context Menu Dialog on Long Press
     contextMenuTargetFile?.let { file ->
+        val selectedPaths = if (activeState.selected.contains(file.path) || activeState.selected.isNotEmpty()) {
+            activeState.selected.ifEmpty { setOf(file.path) }
+        } else {
+            setOf(file.path)
+        }
+        val selectedCount = selectedPaths.size
+
         FileContextMenuDialog(
             fileEntry = file,
+            selectedCount = selectedCount,
             onDismiss = { contextMenuTargetFile = null },
             onCopy = {
                 val destPath = inactiveState.path
-                viewModel.copyPaths(listOf(file.path), destPath)
+                viewModel.copyPaths(selectedPaths.toList(), destPath)
                 showOperationsDialog = true
                 contextMenuTargetFile = null
             },
             onMove = {
                 val destPath = inactiveState.path
-                viewModel.movePaths(listOf(file.path), destPath)
+                viewModel.movePaths(selectedPaths.toList(), destPath)
                 showOperationsDialog = true
                 contextMenuTargetFile = null
             },
             onDelete = {
-                showSingleDeleteDialog = file
+                if (selectedCount > 1) {
+                    showDeleteConfirmDialog = true
+                } else {
+                    showSingleDeleteDialog = file
+                }
                 contextMenuTargetFile = null
             },
             onRename = {
@@ -972,7 +990,7 @@ fun FileManagerScreen(
                 contextMenuTargetFile = null
             },
             onCompress = {
-                showCompressDialogSources = listOf(file.path)
+                showCompressDialogSources = selectedPaths.toList()
                 contextMenuTargetFile = null
             },
             onExtractHere = {
