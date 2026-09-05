@@ -85,42 +85,50 @@ class CliArchiveManager(
         val outputFile = File(output)
         outputFile.parentFile?.mkdirs()
 
-        val firstFile = File(sources.first())
-        val parentDir = firstFile.parentFile?.absolutePath ?: "."
-        val relativeBasenames = sources.map { File(it).name }
-
-        val binPath = if (binary == "7z" && !alpineManager.hasAlpineBinary("7z") && alpineManager.hasAlpineBinary("7za")) "7za" else binary
+        val xtArcScript = File(alpineManager.filesDir, "xt-arc.sh")
         val cmd = mutableListOf<String>()
-        val parser: ArchiveOutputParser
+        val parser: ArchiveOutputParser = SevenZipOutputParser()
 
-        if (binPath == "7z" || binPath == "7za") {
-            cmd.addAll(listOf(binPath, "a", "-bsp1", "-y", "-mx=$level", "-mmt=on"))
-            when (format) {
-                ArchiveFormat.ZIP -> cmd.add("-tzip")
-                ArchiveFormat.TAR -> cmd.add("-ttar")
-                ArchiveFormat.TAR_GZ -> cmd.add("-ttar")
-                ArchiveFormat.TAR_XZ -> cmd.add("-ttar")
-                ArchiveFormat.SEVEN_Z -> cmd.add("-t7z")
+        if (xtArcScript.exists()) {
+            val formatStr = when (format) {
+                ArchiveFormat.ZIP -> "zip"
+                ArchiveFormat.TAR -> "tar"
+                ArchiveFormat.TAR_GZ -> "tar.gz"
+                ArchiveFormat.TAR_XZ -> "tar.xz"
+                ArchiveFormat.SEVEN_Z -> "7z"
             }
-            if (!password.isNullOrEmpty()) {
-                cmd.add("-p$password")
-            }
-            cmd.add(outputFile.absolutePath)
+            cmd.addAll(listOf("sh", xtArcScript.absolutePath, "compress", formatStr, outputFile.absolutePath))
             cmd.addAll(sources)
-            parser = SevenZipOutputParser()
-        } else if (binPath == "tar") {
-            val flag = when (format) {
-                ArchiveFormat.TAR_GZ -> "-czf"
-                ArchiveFormat.TAR_XZ -> "-cJf"
-                else -> "-cf"
+        } else {
+            val firstFile = File(sources.first())
+            val parentDir = firstFile.parentFile?.absolutePath ?: "."
+            val relativeBasenames = sources.map { File(it).name }
+            val binPath = if (binary == "7z" && !alpineManager.hasAlpineBinary("7z") && alpineManager.hasAlpineBinary("7za")) "7za" else binary
+
+            if (binPath == "7z" || binPath == "7za") {
+                cmd.addAll(listOf(binPath, "a", "-bsp1", "-y", "-mx=$level", "-mmt=on"))
+                when (format) {
+                    ArchiveFormat.ZIP -> cmd.add("-tzip")
+                    ArchiveFormat.TAR -> cmd.add("-ttar")
+                    ArchiveFormat.TAR_GZ -> cmd.add("-ttar")
+                    ArchiveFormat.TAR_XZ -> cmd.add("-ttar")
+                    ArchiveFormat.SEVEN_Z -> cmd.add("-t7z")
+                }
+                if (!password.isNullOrEmpty()) cmd.add("-p$password")
+                cmd.add(outputFile.absolutePath)
+                cmd.addAll(sources)
+            } else if (binPath == "tar") {
+                val flag = when (format) {
+                    ArchiveFormat.TAR_GZ -> "-czf"
+                    ArchiveFormat.TAR_XZ -> "-cJf"
+                    else -> "-cf"
+                }
+                cmd.addAll(listOf("tar", flag, outputFile.absolutePath, "-C", parentDir))
+                cmd.addAll(relativeBasenames)
+            } else {
+                cmd.addAll(listOf("zip", "-r", "-$level", outputFile.absolutePath))
+                cmd.addAll(sources)
             }
-            cmd.addAll(listOf("tar", flag, outputFile.absolutePath, "-C", parentDir))
-            cmd.addAll(relativeBasenames)
-            parser = SevenZipOutputParser()
-        } else { // zip
-            cmd.addAll(listOf("zip", "-r", "-$level", outputFile.absolutePath))
-            cmd.addAll(sources)
-            parser = SevenZipOutputParser()
         }
 
         val pb = alpineManager.createAlpineProcessBuilder(cmd)
@@ -137,26 +145,29 @@ class CliArchiveManager(
     ) {
         if (!destDir.exists()) destDir.mkdirs()
 
-        val binPath = if (binary == "7z" && !alpineManager.hasAlpineBinary("7z") && alpineManager.hasAlpineBinary("7za")) "7za" else binary
+        val xtArcScript = File(alpineManager.filesDir, "xt-arc.sh")
         val cmd = mutableListOf<String>()
         val parser: ArchiveOutputParser
 
-        if (binPath == "7z" || binPath == "7za") {
-            cmd.addAll(listOf(binPath, "x", archiveFile.absolutePath, "-o${destDir.absolutePath}", "-bsp1", "-y", "-mmt=on"))
-            if (!password.isNullOrEmpty()) {
-                cmd.add("-p$password")
-            }
+        if (xtArcScript.exists()) {
+            cmd.addAll(listOf("sh", xtArcScript.absolutePath, "extract", archiveFile.absolutePath, destDir.absolutePath))
+            if (!password.isNullOrEmpty()) cmd.add(password)
             parser = SevenZipOutputParser()
-        } else if (binPath == "tar") {
-            cmd.addAll(listOf("tar", "--no-same-owner", "--no-same-permissions", "-xf", archiveFile.absolutePath, "-C", destDir.absolutePath))
-            parser = SevenZipOutputParser()
-        } else { // unzip
-            cmd.addAll(listOf("unzip", "-o", archiveFile.absolutePath, "-d", destDir.absolutePath))
-            if (!password.isNullOrEmpty()) {
-                cmd.add("-P")
-                cmd.add(password)
+        } else {
+            val binPath = if (binary == "7z" && !alpineManager.hasAlpineBinary("7z") && alpineManager.hasAlpineBinary("7za")) "7za" else binary
+
+            if (binPath == "7z" || binPath == "7za") {
+                cmd.addAll(listOf(binPath, "x", archiveFile.absolutePath, "-o${destDir.absolutePath}", "-bsp1", "-y", "-mmt=on"))
+                if (!password.isNullOrEmpty()) cmd.add("-p$password")
+                parser = SevenZipOutputParser()
+            } else if (binPath == "tar") {
+                cmd.addAll(listOf("tar", "--no-same-owner", "--no-same-permissions", "-xf", archiveFile.absolutePath, "-C", destDir.absolutePath))
+                parser = SevenZipOutputParser()
+            } else {
+                cmd.addAll(listOf("unzip", "-o", archiveFile.absolutePath, "-d", destDir.absolutePath))
+                if (!password.isNullOrEmpty()) cmd.add("-P$password")
+                parser = UnzipOutputParser()
             }
-            parser = UnzipOutputParser()
         }
 
         val pb = alpineManager.createAlpineProcessBuilder(cmd)
