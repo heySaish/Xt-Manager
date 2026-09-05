@@ -40,7 +40,8 @@ impl ArchiveBackend for CpioBackend {
             };
             let mut items = Vec::new();
 
-            while let Ok(Some(entry)) = reader.entry() {
+            loop {
+                let entry = reader.entry();
                 let name = entry.name().to_string();
                 if name == "TRAILER!!!" {
                     break;
@@ -57,7 +58,8 @@ impl ArchiveBackend for CpioBackend {
                     last_modified: entry.mtime() as u64,
                     is_encrypted: false,
                 });
-                reader = match entry.finish() {
+
+                reader = match reader.finish() {
                     Ok(r) => r,
                     Err(_) => break,
                 };
@@ -86,22 +88,22 @@ impl ArchiveBackend for CpioBackend {
         let mut processed_bytes = 0u64;
         let mut processed_entries = 0u64;
 
-        while let Ok(Some(mut entry)) = reader.entry() {
+        loop {
             if cancel_flag.load(Ordering::SeqCst) {
                 staging.purge();
                 return Err(ArchiveError::Cancelled);
             }
 
-            let name = entry.name().to_string();
+            let name = reader.entry().name().to_string();
             if name == "TRAILER!!!" {
                 break;
             }
 
-            let is_dir = entry.mode() & 0o040000 != 0;
+            let is_dir = reader.entry().mode() & 0o040000 != 0;
             let target_path = match staging.prepare_staging_target(&name, is_dir) {
                 Ok(p) => p,
                 Err(_) => {
-                    reader = match entry.finish() {
+                    reader = match reader.finish() {
                         Ok(r) => r,
                         Err(_) => break,
                     };
@@ -117,7 +119,7 @@ impl ArchiveBackend for CpioBackend {
                         staging.purge();
                         return Err(ArchiveError::Cancelled);
                     }
-                    let bytes = entry.read(&mut buf)?;
+                    let bytes = reader.read(&mut buf)?;
                     if bytes == 0 {
                         break;
                     }
@@ -135,7 +137,7 @@ impl ArchiveBackend for CpioBackend {
             }
 
             processed_entries += 1;
-            reader = match entry.finish() {
+            reader = match reader.finish() {
                 Ok(r) => r,
                 Err(_) => break,
             };
