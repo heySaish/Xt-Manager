@@ -3,14 +3,18 @@ package com.xtmanager.core.filesystem
 import android.util.Log
 import com.xtmanager.core.model.FileEntry
 import com.xtmanager.core.model.FileType
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 
 class LocalFileSystem : FileSystem {
+
+    private val inFlightScans = ConcurrentHashMap<String, CompletableDeferred<List<FileEntry>>>()
 
     class RawFileItem(
         val name: String,
@@ -120,12 +124,37 @@ class LocalFileSystem : FileSystem {
             return@withContext emptyList()
         }
 
-        val cached = FileSystemCache.get(directory.absolutePath)
+        val canonicalPath = try { directory.canonicalPath } catch (_: Exception) { directory.absolutePath }
+
+        val cached = FileSystemCache.get(canonicalPath)
         if (cached != null) {
-            Log.d(TAG, "Cache HIT for ${directory.absolutePath} (${cached.size} items)")
+            Log.d(TAG, "Cache HIT for $canonicalPath (${cached.size} items)")
             return@withContext cached
         }
 
+        // SingleFlight Request Collapsing: If a scan for canonicalPath is already in-flight, await its result
+        val myDeferred = CompletableDeferred<List<FileEntry>>()
+        val existingDeferred = inFlightScans.putIfAbsent(canonicalPath, myDeferred)
+
+        if (existingDeferred != null) {
+            Log.d(TAG, "⚡ In-Flight Scan Join -> Path: ${directory.name}")
+            return@withContext existingDeferred.await()
+        }
+
+        try {
+            val result = performScan(directory)
+            FileSystemCache.put(canonicalPath, result)
+            myDeferred.complete(result)
+            return@withContext result
+        } catch (e: Throwable) {
+            myDeferred.completeExceptionally(e)
+            throw e
+        } finally {
+            inFlightScans.remove(canonicalPath, myDeferred)
+        }
+    }
+
+    private fun performScan(directory: File): List<FileEntry> {
         val startTime = System.nanoTime()
 
         if (isNativeLoaded) {
@@ -159,9 +188,7 @@ class LocalFileSystem : FileSystem {
                     )
                     Log.d(TAG, logMsg)
                     com.xtmanager.core.logger.AppLogger.d("RUST_FS", logMsg)
-
-                    FileSystemCache.put(directory.absolutePath, result)
-                    return@withContext result
+                    return result
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Native scan error: ${e.message}")
@@ -208,7 +235,7 @@ class LocalFileSystem : FileSystem {
         }
 
         val finalFiles = filesList ?: emptyArray()
-        return@withContext finalFiles.map { file ->
+        return finalFiles.map { file ->
             val isDir = file.isDirectory || (file.exists() && !file.isFile)
             val type = when {
                 isDir -> FileType.DIRECTORY
