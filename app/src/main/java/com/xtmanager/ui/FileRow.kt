@@ -1,9 +1,11 @@
 package com.xtmanager.ui
 
+import android.graphics.Bitmap
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Folder
@@ -23,20 +26,29 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.xtmanager.core.model.FileEntry
 import com.xtmanager.core.model.FileType
+import com.xtmanager.core.thumbnail.ThumbnailManager
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -90,6 +102,25 @@ fun FileRow(
     val swipeOffset = remember { Animatable(0f) }
     val coroutineScope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
+
+    val context = LocalContext.current
+    val isThumbSupported = remember(fileEntry.path, fileEntry.lastModified) {
+        ThumbnailManager.isThumbnailSupported(fileEntry)
+    }
+
+    var thumbnailBitmap by remember(fileEntry.path, fileEntry.lastModified) {
+        val cacheKey = ThumbnailManager.buildCacheKey(fileEntry.path, fileEntry.lastModified, fileEntry.size)
+        mutableStateOf(ThumbnailManager.getFromMemoryCache(cacheKey))
+    }
+
+    if (isThumbSupported && thumbnailBitmap == null) {
+        LaunchedEffect(fileEntry.path, fileEntry.lastModified) {
+            val bmp = ThumbnailManager.getThumbnail(context, fileEntry)
+            if (bmp != null) {
+                thumbnailBitmap = bmp
+            }
+        }
+    }
 
     Row(
         modifier = modifier
@@ -161,12 +192,24 @@ fun FileRow(
             .padding(vertical = verticalPadding, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = iconColor,
-            modifier = Modifier.size(iconSize)
-        )
+        val thumb = thumbnailBitmap
+        if (thumb != null) {
+            Image(
+                bitmap = thumb.asImageBitmap(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(iconSize)
+                    .clip(RoundedCornerShape(4.dp))
+            )
+        } else {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(iconSize)
+            )
+        }
         
         Spacer(modifier = Modifier.width(8.dp))
         
