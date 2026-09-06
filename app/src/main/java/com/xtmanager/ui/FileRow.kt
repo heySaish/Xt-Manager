@@ -70,6 +70,16 @@ fun FileRow(
     val titleFontSize = (14 * densityScale).sp
     val labelFontSize = (11 * densityScale).sp
 
+    val baseTitleStyle = MaterialTheme.typography.bodyMedium
+    val titleStyle = remember(densityScale, baseTitleStyle) {
+        baseTitleStyle.copy(fontSize = titleFontSize)
+    }
+
+    val baseLabelStyle = MaterialTheme.typography.labelSmall
+    val labelStyle = remember(densityScale, baseLabelStyle) {
+        baseLabelStyle.copy(fontSize = labelFontSize)
+    }
+
     val density = LocalDensity.current
     val minSwipeThresholdPx = remember(density) { with(density) { 35.dp.toPx() } }
     var totalDragAmount by remember { mutableFloatStateOf(0f) }
@@ -127,7 +137,7 @@ fun FileRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = fileEntry.name,
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = titleFontSize),
+                style = titleStyle,
                 color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1
             )
@@ -135,14 +145,14 @@ fun FileRow(
             Row(modifier = Modifier.padding(top = 1.dp)) {
                 Text(
                     text = fileEntry.formattedDate,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = labelFontSize),
+                    style = labelStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
                 if (!fileEntry.isDirectory) {
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = fileEntry.formattedSize,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = labelFontSize),
+                        style = labelStyle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
                 }
