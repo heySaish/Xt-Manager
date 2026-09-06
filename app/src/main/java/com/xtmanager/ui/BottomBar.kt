@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBarsPadding
 
 @Composable
 fun BottomBar(
@@ -56,7 +57,9 @@ fun BottomBar(
     Surface(
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 6.dp,
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
     ) {
         BottomAppBar(
             containerColor = MaterialTheme.colorScheme.surface,
