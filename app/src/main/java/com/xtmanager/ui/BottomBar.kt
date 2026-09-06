@@ -26,6 +26,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+
 @Composable
 fun BottomBar(
     hasSelection: Boolean,
@@ -44,10 +47,11 @@ fun BottomBar(
     scale: Float = 1.0f,
     modifier: Modifier = Modifier
 ) {
-    val containerHeight = (56.dp * scale).coerceIn(40.dp, 84.dp)
+    val containerHeight = (58.dp * scale).coerceIn(42.dp, 96.dp)
     val iconSize = (22.dp * scale).coerceIn(16.dp, 36.dp)
-    val iconButtonSize = (40.dp * scale).coerceIn(28.dp, 56.dp)
-    val horizontalPadding = (12.dp * scale).coerceIn(4.dp, 24.dp)
+    val iconButtonSize = (42.dp * scale).coerceIn(30.dp, 64.dp)
+    val horizontalPadding = (10.dp * scale).coerceIn(4.dp, 20.dp)
+    val verticalPadding = (3.dp * scale).coerceIn(1.dp, 10.dp)
 
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -58,14 +62,15 @@ fun BottomBar(
             containerColor = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface,
             tonalElevation = 6.dp,
+            contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = verticalPadding),
+            windowInsets = WindowInsets(0, 0, 0, 0),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(containerHeight)
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = horizontalPadding, vertical = 2.dp),
+                    .fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
