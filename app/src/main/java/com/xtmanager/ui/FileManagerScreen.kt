@@ -99,6 +99,7 @@ import com.xtmanager.ui.dialogs.RenameDialog
 import com.xtmanager.ui.dialogs.FileContextMenuDialog
 import com.xtmanager.ui.dialogs.CompressDialog
 import com.xtmanager.ui.dialogs.ExtractDialog
+import com.xtmanager.ui.dialogs.ApkInstallDialog
 import com.xtmanager.ui.SettingsScreen
 import androidx.compose.material.icons.filled.Settings
 import com.xtmanager.viewmodel.FileManagerViewModel
@@ -150,6 +151,7 @@ fun FileManagerScreen(
     var showSingleDeleteDialog by remember { mutableStateOf<FileEntry?>(null) }
     var showCompressDialogSources by remember { mutableStateOf<List<String>?>(null) }
     var showExtractDialogPath by remember { mutableStateOf<String?>(null) }
+    var showApkInstallDialog by remember { mutableStateOf<FileEntry?>(null) }
 
     var topMenuExpanded by remember { mutableStateOf(false) }
     var lastBackPressTime by remember { mutableStateOf(0L) }
@@ -526,10 +528,12 @@ fun FileManagerScreen(
                             viewModel.setActivePane(PaneType.LEFT)
                             if (leftPaneState.isSelectionMode) {
                                 viewModel.toggleFileSelection(PaneType.LEFT, file.path)
+                            } else if (file.name.lowercase().endsWith(".apk")) {
+                                showApkInstallDialog = file
                             } else {
                                 val isArchive = file.type == FileType.ARCHIVE || 
                                     listOf(
-                                        ".zip", ".apk", ".7z", ".tar", ".gz", ".bz2", ".xz", ".zst", ".lz4",
+                                        ".zip", ".7z", ".tar", ".gz", ".bz2", ".xz", ".zst", ".lz4",
                                         ".tgz", ".tbz2", ".txz", ".tzst", ".tlz4", ".rar", ".cab", ".iso", ".cpio"
                                     ).any { file.name.lowercase().endsWith(it) }
                                 if (file.isDirectory || isArchive) {
@@ -570,10 +574,12 @@ fun FileManagerScreen(
                             viewModel.setActivePane(PaneType.RIGHT)
                             if (rightPaneState.isSelectionMode) {
                                 viewModel.toggleFileSelection(PaneType.RIGHT, file.path)
+                            } else if (file.name.lowercase().endsWith(".apk")) {
+                                showApkInstallDialog = file
                             } else {
                                 val isArchive = file.type == FileType.ARCHIVE || 
                                     listOf(
-                                        ".zip", ".apk", ".7z", ".tar", ".gz", ".bz2", ".xz", ".zst", ".lz4",
+                                        ".zip", ".7z", ".tar", ".gz", ".bz2", ".xz", ".zst", ".lz4",
                                         ".tgz", ".tbz2", ".txz", ".tzst", ".tlz4", ".rar", ".cab", ".iso", ".cpio"
                                     ).any { file.name.lowercase().endsWith(it) }
                                 if (file.isDirectory || isArchive) {
@@ -1049,6 +1055,17 @@ fun FileManagerScreen(
                 viewModel.enqueueExtract(archivePath, destDir, overwritePolicy)
                 showOperationsDialog = true
                 showExtractDialogPath = null
+            }
+        )
+    }
+
+    // APK Installation & Info Dialog
+    showApkInstallDialog?.let { apkFile ->
+        ApkInstallDialog(
+            fileEntry = apkFile,
+            onDismiss = { showApkInstallDialog = null },
+            onViewArchive = {
+                viewModel.navigateTo(activePane, apkFile.path)
             }
         )
     }
