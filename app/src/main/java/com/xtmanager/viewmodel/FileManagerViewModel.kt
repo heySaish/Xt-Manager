@@ -98,6 +98,15 @@ class FileManagerViewModel(
     }
 
     fun refreshPane(paneType: PaneType) {
+        refreshBothPanes()
+    }
+
+    fun refreshBothPanes() {
+        refreshSinglePane(PaneType.LEFT)
+        refreshSinglePane(PaneType.RIGHT)
+    }
+
+    private fun refreshSinglePane(paneType: PaneType) {
         val state = if (paneType == PaneType.LEFT) _leftPaneState.value else _rightPaneState.value
         FileSystemCache.invalidate(state.path)
         viewModelScope.launch {

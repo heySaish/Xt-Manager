@@ -555,7 +555,7 @@ fun FileManagerScreen(
                             viewModel.navigateTo(PaneType.LEFT, path)
                         },
                         onPaneClick = { viewModel.setActivePane(PaneType.LEFT) },
-                        onRefresh = { viewModel.refreshPane(PaneType.LEFT) },
+                        onRefresh = { viewModel.refreshBothPanes() },
                         onFileSwipe = { index ->
                             viewModel.setActivePane(PaneType.LEFT)
                             viewModel.handleSwipe(PaneType.LEFT, index)
@@ -601,7 +601,7 @@ fun FileManagerScreen(
                             viewModel.navigateTo(PaneType.RIGHT, path)
                         },
                         onPaneClick = { viewModel.setActivePane(PaneType.RIGHT) },
-                        onRefresh = { viewModel.refreshPane(PaneType.RIGHT) },
+                        onRefresh = { viewModel.refreshBothPanes() },
                         onFileSwipe = { index ->
                             viewModel.setActivePane(PaneType.RIGHT)
                             viewModel.handleSwipe(PaneType.RIGHT, index)
