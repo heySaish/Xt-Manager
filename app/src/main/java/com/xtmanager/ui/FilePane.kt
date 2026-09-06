@@ -162,60 +162,17 @@ fun FilePane(
                     }
                 }
 
-                if (isAnimationEnabled) {
-                    AnimatedContent(
-                        targetState = paneState.path,
-                        transitionSpec = {
-                            val isForward = targetState.startsWith(initialState) || targetState.length > initialState.length
-                            val transform = if (isForward) {
-                                (slideInHorizontally(
-                                    animationSpec = tween(200, easing = FastOutSlowInEasing),
-                                    initialOffsetX = { fullWidth -> fullWidth / 3 }
-                                ) + fadeIn(animationSpec = tween(200))) togetherWith
-                                (slideOutHorizontally(
-                                    animationSpec = tween(200, easing = FastOutSlowInEasing),
-                                    targetOffsetX = { fullWidth -> -fullWidth / 3 }
-                                ) + fadeOut(animationSpec = tween(200)))
-                            } else {
-                                (slideInHorizontally(
-                                    animationSpec = tween(200, easing = FastOutSlowInEasing),
-                                    initialOffsetX = { fullWidth -> -fullWidth / 3 }
-                                ) + fadeIn(animationSpec = tween(200))) togetherWith
-                                (slideOutHorizontally(
-                                    animationSpec = tween(200, easing = FastOutSlowInEasing),
-                                    targetOffsetX = { fullWidth -> fullWidth / 3 }
-                                ) + fadeOut(animationSpec = tween(200)))
-                            }
-                            transform.using(SizeTransform(clip = false))
-                        },
-                        label = "FolderNavigationTransition",
-                        modifier = Modifier.fillMaxSize()
-                    ) { targetPath ->
-                        FilePaneListContent(
-                            targetPath = targetPath,
-                            paneState = paneState,
-                            verticalOffset = state.verticalOffset,
-                            densityScale = densityScale,
-                            isAnimationEnabled = isAnimationEnabled,
-                            onPathClick = onPathClick,
-                            onFileClick = onFileClick,
-                            onFileLongClick = onFileLongClick,
-                            onFileSwipe = onFileSwipe
-                        )
-                    }
-                } else {
-                    FilePaneListContent(
-                        targetPath = paneState.path,
-                        paneState = paneState,
-                        verticalOffset = state.verticalOffset,
-                        densityScale = densityScale,
-                        isAnimationEnabled = isAnimationEnabled,
-                        onPathClick = onPathClick,
-                        onFileClick = onFileClick,
-                        onFileLongClick = onFileLongClick,
-                        onFileSwipe = onFileSwipe
-                    )
-                }
+                FilePaneListContent(
+                    targetPath = paneState.path,
+                    paneState = paneState,
+                    verticalOffset = state.verticalOffset,
+                    densityScale = densityScale,
+                    isAnimationEnabled = isAnimationEnabled,
+                    onPathClick = onPathClick,
+                    onFileClick = onFileClick,
+                    onFileLongClick = onFileLongClick,
+                    onFileSwipe = onFileSwipe
+                )
             }
         }
     }
