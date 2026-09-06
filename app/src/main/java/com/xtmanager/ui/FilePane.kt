@@ -20,7 +20,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -196,93 +199,152 @@ private fun FilePaneListContent(
     val listState = rememberLazyListState()
     val isScrolling = listState.isScrollInProgress
 
-    LazyColumn(
-        state = listState,
-        modifier = Modifier
-            .fillMaxSize()
-            .graphicsLayer {
-                translationY = verticalOffset
-            }
-    ) {
-        // "Go Up" directory item (..)
-        if (targetPath != "/" && targetPath != "") {
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            val parentFile = java.io.File(targetPath).parent
-                            if (parentFile != null) {
-                                onPathClick(parentFile)
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    translationY = verticalOffset
+                }
+        ) {
+            // "Go Up" directory item (..)
+            if (targetPath != "/" && targetPath != "") {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val parentFile = java.io.File(targetPath).parent
+                                if (parentFile != null) {
+                                    onPathClick(parentFile)
+                                }
                             }
-                        }
-                        .padding(vertical = 4.dp, horizontal = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.FolderOpen,
-                        contentDescription = "Go up",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "..",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
+                            .padding(vertical = 4.dp, horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FolderOpen,
+                            contentDescription = "Go up",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "..",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = "Parent Directory",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                }
+            }
+
+            if (paneState.files.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 64.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text = "Parent Directory",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            text = "Empty Directory",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                         )
                     }
                 }
-                Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+            } else {
+                itemsIndexed(
+                    items = paneState.files,
+                    key = { _, file -> file.path },
+                    contentType = { _, file -> if (file.isDirectory) 1 else 0 }
+                ) { index, file ->
+                    CascadeAnimatedFileRow(
+                        fileEntry = file,
+                        index = index,
+                        navTimestamp = navTimestamp,
+                        targetPath = targetPath,
+                        isScrolling = isScrolling,
+                        isAnimationEnabled = isAnimationEnabled,
+                        isSelected = paneState.selected.contains(file.path),
+                        onClick = { onFileClick(file) },
+                        onLongClick = { onFileLongClick(file) },
+                        onSwipe = { onFileSwipe(index) },
+                        densityScale = densityScale
+                    )
+                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                }
             }
         }
 
-        if (paneState.files.isEmpty()) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 64.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Empty Directory",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
-                }
-            }
-        } else {
-            itemsIndexed(
-                items = paneState.files,
-                key = { _, file -> file.path },
-                contentType = { _, file -> if (file.isDirectory) 1 else 0 }
-            ) { index, file ->
-                CascadeAnimatedFileRow(
-                    fileEntry = file,
-                    index = index,
-                    navTimestamp = navTimestamp,
-                    targetPath = targetPath,
-                    isScrolling = isScrolling,
-                    isAnimationEnabled = isAnimationEnabled,
-                    isSelected = paneState.selected.contains(file.path),
-                    onClick = { onFileClick(file) },
-                    onLongClick = { onFileLongClick(file) },
-                    onSwipe = { onFileSwipe(index) },
-                    densityScale = densityScale
-                )
-                Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-            }
-        }
+        SmartScrollbar(
+            listState = listState,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 2.dp, top = 4.dp, bottom = 4.dp)
+        )
     }
+}
+
+@Composable
+private fun SmartScrollbar(
+    listState: LazyListState,
+    modifier: Modifier = Modifier
+) {
+    val layoutInfo = listState.layoutInfo
+    val totalItems = layoutInfo.totalItemsCount
+    val visibleItemsInfo = layoutInfo.visibleItemsInfo
+
+    if (totalItems == 0 || visibleItemsInfo.isEmpty()) return
+
+    val visibleCount = visibleItemsInfo.size
+    // Smart Dynamic Condition: Only show scrollbar if total items > visible items (overflowing content)
+    if (totalItems <= visibleCount) return
+
+    val firstVisible = visibleItemsInfo.first()
+    val isScrolling = listState.isScrollInProgress
+
+    val alpha by animateFloatAsState(
+        targetValue = if (isScrolling) 0.85f else 0.35f,
+        animationSpec = tween(durationMillis = 300),
+        label = "ScrollbarAlpha"
+    )
+
+    val viewportHeight = layoutInfo.viewportSize.height.toFloat()
+    if (viewportHeight <= 0f) return
+
+    val avgItemHeight = visibleItemsInfo.sumOf { it.size }.toFloat() / visibleCount
+    val totalHeightEstimate = avgItemHeight * totalItems
+    val currentScrollOffset = firstVisible.index * avgItemHeight + firstVisible.offset.coerceAtLeast(0)
+
+    val thumbHeight = (viewportHeight * (viewportHeight / totalHeightEstimate)).coerceIn(40f, viewportHeight * 0.35f)
+    val maxScrollOffset = (totalHeightEstimate - viewportHeight).coerceAtLeast(1f)
+    val thumbOffset = ((currentScrollOffset / maxScrollOffset) * (viewportHeight - thumbHeight)).coerceIn(0f, viewportHeight - thumbHeight)
+
+    Box(
+        modifier = modifier
+            .fillMaxHeight()
+            .width(4.dp)
+            .graphicsLayer {
+                this.alpha = alpha
+                translationY = thumbOffset
+            }
+            .background(
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                shape = RoundedCornerShape(2.dp)
+            )
+    )
 }
 
 @Composable
