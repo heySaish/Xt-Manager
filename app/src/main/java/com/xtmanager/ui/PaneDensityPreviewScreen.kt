@@ -171,7 +171,7 @@ fun PaneDensityPreviewScreen(
                             color = MaterialTheme.colorScheme.primaryContainer
                         ) {
                             Text(
-                                text = "⚡ ~$approxVisibleCount items visible",
+                                text = "~$approxVisibleCount items visible",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,

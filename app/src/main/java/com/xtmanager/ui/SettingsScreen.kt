@@ -168,7 +168,7 @@ fun SettingsScreen(
                             color = if (isRustEngineActive) Color(0x2010B981) else Color(0x20F59E0B)
                         ) {
                             Text(
-                                text = if (isRustEngineActive) "⚡ Active" else "🐢 Fallback",
+                                text = if (isRustEngineActive) "Active" else "Fallback",
                                 color = if (isRustEngineActive) Color(0xFF10B981) else Color(0xFFF59E0B),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
