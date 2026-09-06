@@ -76,6 +76,7 @@ fun FilePane(
     onRefresh: () -> Unit,
     onFileSwipe: (Int) -> Unit = {},
     densityScale: Float = 1.0f,
+    isAnimationEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val borderColor = if (isActive) {
