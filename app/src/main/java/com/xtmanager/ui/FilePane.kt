@@ -1,5 +1,6 @@
 package com.xtmanager.ui
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -195,6 +196,7 @@ fun FilePane(
                             paneState = paneState,
                             verticalOffset = state.verticalOffset,
                             densityScale = densityScale,
+                            isAnimationEnabled = isAnimationEnabled,
                             onPathClick = onPathClick,
                             onFileClick = onFileClick,
                             onFileLongClick = onFileLongClick,
@@ -207,6 +209,7 @@ fun FilePane(
                         paneState = paneState,
                         verticalOffset = state.verticalOffset,
                         densityScale = densityScale,
+                        isAnimationEnabled = isAnimationEnabled,
                         onPathClick = onPathClick,
                         onFileClick = onFileClick,
                         onFileLongClick = onFileLongClick,
@@ -225,11 +228,14 @@ private fun FilePaneListContent(
     paneState: PaneState,
     verticalOffset: Float,
     densityScale: Float,
+    isAnimationEnabled: Boolean,
     onPathClick: (String) -> Unit,
     onFileClick: (FileEntry) -> Unit,
     onFileLongClick: (FileEntry) -> Unit,
     onFileSwipe: (Int) -> Unit
 ) {
+    val navTimestamp = remember(targetPath) { System.currentTimeMillis() }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -299,8 +305,12 @@ private fun FilePaneListContent(
                 key = { _, file -> file.path },
                 contentType = { _, file -> if (file.isDirectory) 1 else 0 }
             ) { index, file ->
-                FileRow(
+                CascadeAnimatedFileRow(
                     fileEntry = file,
+                    index = index,
+                    navTimestamp = navTimestamp,
+                    targetPath = targetPath,
+                    isAnimationEnabled = isAnimationEnabled,
                     isSelected = paneState.selected.contains(file.path),
                     onClick = { onFileClick(file) },
                     onLongClick = { onFileLongClick(file) },
@@ -310,6 +320,72 @@ private fun FilePaneListContent(
                 Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
             }
         }
+    }
+}
+
+@Composable
+private fun CascadeAnimatedFileRow(
+    fileEntry: FileEntry,
+    index: Int,
+    navTimestamp: Long,
+    targetPath: String,
+    isAnimationEnabled: Boolean,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    onSwipe: () -> Unit,
+    densityScale: Float
+) {
+    if (!isAnimationEnabled) {
+        FileRow(
+            fileEntry = fileEntry,
+            isSelected = isSelected,
+            onClick = onClick,
+            onLongClick = onLongClick,
+            onSwipe = onSwipe,
+            densityScale = densityScale
+        )
+        return
+    }
+
+    val animatable = remember(targetPath) { Animatable(0f) }
+
+    LaunchedEffect(targetPath, fileEntry.path) {
+        val elapsed = System.currentTimeMillis() - navTimestamp
+        if (elapsed > 350L) {
+            animatable.snapTo(1f)
+        } else {
+            val delayMs = (index * 25).coerceAtMost(250)
+            if (delayMs > 0) {
+                kotlinx.coroutines.delay(delayMs.toLong())
+            }
+            animatable.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(
+                    durationMillis = 200,
+                    easing = FastOutSlowInEasing
+                )
+            )
+        }
+    }
+
+    val alphaVal = animatable.value
+    val transYVal = (1f - animatable.value) * 16f
+
+    Box(
+        modifier = Modifier.graphicsLayer {
+            alpha = alphaVal
+            translationY = transYVal
+        }
+    ) {
+        FileRow(
+            fileEntry = fileEntry,
+            isSelected = isSelected,
+            onClick = onClick,
+            onLongClick = onLongClick,
+            onSwipe = onSwipe,
+            densityScale = densityScale
+        )
     }
 }
 
