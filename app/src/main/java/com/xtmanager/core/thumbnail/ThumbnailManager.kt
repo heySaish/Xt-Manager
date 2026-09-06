@@ -131,7 +131,7 @@ object ThumbnailManager {
         val retriever = MediaMetadataRetriever()
         return try {
             retriever.setDataSource(path)
-            val frame = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.27) {
+            val frame: Bitmap? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 retriever.getScaledFrameAtTime(
                     1000000L, // 1 second into video
                     MediaMetadataRetriever.OPTION_CLOSEST_SYNC,

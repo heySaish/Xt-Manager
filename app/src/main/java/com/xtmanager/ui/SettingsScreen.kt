@@ -342,7 +342,7 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsGroupCard(
+internal fun SettingsGroupCard(
     title: String,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -372,7 +372,7 @@ private fun SettingsGroupCard(
 }
 
 @Composable
-private fun SettingsRowItem(
+internal fun SettingsRowItem(
     icon: ImageVector,
     iconBgColor: Color,
     title: String,
