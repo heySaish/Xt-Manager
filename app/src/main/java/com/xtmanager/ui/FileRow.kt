@@ -70,14 +70,13 @@ fun FileRow(
     val titleFontSize = (14 * densityScale).sp
     val labelFontSize = (11 * densityScale).sp
 
-    val baseTitleStyle = MaterialTheme.typography.bodyMedium
-    val titleStyle = remember(densityScale, baseTitleStyle) {
-        baseTitleStyle.copy(fontSize = titleFontSize)
+    val typography = MaterialTheme.typography
+    val titleStyle = remember(densityScale, typography.bodyMedium) {
+        typography.bodyMedium.copy(fontSize = titleFontSize)
     }
 
-    val baseLabelStyle = MaterialTheme.typography.labelSmall
-    val labelStyle = remember(densityScale, baseLabelStyle) {
-        baseLabelStyle.copy(fontSize = labelFontSize)
+    val labelStyle = remember(densityScale, typography.labelSmall) {
+        typography.labelSmall.copy(fontSize = labelFontSize)
     }
 
     val density = LocalDensity.current
