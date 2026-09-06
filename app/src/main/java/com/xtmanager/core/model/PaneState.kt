@@ -1,5 +1,8 @@
 package com.xtmanager.core.model
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class PaneState(
     val path: String = "/storage/emulated/0",
     val files: List<FileEntry> = emptyList(),

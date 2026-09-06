@@ -67,17 +67,7 @@ class FileManagerViewModel(
         } else {
             allFiles.filter { !it.name.startsWith(".") }
         }
-
-        if (filteredFiles.size <= 500) {
-            updatePane(paneType, stateBuilder(filteredFiles))
-        } else {
-            // First chunk of 500 items for instant UI frame rendering (<16ms)
-            val firstChunk = filteredFiles.take(500)
-            updatePane(paneType, stateBuilder(firstChunk))
-            
-            delay(10)
-            updatePane(paneType, stateBuilder(filteredFiles))
-        }
+        updatePane(paneType, stateBuilder(filteredFiles))
     }
 
     fun refreshPane(paneType: PaneType) {

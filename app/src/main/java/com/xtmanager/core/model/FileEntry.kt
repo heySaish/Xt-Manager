@@ -1,5 +1,8 @@
 package com.xtmanager.core.model
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class FileEntry(
     val name: String,
     val path: String,
@@ -13,6 +16,10 @@ data class FileEntry(
     val formattedDate: String = computeFormattedDate(lastModified)
 
     companion object {
+        private val dateFormatThreadLocal = ThreadLocal.withInitial {
+            java.text.SimpleDateFormat("yy-MM-dd HH:mm", java.util.Locale.getDefault())
+        }
+
         private fun computeFormattedSize(size: Long): String {
             if (size <= 0) return "0 B"
             val units = arrayOf("B", "KB", "MB", "GB", "TB")
@@ -26,8 +33,7 @@ data class FileEntry(
         }
 
         private fun computeFormattedDate(lastModified: Long): String {
-            val sdf = java.text.SimpleDateFormat("yy-MM-dd HH:mm", java.util.Locale.getDefault())
-            return sdf.format(java.util.Date(lastModified))
+            return dateFormatThreadLocal.get()?.format(java.util.Date(lastModified)) ?: ""
         }
     }
 }

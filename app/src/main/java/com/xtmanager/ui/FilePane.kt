@@ -251,7 +251,8 @@ fun FilePane(
                         } else {
                             itemsIndexed(
                                 items = paneState.files,
-                                key = { _, file -> file.path }
+                                key = { _, file -> file.path },
+                                contentType = { _, file -> if (file.isDirectory) 1 else 0 }
                             ) { index, file ->
                                 FileRow(
                                     fileEntry = file,
