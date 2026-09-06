@@ -50,6 +50,9 @@ class FileManagerViewModel(
     private val _bottomBarScale = MutableStateFlow(settingsManager.bottomBarScale)
     val bottomBarScale: StateFlow<Float> = _bottomBarScale.asStateFlow()
 
+    private val _showThumbnails = MutableStateFlow(settingsManager.showThumbnails)
+    val showThumbnails: StateFlow<Boolean> = _showThumbnails.asStateFlow()
+
     init {
         // Initial load is deferred to MainActivity's onResume when permissions are active
     }
@@ -68,6 +71,12 @@ class FileManagerViewModel(
         val clampedScale = scale.coerceIn(0.7f, 1.4f)
         _bottomBarScale.value = clampedScale
         settingsManager.bottomBarScale = clampedScale
+    }
+
+    fun toggleShowThumbnails() {
+        val newValue = !_showThumbnails.value
+        _showThumbnails.value = newValue
+        settingsManager.showThumbnails = newValue
     }
 
     fun toggleShowHiddenFiles() {

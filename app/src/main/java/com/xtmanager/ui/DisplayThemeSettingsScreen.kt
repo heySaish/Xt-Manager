@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.FolderSpecial
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material.icons.filled.ViewStream
 import androidx.compose.material.icons.filled.Visibility
@@ -47,6 +48,8 @@ fun DisplayThemeSettingsScreen(
     onOpenDensityPreview: () -> Unit = {},
     bottomBarScale: Float = 1.0f,
     onOpenBottomBarSizePreview: () -> Unit = {},
+    showThumbnails: Boolean = true,
+    onToggleShowThumbnails: () -> Unit = {},
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -169,6 +172,22 @@ fun DisplayThemeSettingsScreen(
                         Switch(
                             checked = naturalSort,
                             onCheckedChange = { onToggleNaturalSort() }
+                        )
+                    }
+                )
+
+                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                // Item 6: Load File Thumbnails
+                SettingsRowItem(
+                    icon = Icons.Default.Image,
+                    iconBgColor = Color(0xFFEC4899),
+                    title = "Load File Thumbnails",
+                    subtitle = "Display image, video, and APK icon previews in file browser",
+                    trailingWidget = {
+                        Switch(
+                            checked = showThumbnails,
+                            onCheckedChange = { onToggleShowThumbnails() }
                         )
                     }
                 )

@@ -60,6 +60,7 @@ fun FileRow(
     onLongClick: () -> Unit,
     onSwipe: () -> Unit = {},
     densityScale: Float = 1.0f,
+    showThumbnails: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val backgroundColor = if (isSelected) {
@@ -104,8 +105,8 @@ fun FileRow(
     val haptic = LocalHapticFeedback.current
 
     val context = LocalContext.current
-    val isThumbSupported = remember(fileEntry.path, fileEntry.lastModified) {
-        ThumbnailManager.isThumbnailSupported(fileEntry)
+    val isThumbSupported = remember(fileEntry.path, fileEntry.lastModified, showThumbnails) {
+        showThumbnails && ThumbnailManager.isThumbnailSupported(fileEntry)
     }
 
     var thumbnailBitmap by remember(fileEntry.path, fileEntry.lastModified) {

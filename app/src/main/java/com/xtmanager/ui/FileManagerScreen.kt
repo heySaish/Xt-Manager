@@ -131,6 +131,7 @@ fun FileManagerScreen(
     val bottomBarScale by viewModel.bottomBarScale.collectAsState()
     val folderAnimationEnabled by viewModel.folderAnimationEnabled.collectAsState()
     val naturalSort by viewModel.naturalSort.collectAsState()
+    val showThumbnails by viewModel.showThumbnails.collectAsState()
 
     val activeState = if (activePane == PaneType.LEFT) leftPaneState else rightPaneState
     val inactivePane = if (activePane == PaneType.LEFT) PaneType.RIGHT else PaneType.LEFT
@@ -534,6 +535,7 @@ fun FileManagerScreen(
                         isActive = activePane == PaneType.LEFT,
                         densityScale = densityScale,
                         isAnimationEnabled = folderAnimationEnabled,
+                        showThumbnails = showThumbnails,
                         onFileClick = { file ->
                             viewModel.setActivePane(PaneType.LEFT)
                             if (leftPaneState.isSelectionMode) {
@@ -580,6 +582,7 @@ fun FileManagerScreen(
                         isActive = activePane == PaneType.RIGHT,
                         densityScale = densityScale,
                         isAnimationEnabled = folderAnimationEnabled,
+                        showThumbnails = showThumbnails,
                         onFileClick = { file ->
                             viewModel.setActivePane(PaneType.RIGHT)
                             if (rightPaneState.isSelectionMode) {
@@ -982,6 +985,8 @@ fun FileManagerScreen(
             onOpenDensityPreview = { showDensityPreviewScreen = true },
             bottomBarScale = bottomBarScale,
             onOpenBottomBarSizePreview = { showBottomBarSizePreviewScreen = true },
+            showThumbnails = showThumbnails,
+            onToggleShowThumbnails = { viewModel.toggleShowThumbnails() },
             onClose = { showDisplayThemeSettingsScreen = false },
             modifier = Modifier.fillMaxSize()
         )

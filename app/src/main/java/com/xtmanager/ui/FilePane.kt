@@ -94,6 +94,7 @@ fun FilePane(
     onFileSwipe: (Int) -> Unit = {},
     densityScale: Float = 1.0f,
     isAnimationEnabled: Boolean = true,
+    showThumbnails: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val borderColor = if (isActive) {
@@ -291,7 +292,8 @@ private fun FilePaneListContent(
                         onClick = { onFileClick(file) },
                         onLongClick = { onFileLongClick(file) },
                         onSwipe = { onFileSwipe(index) },
-                        densityScale = densityScale
+                        densityScale = densityScale,
+                        showThumbnails = showThumbnails
                     )
                     Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
                 }
@@ -422,7 +424,8 @@ private fun CascadeAnimatedFileRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     onSwipe: () -> Unit,
-    densityScale: Float
+    densityScale: Float,
+    showThumbnails: Boolean = true
 ) {
     if (!isAnimationEnabled) {
         FileRow(
@@ -431,7 +434,8 @@ private fun CascadeAnimatedFileRow(
             onClick = onClick,
             onLongClick = onLongClick,
             onSwipe = onSwipe,
-            densityScale = densityScale
+            densityScale = densityScale,
+            showThumbnails = showThumbnails
         )
         return
     }
@@ -472,7 +476,8 @@ private fun CascadeAnimatedFileRow(
             onClick = onClick,
             onLongClick = onLongClick,
             onSwipe = onSwipe,
-            densityScale = densityScale
+            densityScale = densityScale,
+            showThumbnails = showThumbnails
         )
     }
 }
