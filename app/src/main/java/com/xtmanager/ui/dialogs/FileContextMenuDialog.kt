@@ -93,7 +93,7 @@ fun FileContextMenuDialog(
                     )
                 }
 
-                // 2-Column Grid Layout (MT Manager Style)
+                // 2-Column Grid Layout
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)

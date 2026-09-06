@@ -157,7 +157,7 @@ fun ApkInstallDialog(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Metadata Grid matching MT Manager Dialog layout
+                    // Metadata Grid layout
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         ApkMetadataRow(label = "Package name", value = details.packageName)
                         ApkMetadataRow(label = "Version code", value = details.versionCode)
