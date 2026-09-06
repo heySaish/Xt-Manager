@@ -136,6 +136,7 @@ fun FileManagerScreen(
     val folderAnimationEnabled by viewModel.folderAnimationEnabled.collectAsState()
     val naturalSort by viewModel.naturalSort.collectAsState()
     val showThumbnails by viewModel.showThumbnails.collectAsState()
+    val fileNameMaxLines by viewModel.fileNameMaxLines.collectAsState()
 
     val activeState = if (activePane == PaneType.LEFT) leftPaneState else rightPaneState
     val inactivePane = if (activePane == PaneType.LEFT) PaneType.RIGHT else PaneType.LEFT
@@ -538,6 +539,7 @@ fun FileManagerScreen(
                         densityScale = densityScale,
                         isAnimationEnabled = folderAnimationEnabled,
                         showThumbnails = showThumbnails,
+                        fileNameMaxLines = fileNameMaxLines,
                         onFileClick = { file ->
                             viewModel.setActivePane(PaneType.LEFT)
                             if (leftPaneState.isSelectionMode) {
@@ -585,6 +587,7 @@ fun FileManagerScreen(
                         densityScale = densityScale,
                         isAnimationEnabled = folderAnimationEnabled,
                         showThumbnails = showThumbnails,
+                        fileNameMaxLines = fileNameMaxLines,
                         onFileClick = { file ->
                             viewModel.setActivePane(PaneType.RIGHT)
                             if (rightPaneState.isSelectionMode) {
@@ -989,6 +992,8 @@ fun FileManagerScreen(
             onOpenBottomBarSizePreview = { showBottomBarSizePreviewScreen = true },
             showThumbnails = showThumbnails,
             onToggleShowThumbnails = { viewModel.toggleShowThumbnails() },
+            fileNameMaxLines = fileNameMaxLines,
+            onSetFileNameMaxLines = { lines -> viewModel.setFileNameMaxLines(lines) },
             onClose = { showDisplayThemeSettingsScreen = false },
             modifier = Modifier.fillMaxSize()
         )

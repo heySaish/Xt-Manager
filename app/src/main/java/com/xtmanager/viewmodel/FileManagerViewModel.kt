@@ -53,6 +53,9 @@ class FileManagerViewModel(
     private val _showThumbnails = MutableStateFlow(settingsManager.showThumbnails)
     val showThumbnails: StateFlow<Boolean> = _showThumbnails.asStateFlow()
 
+    private val _fileNameMaxLines = MutableStateFlow(settingsManager.fileNameMaxLines)
+    val fileNameMaxLines: StateFlow<Int> = _fileNameMaxLines.asStateFlow()
+
     init {
         // Initial load is deferred to MainActivity's onResume when permissions are active
     }
@@ -77,6 +80,12 @@ class FileManagerViewModel(
         val newValue = !_showThumbnails.value
         _showThumbnails.value = newValue
         settingsManager.showThumbnails = newValue
+    }
+
+    fun setFileNameMaxLines(lines: Int) {
+        val validLines = if (lines <= 1) 1 else 2
+        _fileNameMaxLines.value = validLines
+        settingsManager.fileNameMaxLines = validLines
     }
 
     fun toggleShowHiddenFiles() {

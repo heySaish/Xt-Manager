@@ -31,6 +31,10 @@ class SettingsManager(context: Context) {
         get() = prefs.getBoolean(KEY_SHOW_THUMBNAILS, true)
         set(value) = prefs.edit().putBoolean(KEY_SHOW_THUMBNAILS, value).apply()
 
+    var fileNameMaxLines: Int
+        get() = prefs.getInt(KEY_FILE_NAME_MAX_LINES, 2)
+        set(value) = prefs.edit().putInt(KEY_FILE_NAME_MAX_LINES, value).apply()
+
     companion object {
         private const val PREFS_NAME = "xt_manager_settings"
         private const val KEY_SHOW_HIDDEN_FILES = "show_hidden_files"
@@ -39,5 +43,6 @@ class SettingsManager(context: Context) {
         private const val KEY_NATURAL_SORT = "natural_sort"
         private const val KEY_BOTTOM_BAR_SCALE = "bottom_bar_scale"
         private const val KEY_SHOW_THUMBNAILS = "show_thumbnails"
+        private const val KEY_FILE_NAME_MAX_LINES = "file_name_max_lines"
     }
 }

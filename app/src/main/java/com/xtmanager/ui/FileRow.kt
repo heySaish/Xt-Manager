@@ -43,7 +43,7 @@ import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.xtmanager.core.model.FileEntry
@@ -61,6 +61,7 @@ fun FileRow(
     onSwipe: () -> Unit = {},
     densityScale: Float = 1.0f,
     showThumbnails: Boolean = true,
+    fileNameMaxLines: Int = 2,
     modifier: Modifier = Modifier
 ) {
     val backgroundColor = if (isSelected) {
@@ -219,7 +220,8 @@ fun FileRow(
                 text = fileEntry.name,
                 style = titleStyle,
                 color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
-                maxLines = 1
+                maxLines = fileNameMaxLines,
+                overflow = TextOverflow.Ellipsis
             )
             
             Row(modifier = Modifier.padding(top = 1.dp)) {

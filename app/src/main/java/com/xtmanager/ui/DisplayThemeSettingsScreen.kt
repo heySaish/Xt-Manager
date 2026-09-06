@@ -18,8 +18,10 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material.icons.filled.ViewStream
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.WrapText
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +52,8 @@ fun DisplayThemeSettingsScreen(
     onOpenBottomBarSizePreview: () -> Unit = {},
     showThumbnails: Boolean = true,
     onToggleShowThumbnails: () -> Unit = {},
+    fileNameMaxLines: Int = 2,
+    onSetFileNameMaxLines: (Int) -> Unit = {},
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -188,6 +192,23 @@ fun DisplayThemeSettingsScreen(
                         Switch(
                             checked = showThumbnails,
                             onCheckedChange = { onToggleShowThumbnails() }
+                        )
+                    }
+                )
+
+                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                // Item 7: Filename Max Lines (1 line vs 2 lines)
+                SettingsRowItem(
+                    icon = Icons.Default.WrapText,
+                    iconBgColor = Color(0xFF10B981),
+                    title = "Filename Max Lines",
+                    subtitle = if (fileNameMaxLines > 1) "Wrap long file names to 2 lines" else "Truncate file names on single line",
+                    trailingWidget = {
+                        FilterChip(
+                            selected = fileNameMaxLines > 1,
+                            onClick = { onSetFileNameMaxLines(if (fileNameMaxLines > 1) 1 else 2) },
+                            label = { Text(if (fileNameMaxLines > 1) "2 Lines" else "1 Line") }
                         )
                     }
                 )

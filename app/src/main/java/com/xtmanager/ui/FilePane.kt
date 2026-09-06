@@ -96,6 +96,7 @@ fun FilePane(
     densityScale: Float = 1.0f,
     isAnimationEnabled: Boolean = true,
     showThumbnails: Boolean = true,
+    fileNameMaxLines: Int = 2,
     modifier: Modifier = Modifier
 ) {
     val borderColor = if (isActive) {
@@ -185,6 +186,7 @@ fun FilePane(
                     densityScale = densityScale,
                     isAnimationEnabled = isAnimationEnabled,
                     showThumbnails = showThumbnails,
+                    fileNameMaxLines = fileNameMaxLines,
                     onPathClick = onPathClick,
                     onFileClick = onFileClick,
                     onFileLongClick = onFileLongClick,
@@ -204,6 +206,7 @@ private fun FilePaneListContent(
     densityScale: Float,
     isAnimationEnabled: Boolean,
     showThumbnails: Boolean = true,
+    fileNameMaxLines: Int = 2,
     onPathClick: (String) -> Unit,
     onFileClick: (FileEntry) -> Unit,
     onFileLongClick: (FileEntry) -> Unit,
@@ -462,7 +465,8 @@ private fun CascadeAnimatedFileRow(
     onLongClick: () -> Unit,
     onSwipe: () -> Unit,
     densityScale: Float,
-    showThumbnails: Boolean = true
+    showThumbnails: Boolean = true,
+    fileNameMaxLines: Int = 2
 ) {
     if (!isAnimationEnabled) {
         FileRow(
@@ -472,7 +476,8 @@ private fun CascadeAnimatedFileRow(
             onLongClick = onLongClick,
             onSwipe = onSwipe,
             densityScale = densityScale,
-            showThumbnails = showThumbnails
+            showThumbnails = showThumbnails,
+            fileNameMaxLines = fileNameMaxLines
         )
         return
     }
@@ -514,8 +519,8 @@ private fun CascadeAnimatedFileRow(
             onLongClick = onLongClick,
             onSwipe = onSwipe,
             densityScale = densityScale,
-            showThumbnails = showThumbnails
+            showThumbnails = showThumbnails,
+            fileNameMaxLines = fileNameMaxLines
         )
     }
 }
-
