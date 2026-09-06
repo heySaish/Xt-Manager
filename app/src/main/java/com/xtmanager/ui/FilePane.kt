@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
@@ -192,8 +193,11 @@ private fun FilePaneListContent(
     onFileSwipe: (Int) -> Unit
 ) {
     val navTimestamp = remember(targetPath) { System.currentTimeMillis() }
+    val listState = rememberLazyListState()
+    val isScrolling = listState.isScrollInProgress
 
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .graphicsLayer {
@@ -267,6 +271,7 @@ private fun FilePaneListContent(
                     index = index,
                     navTimestamp = navTimestamp,
                     targetPath = targetPath,
+                    isScrolling = isScrolling,
                     isAnimationEnabled = isAnimationEnabled,
                     isSelected = paneState.selected.contains(file.path),
                     onClick = { onFileClick(file) },
@@ -286,6 +291,7 @@ private fun CascadeAnimatedFileRow(
     index: Int,
     navTimestamp: Long,
     targetPath: String,
+    isScrolling: Boolean,
     isAnimationEnabled: Boolean,
     isSelected: Boolean,
     onClick: () -> Unit,
@@ -307,19 +313,19 @@ private fun CascadeAnimatedFileRow(
 
     val animatable = remember(targetPath) { Animatable(0f) }
 
-    LaunchedEffect(targetPath, fileEntry.path) {
+    LaunchedEffect(targetPath, fileEntry.path, isScrolling) {
         val elapsed = System.currentTimeMillis() - navTimestamp
-        if (elapsed > 350L) {
+        if (elapsed > 200L || isScrolling) {
             animatable.snapTo(1f)
         } else {
-            val delayMs = (index * 25).coerceAtMost(250)
+            val delayMs = (index * 20).coerceAtMost(180)
             if (delayMs > 0) {
                 kotlinx.coroutines.delay(delayMs.toLong())
             }
             animatable.animateTo(
                 targetValue = 1f,
                 animationSpec = tween(
-                    durationMillis = 200,
+                    durationMillis = 180,
                     easing = FastOutSlowInEasing
                 )
             )
