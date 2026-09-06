@@ -209,7 +209,7 @@ fun FileManagerScreen(
                         .padding(16.dp)
                 ) {
                     Text(
-                        text = "Xt-manager",
+                        text = "XT Manager",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -366,7 +366,7 @@ fun FileManagerScreen(
                             }
                         } else {
                             Text(
-                                text = "Xt-manager",
+                                text = "XT Manager",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -1116,7 +1116,7 @@ fun PermissionRequestScreen(
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Xt-manager needs storage permissions to list, manage, and execute file operations on your device storage. Please grant the permission to proceed.",
+                text = "XT Manager needs storage permissions to list, manage, and execute file operations on your device storage. Please grant the permission to proceed.",
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

@@ -377,12 +377,12 @@ fun SettingsScreen(
                 }
             }
 
-            // Group 4: About Xt-Manager
-            SettingsGroupCard(title = "About Xt-Manager") {
+            // Group 4: About XT Manager
+            SettingsGroupCard(title = "About XT Manager") {
                 SettingsRowItem(
                     icon = Icons.Default.Info,
                     iconBgColor = Color(0xFF64748B),
-                    title = "Xt-Manager",
+                    title = "XT Manager",
                     subtitle = "Version 1.0.0 (arm64-v8a) • Native Rust Core",
                     trailingWidget = {
                         Text(

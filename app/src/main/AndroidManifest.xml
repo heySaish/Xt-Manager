@@ -23,7 +23,7 @@
         android:enableOnBackInvokedCallback="true"
         android:extractNativeLibs="true"
         android:icon="@android:drawable/ic_menu_manage"
-        android:label="Xt-manager"
+        android:label="XT Manager"
         android:roundIcon="@android:drawable/ic_menu_manage"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
