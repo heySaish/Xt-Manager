@@ -22,12 +22,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.IntOffset
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
@@ -289,63 +298,116 @@ private fun FilePaneListContent(
             }
         }
 
-        SmartScrollbar(
+        FastScrollbar(
             listState = listState,
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 2.dp, top = 4.dp, bottom = 4.dp)
+            modifier = Modifier.align(Alignment.CenterEnd)
         )
     }
 }
 
 @Composable
-private fun SmartScrollbar(
+private fun FastScrollbar(
     listState: LazyListState,
     modifier: Modifier = Modifier
 ) {
     val layoutInfo = listState.layoutInfo
     val totalItems = layoutInfo.totalItemsCount
-    val visibleItemsInfo = layoutInfo.visibleItemsInfo
 
-    if (totalItems == 0 || visibleItemsInfo.isEmpty()) return
+    // Requirement: Show fast scrollbar ONLY if files/folders count >= 90
+    if (totalItems < 90) return
 
-    val visibleCount = visibleItemsInfo.size
-    // Smart Dynamic Condition: Only show scrollbar if total items > visible items (overflowing content)
-    if (totalItems <= visibleCount) return
+    val coroutineScope = rememberCoroutineScope()
+    val haptic = LocalHapticFeedback.current
 
-    val firstVisible = visibleItemsInfo.first()
-    val isScrolling = listState.isScrollInProgress
+    var isDragging by remember { mutableStateOf(false) }
+    var isVisible by remember { mutableStateOf(false) }
+
+    val isScrollInProgress = listState.isScrollInProgress
+
+    // Requirement: Auto-hide after 2 seconds (2000ms) of inactivity
+    LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset, isScrollInProgress, isDragging) {
+        if (isScrollInProgress || isDragging) {
+            isVisible = true
+        } else {
+            delay(2000L)
+            if (!listState.isScrollInProgress && !isDragging) {
+                isVisible = false
+            }
+        }
+    }
 
     val alpha by animateFloatAsState(
-        targetValue = if (isScrolling) 0.85f else 0.35f,
+        targetValue = if (isVisible) 1f else 0f,
         animationSpec = tween(durationMillis = 300),
-        label = "ScrollbarAlpha"
+        label = "FastScrollbarAlpha"
     )
 
-    val viewportHeight = layoutInfo.viewportSize.height.toFloat()
-    if (viewportHeight <= 0f) return
+    if (alpha <= 0.01f && !isVisible) return
 
-    val avgItemHeight = visibleItemsInfo.sumOf { it.size }.toFloat() / visibleCount
-    val totalHeightEstimate = avgItemHeight * totalItems
-    val currentScrollOffset = firstVisible.index * avgItemHeight + firstVisible.offset.coerceAtLeast(0)
+    // Requirement: Highlight when grabbed/dragged
+    val thumbWidth by animateDpAsState(
+        targetValue = if (isDragging) 10.dp else 6.dp,
+        animationSpec = tween(durationMillis = 150),
+        label = "FastScrollbarWidth"
+    )
 
-    val thumbHeight = (viewportHeight * (viewportHeight / totalHeightEstimate)).coerceIn(40f, viewportHeight * 0.35f)
-    val maxScrollOffset = (totalHeightEstimate - viewportHeight).coerceAtLeast(1f)
-    val thumbOffset = ((currentScrollOffset / maxScrollOffset) * (viewportHeight - thumbHeight)).coerceIn(0f, viewportHeight - thumbHeight)
+    val thumbColor = if (isDragging) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+    }
 
-    Box(
+    val firstVisibleIndex = listState.firstVisibleItemIndex
+    val scrollFraction = (firstVisibleIndex.toFloat() / (totalItems - 1).coerceAtLeast(1)).coerceIn(0f, 1f)
+
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxHeight()
-            .width(4.dp)
-            .graphicsLayer {
-                this.alpha = alpha
-                translationY = thumbOffset
+            .width(28.dp) // Generous touch target area on the right edge
+            .graphicsLayer { this.alpha = alpha }
+            .pointerInput(totalItems) {
+                detectVerticalDragGestures(
+                    onDragStart = { offset ->
+                        isDragging = true
+                        isVisible = true
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        val fraction = (offset.y / size.height.toFloat()).coerceIn(0f, 1f)
+                        val targetIndex = (fraction * (totalItems - 1)).toInt().coerceIn(0, totalItems - 1)
+                        coroutineScope.launch {
+                            listState.scrollToItem(targetIndex)
+                        }
+                    },
+                    onDragEnd = { isDragging = false },
+                    onDragCancel = { isDragging = false },
+                    onVerticalDrag = { change, _ ->
+                        change.consume()
+                        val fraction = (change.position.y / size.height.toFloat()).coerceIn(0f, 1f)
+                        val targetIndex = (fraction * (totalItems - 1)).toInt().coerceIn(0, totalItems - 1)
+                        coroutineScope.launch {
+                            listState.scrollToItem(targetIndex)
+                        }
+                    }
+                )
             }
-            .background(
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                shape = RoundedCornerShape(2.dp)
-            )
-    )
+    ) {
+        val containerHeightPx = constraints.maxHeight.toFloat()
+        val thumbHeightDp = 48.dp
+        val density = LocalDensity.current
+        val thumbHeightPx = with(density) { thumbHeightDp.toPx() }
+        val maxOffsetPx = (containerHeightPx - thumbHeightPx).coerceAtLeast(0f)
+        val thumbOffsetPx = scrollFraction * maxOffsetPx
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset { IntOffset(0, thumbOffsetPx.toInt()) }
+                .size(width = thumbWidth, height = thumbHeightDp)
+                .background(
+                    color = thumbColor,
+                    shape = RoundedCornerShape(topStart = 4.dp, bottomStart = 4.dp)
+                )
+        )
+    }
 }
 
 @Composable
