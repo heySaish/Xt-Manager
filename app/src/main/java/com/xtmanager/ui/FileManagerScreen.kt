@@ -84,6 +84,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -359,12 +363,10 @@ fun FileManagerScreen(
                                     }
                                 )
                             ) {
-                                Text(
+                                StartEllipsisText(
                                     text = pathText,
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    fontWeight = FontWeight.Bold
                                 )
                                 Text(
                                     text = subtitleText,
@@ -1281,5 +1283,63 @@ fun getStorageVolumesList(context: android.content.Context): List<StorageVolumeI
     } catch (_: Exception) {}
 
     return list
+}
+
+@Composable
+fun StartEllipsisText(
+    text: String,
+    style: TextStyle = MaterialTheme.typography.titleMedium,
+    fontWeight: FontWeight? = FontWeight.Bold,
+    color: Color = Color.Unspecified,
+    modifier: Modifier = Modifier
+) {
+    BoxWithConstraints(modifier = modifier) {
+        val density = LocalDensity.current
+        val textMeasurer = rememberTextMeasurer()
+        val maxWidthPx = with(density) { constraints.maxWidth.toFloat() }
+
+        val displayText = remember(text, maxWidthPx, style, fontWeight) {
+            if (maxWidthPx <= 0f) return@remember text
+
+            val fullResult = textMeasurer.measure(
+                text = text,
+                style = style.copy(fontWeight = fontWeight ?: FontWeight.Normal)
+            )
+
+            if (fullResult.size.width <= maxWidthPx) {
+                text
+            } else {
+                val prefix = "…"
+                var low = 1
+                var high = text.length
+                var bestFitting = prefix + text.takeLast(low)
+
+                while (low <= high) {
+                    val mid = (low + high) / 2
+                    val candidate = prefix + text.takeLast(mid)
+                    val candidateResult = textMeasurer.measure(
+                        text = candidate,
+                        style = style.copy(fontWeight = fontWeight ?: FontWeight.Normal)
+                    )
+                    if (candidateResult.size.width <= maxWidthPx) {
+                        bestFitting = candidate
+                        low = mid + 1
+                    } else {
+                        high = mid - 1
+                    }
+                }
+                bestFitting
+            }
+        }
+
+        Text(
+            text = displayText,
+            style = style,
+            fontWeight = fontWeight,
+            color = color,
+            maxLines = 1,
+            softWrap = false
+        )
+    }
 }
 
