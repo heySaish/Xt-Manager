@@ -55,6 +55,8 @@ import com.xtmanager.core.model.FileEntry
 import com.xtmanager.core.model.PaneState
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.fadeIn
