@@ -1,12 +1,13 @@
 package com.xtmanager.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,22 +23,21 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.xtmanager.core.model.FileEntry
 import com.xtmanager.core.model.FileType
-
-import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -83,21 +83,27 @@ fun FileRow(
     }
 
     val density = LocalDensity.current
-    val minSwipeThresholdPx = remember(density) { with(density) { 35.dp.toPx() } }
-    var totalDragAmount by remember { mutableFloatStateOf(0f) }
-    var swipeTriggered by remember { mutableStateOf(false) }
+    // Swipe limit matching image displacement (max 42.dp)
+    val maxSwipePx = remember(density) { with(density) { 42.dp.toPx() } }
+    val minSwipeThresholdPx = remember(density) { with(density) { 24.dp.toPx() } }
 
+    val swipeOffset = remember { Animatable(0f) }
+    val coroutineScope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             .background(backgroundColor)
+            .graphicsLayer {
+                translationX = swipeOffset.value
+            }
             .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     var totalX = 0f
                     var totalY = 0f
+                    var isHorizontalGesture = false
                     var swipeTriggered = false
 
                     do {
@@ -108,13 +114,41 @@ fun FileRow(
                             totalX += dragAmount.x
                             totalY += dragAmount.y
 
-                            if (!swipeTriggered && kotlin.math.abs(totalX) >= minSwipeThresholdPx && kotlin.math.abs(totalX) > kotlin.math.abs(totalY) * 1.4f) {
-                                swipeTriggered = true
+                            val absX = kotlin.math.abs(totalX)
+                            val absY = kotlin.math.abs(totalY)
+
+                            if (!isHorizontalGesture && absX > 8f) {
+                                if (absX > absY * 1.3f) {
+                                    isHorizontalGesture = true
+                                }
+                            }
+
+                            if (isHorizontalGesture) {
                                 change.consume()
-                                onSwipe()
+                                val targetOffset = totalX.coerceIn(-maxSwipePx, maxSwipePx)
+                                coroutineScope.launch {
+                                    swipeOffset.snapTo(targetOffset)
+                                }
+
+                                if (!swipeTriggered && absX >= minSwipeThresholdPx) {
+                                    swipeTriggered = true
+                                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                    onSwipe()
+                                }
                             }
                         }
                     } while (event.changes.any { it.pressed })
+
+                    // Animate back smoothly when finger is released
+                    coroutineScope.launch {
+                        swipeOffset.animateTo(
+                            targetValue = 0f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        )
+                    }
                 }
             }
             .combinedClickable(
@@ -162,4 +196,3 @@ fun FileRow(
         }
     }
 }
-
