@@ -358,7 +358,7 @@ fun SettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(180.dp)
-                            .background(Color(0xFF0F172A), RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
                             .padding(8.dp)
                     ) {
                         val verticalScroll = rememberScrollState()
@@ -368,7 +368,7 @@ fun SettingsScreen(
                             text = logsText,
                             fontFamily = FontFamily.Monospace,
                             fontSize = 11.sp,
-                            color = Color(0xFF22C55E),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
                                 .verticalScroll(verticalScroll)
                                 .horizontalScroll(horizontalScroll)
