@@ -87,6 +87,8 @@ fun SettingsScreen(
     onToggleShowHiddenFiles: () -> Unit = {},
     folderAnimationEnabled: Boolean = true,
     onToggleFolderAnimation: () -> Unit = {},
+    naturalSort: Boolean = true,
+    onToggleNaturalSort: () -> Unit = {},
     densityScale: Float = 1.0f,
     onOpenDensityPreview: () -> Unit = {},
     onClose: () -> Unit,
@@ -99,7 +101,6 @@ fun SettingsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    var naturalSort by remember { mutableStateOf(true) }
     var logsText by remember { mutableStateOf("Fetching logs...") }
     var isSaving by remember { mutableStateOf(false) }
     var showLogsConsole by remember { mutableStateOf(false) }
@@ -188,7 +189,7 @@ fun SettingsScreen(
                     trailingWidget = {
                         Switch(
                             checked = naturalSort,
-                            onCheckedChange = { naturalSort = it },
+                            onCheckedChange = { onToggleNaturalSort() },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                                 checkedTrackColor = MaterialTheme.colorScheme.primary,

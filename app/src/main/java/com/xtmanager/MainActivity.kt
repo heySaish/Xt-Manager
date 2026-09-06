@@ -61,10 +61,12 @@ class MainActivity : ComponentActivity() {
         val alpineManager = com.xtmanager.runtime.AlpineManager(this)
         val fileSystem = LocalFileSystem()
         val operationManager = OperationManager(fileSystem)
+        val settingsManager = com.xtmanager.core.settings.SettingsManager(applicationContext)
 
         viewModel = FileManagerViewModel(
             fileSystem = fileSystem,
-            operationManager = operationManager
+            operationManager = operationManager,
+            settingsManager = settingsManager
         )
 
         isPermissionGranted = hasStoragePermission()

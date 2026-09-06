@@ -16,9 +16,12 @@ import java.io.File
 import com.xtmanager.core.filesystem.FileSystemCache
 import kotlinx.coroutines.delay
 
+import com.xtmanager.core.settings.SettingsManager
+
 class FileManagerViewModel(
     private val fileSystem: FileSystem,
-    private val operationManager: OperationManager
+    private val operationManager: OperationManager,
+    private val settingsManager: SettingsManager
 ) : ViewModel() {
 
     private val _leftPaneState = MutableStateFlow(PaneState(path = "/storage/emulated/0"))
@@ -32,14 +35,17 @@ class FileManagerViewModel(
 
     val operations = operationManager.operations
 
-    private val _showHiddenFiles = MutableStateFlow(false)
+    private val _showHiddenFiles = MutableStateFlow(settingsManager.showHiddenFiles)
     val showHiddenFiles: StateFlow<Boolean> = _showHiddenFiles.asStateFlow()
 
-    private val _densityScale = MutableStateFlow(1.0f)
+    private val _densityScale = MutableStateFlow(settingsManager.densityScale)
     val densityScale: StateFlow<Float> = _densityScale.asStateFlow()
 
-    private val _folderAnimationEnabled = MutableStateFlow(true)
+    private val _folderAnimationEnabled = MutableStateFlow(settingsManager.folderAnimationEnabled)
     val folderAnimationEnabled: StateFlow<Boolean> = _folderAnimationEnabled.asStateFlow()
+
+    private val _naturalSort = MutableStateFlow(settingsManager.naturalSort)
+    val naturalSort: StateFlow<Boolean> = _naturalSort.asStateFlow()
 
     init {
         // Initial load is deferred to MainActivity's onResume when permissions are active
@@ -50,17 +56,31 @@ class FileManagerViewModel(
     }
 
     fun setDensityScale(scale: Float) {
-        _densityScale.value = scale.coerceIn(0.7f, 1.4f)
+        val clampedScale = scale.coerceIn(0.7f, 1.4f)
+        _densityScale.value = clampedScale
+        settingsManager.densityScale = clampedScale
     }
 
     fun toggleShowHiddenFiles() {
-        _showHiddenFiles.value = !_showHiddenFiles.value
+        val newValue = !_showHiddenFiles.value
+        _showHiddenFiles.value = newValue
+        settingsManager.showHiddenFiles = newValue
         refreshPane(PaneType.LEFT)
         refreshPane(PaneType.RIGHT)
     }
 
     fun toggleFolderAnimation() {
-        _folderAnimationEnabled.value = !_folderAnimationEnabled.value
+        val newValue = !_folderAnimationEnabled.value
+        _folderAnimationEnabled.value = newValue
+        settingsManager.folderAnimationEnabled = newValue
+    }
+
+    fun toggleNaturalSort() {
+        val newValue = !_naturalSort.value
+        _naturalSort.value = newValue
+        settingsManager.naturalSort = newValue
+        refreshPane(PaneType.LEFT)
+        refreshPane(PaneType.RIGHT)
     }
 
     private suspend fun loadAndEmitChunked(

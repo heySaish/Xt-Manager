@@ -1,6 +1,16 @@
-# Add project specific ProGuard rules here.
-# By default, the flags in this file are appended to flags specified
-# in /data/data/com.termux/files/home/Xt-manager/app/proguard-android-optimize.txt
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Keep all JNI native methods across the application
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
+
+# Keep JNI model classes used by native C/Rust JNI engines
+-keep class com.xtmanager.core.filesystem.LocalFileSystem** { *; }
+-keep class com.xtmanager.core.model.** { *; }
+-keep class com.xtmanager.runtime.** { *; }
+-keep class com.termux.** { *; }
+-keep class com.jcraft.jsch.** { *; }
+
+# Keep Compose metadata
+-keepclassmembers class * {
+    @androidx.compose.runtime.Composable *;
+}

@@ -128,6 +128,7 @@ fun FileManagerScreen(
     val showHiddenFiles by viewModel.showHiddenFiles.collectAsState()
     val densityScale by viewModel.densityScale.collectAsState()
     val folderAnimationEnabled by viewModel.folderAnimationEnabled.collectAsState()
+    val naturalSort by viewModel.naturalSort.collectAsState()
 
     val activeState = if (activePane == PaneType.LEFT) leftPaneState else rightPaneState
     val inactivePane = if (activePane == PaneType.LEFT) PaneType.RIGHT else PaneType.LEFT
@@ -930,6 +931,8 @@ fun FileManagerScreen(
             onToggleShowHiddenFiles = { viewModel.toggleShowHiddenFiles() },
             folderAnimationEnabled = folderAnimationEnabled,
             onToggleFolderAnimation = { viewModel.toggleFolderAnimation() },
+            naturalSort = naturalSort,
+            onToggleNaturalSort = { viewModel.toggleNaturalSort() },
             densityScale = densityScale,
             onOpenDensityPreview = { showDensityPreviewScreen = true },
             onClose = { showSettingsScreen = false },
