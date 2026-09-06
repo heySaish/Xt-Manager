@@ -463,21 +463,36 @@ private fun SettingsRowItem(
 
 private fun fetchAppLogs(): String {
     val telemetryLogs = com.xtmanager.core.logger.AppLogger.getAllLogs()
+    val pid = android.os.Process.myPid().toString()
     val systemLogcat = try {
         val process = Runtime.getRuntime().exec(
-            arrayOf("logcat", "-d", "-s", "XtFsMetrics:V", "XtArchive:V", "XtOperation:V", "com.xtmanager:V", "*:E")
+            arrayOf("logcat", "-d", "-v", "time", "--pid", pid)
         )
         val log = process.inputStream.bufferedReader().use { it.readText() }
-        if (log.trim().isEmpty()) "" else log.takeLast(3000)
+        if (log.trim().isEmpty()) {
+            val fallbackProc = Runtime.getRuntime().exec(arrayOf("logcat", "-d", "-v", "time"))
+            val fallbackLog = fallbackProc.inputStream.bufferedReader().use { it.readText() }
+            val pidLines = fallbackLog.lines().filter { line -> 
+                line.contains(pid) || line.contains("com.xtmanager") || line.contains("Xt") 
+            }
+            if (pidLines.isEmpty()) fallbackLog.takeLast(5000) else pidLines.joinToString("\n").takeLast(10000)
+        } else {
+            log.takeLast(10000)
+        }
     } catch (e: Exception) {
         "Logcat fetch error: ${e.message}"
     }
 
     return buildString {
-        append("=== Real-time App & Engine Telemetry ===\n")
+        append("==================================================\n")
+        append("XT-MANAGER FULL APP & SYSTEM TELEMETRY DUMP\n")
+        append("Process PID: ").append(pid).append("\n")
+        append("Timestamp: ").append(SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())).append("\n")
+        append("==================================================\n\n")
+        append("=== App Telemetry Buffer ===\n")
         append(telemetryLogs)
         if (systemLogcat.isNotBlank()) {
-            append("\n\n=== System Logcat Dump ===\n")
+            append("\n\n=== Process System Logcat (PID: $pid) ===\n")
             append(systemLogcat)
         }
     }
