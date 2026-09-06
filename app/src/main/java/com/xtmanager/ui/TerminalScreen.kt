@@ -3,6 +3,7 @@ package com.xtmanager.ui
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 import android.view.ViewGroup
