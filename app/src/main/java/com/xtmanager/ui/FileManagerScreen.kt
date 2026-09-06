@@ -146,6 +146,7 @@ fun FileManagerScreen(
     var showSettingsScreen by remember { mutableStateOf(false) }
     var showDensityPreviewScreen by remember { mutableStateOf(false) }
     var showBottomBarSizePreviewScreen by remember { mutableStateOf(false) }
+    var showDisplayThemeSettingsScreen by remember { mutableStateOf(false) }
     var showJumpToPathDialog by remember { mutableStateOf(false) }
     var showTerminal by remember { mutableStateOf(false) }
     var terminalInitialPath by remember { mutableStateOf<String?>(null) }
@@ -173,6 +174,9 @@ fun FileManagerScreen(
             }
             showDensityPreviewScreen -> {
                 showDensityPreviewScreen = false
+            }
+            showDisplayThemeSettingsScreen -> {
+                showDisplayThemeSettingsScreen = false
             }
             showSettingsScreen -> {
                 showSettingsScreen = false
@@ -949,7 +953,36 @@ fun FileManagerScreen(
             onOpenDensityPreview = { showDensityPreviewScreen = true },
             bottomBarScale = bottomBarScale,
             onOpenBottomBarSizePreview = { showBottomBarSizePreviewScreen = true },
+            onOpenDisplayThemeSettings = { showDisplayThemeSettingsScreen = true },
             onClose = { showSettingsScreen = false },
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+
+    // Animated Display & Theme Sub-Settings Screen Overlay (Right-to-Left Slide)
+    AnimatedVisibility(
+        visible = showDisplayThemeSettingsScreen,
+        enter = slideInHorizontally(
+            initialOffsetX = { fullWidth -> fullWidth },
+            animationSpec = tween(durationMillis = 300)
+        ) + fadeIn(animationSpec = tween(durationMillis = 300)),
+        exit = slideOutHorizontally(
+            targetOffsetX = { fullWidth -> fullWidth },
+            animationSpec = tween(durationMillis = 300)
+        ) + fadeOut(animationSpec = tween(durationMillis = 300))
+    ) {
+        DisplayThemeSettingsScreen(
+            showHiddenFiles = showHiddenFiles,
+            onToggleShowHiddenFiles = { viewModel.toggleShowHiddenFiles() },
+            folderAnimationEnabled = folderAnimationEnabled,
+            onToggleFolderAnimation = { viewModel.toggleFolderAnimation() },
+            naturalSort = naturalSort,
+            onToggleNaturalSort = { viewModel.toggleNaturalSort() },
+            densityScale = densityScale,
+            onOpenDensityPreview = { showDensityPreviewScreen = true },
+            bottomBarScale = bottomBarScale,
+            onOpenBottomBarSizePreview = { showBottomBarSizePreviewScreen = true },
+            onClose = { showDisplayThemeSettingsScreen = false },
             modifier = Modifier.fillMaxSize()
         )
     }

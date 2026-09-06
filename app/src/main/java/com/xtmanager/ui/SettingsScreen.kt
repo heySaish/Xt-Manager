@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.FolderSpecial
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SortByAlpha
@@ -48,6 +49,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -94,6 +96,7 @@ fun SettingsScreen(
     onOpenDensityPreview: () -> Unit = {},
     bottomBarScale: Float = 1.0f,
     onOpenBottomBarSizePreview: () -> Unit = {},
+    onOpenDisplayThemeSettings: () -> Unit = {},
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -157,8 +160,8 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Group 1: File Engine & Sorting
-            SettingsGroupCard(title = "File Engine & Display") {
+            // Group 1: General & Appearance Folder
+            SettingsGroupCard(title = "General Settings & Preferences") {
                 // Item 1: Rust FS Status
                 SettingsRowItem(
                     icon = Icons.Default.Memory,
@@ -183,94 +186,13 @@ fun SettingsScreen(
 
                 Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
-                // Item 2: Natural Alphanumeric Sort
+                // Item 2: Display & Theme (Folder Sub-Screen)
                 SettingsRowItem(
-                    icon = Icons.Default.SortByAlpha,
-                    iconBgColor = Color(0xFF3B82F6),
-                    title = "Natural Alphanumeric Sort",
-                    subtitle = "Order files humanly (e.g. 1, 2, 10, 100 instead of 1, 10, 100)",
-                    trailingWidget = {
-                        Switch(
-                            checked = naturalSort,
-                            onCheckedChange = { onToggleNaturalSort() },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                                checkedBorderColor = Color.Transparent
-                            )
-                        )
-                    }
-                )
-
-                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-
-                // Item 3: Show Hidden Files
-                SettingsRowItem(
-                    icon = Icons.Default.Visibility,
+                    icon = Icons.Default.Palette,
                     iconBgColor = Color(0xFF8B5CF6),
-                    title = "Show Hidden Files",
-                    subtitle = "Display dotfiles and hidden system entries",
-                    trailingWidget = {
-                        Switch(
-                            checked = showHiddenFiles,
-                            onCheckedChange = { onToggleShowHiddenFiles() },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                                checkedBorderColor = Color.Transparent
-                            )
-                        )
-                    }
-                )
-
-                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-
-                // Item 4: Folder Navigation Animation
-                SettingsRowItem(
-                    icon = Icons.Default.Visibility,
-                    iconBgColor = Color(0xFFEC4899),
-                    title = "Folder Navigation Animation",
-                    subtitle = "Slide & fade transitions when opening folders",
-                    trailingWidget = {
-                        Switch(
-                            checked = folderAnimationEnabled,
-                            onCheckedChange = { onToggleFolderAnimation() },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                                checkedBorderColor = Color.Transparent
-                            )
-                        )
-                    }
-                )
-
-                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-
-                // Item 4: Pane Display Density / Item Size
-                SettingsRowItem(
-                    icon = Icons.Default.AspectRatio,
-                    iconBgColor = Color(0xFF10B981),
-                    title = "Pane Display Density / Item Size",
-                    subtitle = "Adjust row height, icon scale & visible items count (${String.format(Locale.US, "%.2f", densityScale)}x)",
-                    onClick = { onOpenDensityPreview() },
-                    trailingWidget = {
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                )
-
-                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-
-                // Item 5: Bottom Action Bar Size
-                SettingsRowItem(
-                    icon = Icons.Default.ViewStream,
-                    iconBgColor = Color(0xFF8B5CF6),
-                    title = "Bottom Action Bar Size",
-                    subtitle = "Adjust action bar size & icon scale (${String.format(Locale.US, "%.2f", bottomBarScale)}x)",
-                    onClick = { onOpenBottomBarSizePreview() },
+                    title = "Display & Theme",
+                    subtitle = "Pane density, action bar size, animations & sort options",
+                    onClick = { onOpenDisplayThemeSettings() },
                     trailingWidget = {
                         Icon(
                             imageVector = Icons.Default.ChevronRight,
