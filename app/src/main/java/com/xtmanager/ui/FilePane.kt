@@ -54,6 +54,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -209,8 +210,12 @@ private fun FilePaneListContent(
     onFileSwipe: (Int) -> Unit
 ) {
     val navTimestamp = remember(targetPath) { System.currentTimeMillis() }
-    val listState = rememberLazyListState()
+    val listState = rememberSaveable(targetPath, saver = LazyListState.Saver) { LazyListState() }
     val isScrolling = listState.isScrollInProgress
+
+    LaunchedEffect(targetPath) {
+        listState.scrollToItem(0)
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
