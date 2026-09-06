@@ -116,10 +116,17 @@ fun TerminalScreen(
         handleClose()
     }
 
-    // Start Foreground Service to keep terminal alive in background
     LaunchedEffect(Unit) {
-        val serviceIntent = Intent(context, TerminalService::class.java)
-        context.startService(serviceIntent)
+        try {
+            val serviceIntent = Intent(context, TerminalService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                androidx.core.content.ContextCompat.startForegroundService(context, serviceIntent)
+            } else {
+                context.startService(serviceIntent)
+            }
+        } catch (_: Exception) {
+            // Protect against background service start exception on UI launch
+        }
     }
 
     Scaffold(
