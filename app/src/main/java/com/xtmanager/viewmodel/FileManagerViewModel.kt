@@ -47,6 +47,9 @@ class FileManagerViewModel(
     private val _naturalSort = MutableStateFlow(settingsManager.naturalSort)
     val naturalSort: StateFlow<Boolean> = _naturalSort.asStateFlow()
 
+    private val _bottomBarScale = MutableStateFlow(settingsManager.bottomBarScale)
+    val bottomBarScale: StateFlow<Float> = _bottomBarScale.asStateFlow()
+
     init {
         // Initial load is deferred to MainActivity's onResume when permissions are active
     }
@@ -59,6 +62,12 @@ class FileManagerViewModel(
         val clampedScale = scale.coerceIn(0.7f, 1.4f)
         _densityScale.value = clampedScale
         settingsManager.densityScale = clampedScale
+    }
+
+    fun setBottomBarScale(scale: Float) {
+        val clampedScale = scale.coerceIn(0.7f, 1.4f)
+        _bottomBarScale.value = clampedScale
+        settingsManager.bottomBarScale = clampedScale
     }
 
     fun toggleShowHiddenFiles() {

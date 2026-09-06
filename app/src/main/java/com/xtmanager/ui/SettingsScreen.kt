@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.ViewStream
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -91,6 +92,8 @@ fun SettingsScreen(
     onToggleNaturalSort: () -> Unit = {},
     densityScale: Float = 1.0f,
     onOpenDensityPreview: () -> Unit = {},
+    bottomBarScale: Float = 1.0f,
+    onOpenBottomBarSizePreview: () -> Unit = {},
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -250,6 +253,24 @@ fun SettingsScreen(
                     title = "Pane Display Density / Item Size",
                     subtitle = "Adjust row height, icon scale & visible items count (${String.format(Locale.US, "%.2f", densityScale)}x)",
                     onClick = { onOpenDensityPreview() },
+                    trailingWidget = {
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                )
+
+                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                // Item 5: Bottom Action Bar Size
+                SettingsRowItem(
+                    icon = Icons.Default.ViewStream,
+                    iconBgColor = Color(0xFF8B5CF6),
+                    title = "Bottom Action Bar Size",
+                    subtitle = "Adjust action bar size & icon scale (${String.format(Locale.US, "%.2f", bottomBarScale)}x)",
+                    onClick = { onOpenBottomBarSizePreview() },
                     trailingWidget = {
                         Icon(
                             imageVector = Icons.Default.ChevronRight,

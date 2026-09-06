@@ -128,6 +128,7 @@ fun FileManagerScreen(
     
     val showHiddenFiles by viewModel.showHiddenFiles.collectAsState()
     val densityScale by viewModel.densityScale.collectAsState()
+    val bottomBarScale by viewModel.bottomBarScale.collectAsState()
     val folderAnimationEnabled by viewModel.folderAnimationEnabled.collectAsState()
     val naturalSort by viewModel.naturalSort.collectAsState()
 
@@ -144,6 +145,7 @@ fun FileManagerScreen(
     var showOperationsDialog by remember { mutableStateOf(false) }
     var showSettingsScreen by remember { mutableStateOf(false) }
     var showDensityPreviewScreen by remember { mutableStateOf(false) }
+    var showBottomBarSizePreviewScreen by remember { mutableStateOf(false) }
     var showJumpToPathDialog by remember { mutableStateOf(false) }
     var showTerminal by remember { mutableStateOf(false) }
     var terminalInitialPath by remember { mutableStateOf<String?>(null) }
@@ -166,6 +168,9 @@ fun FileManagerScreen(
     // 7. At Root directory level -> double back press confirmation to exit app
     BackHandler(enabled = true) {
         when {
+            showBottomBarSizePreviewScreen -> {
+                showBottomBarSizePreviewScreen = false
+            }
             showDensityPreviewScreen -> {
                 showDensityPreviewScreen = false
             }
@@ -494,7 +499,8 @@ fun FileManagerScreen(
                         }
                     },
                     onDelete = { showDeleteConfirmDialog = true },
-                    onMenuClick = { scope.launch { drawerState.open() } }
+                    onMenuClick = { scope.launch { drawerState.open() } },
+                    scale = bottomBarScale
                 )
             }
         ) { paddingValues ->
@@ -941,6 +947,8 @@ fun FileManagerScreen(
             onToggleNaturalSort = { viewModel.toggleNaturalSort() },
             densityScale = densityScale,
             onOpenDensityPreview = { showDensityPreviewScreen = true },
+            bottomBarScale = bottomBarScale,
+            onOpenBottomBarSizePreview = { showBottomBarSizePreviewScreen = true },
             onClose = { showSettingsScreen = false },
             modifier = Modifier.fillMaxSize()
         )
@@ -962,6 +970,26 @@ fun FileManagerScreen(
             currentScale = densityScale,
             onApply = { viewModel.setDensityScale(it) },
             onClose = { showDensityPreviewScreen = false },
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+
+    // Animated Bottom Bar Size Preview Screen Overlay (Right-to-Left Slide)
+    AnimatedVisibility(
+        visible = showBottomBarSizePreviewScreen,
+        enter = slideInHorizontally(
+            initialOffsetX = { fullWidth -> fullWidth },
+            animationSpec = tween(durationMillis = 300)
+        ) + fadeIn(animationSpec = tween(durationMillis = 300)),
+        exit = slideOutHorizontally(
+            targetOffsetX = { fullWidth -> fullWidth },
+            animationSpec = tween(durationMillis = 300)
+        ) + fadeOut(animationSpec = tween(durationMillis = 300))
+    ) {
+        BottomBarSizePreviewScreen(
+            currentScale = bottomBarScale,
+            onApply = { viewModel.setBottomBarScale(it) },
+            onClose = { showBottomBarSizePreviewScreen = false },
             modifier = Modifier.fillMaxSize()
         )
     }

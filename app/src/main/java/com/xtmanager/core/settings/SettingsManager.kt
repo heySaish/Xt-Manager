@@ -23,11 +23,16 @@ class SettingsManager(context: Context) {
         get() = prefs.getBoolean(KEY_NATURAL_SORT, true)
         set(value) = prefs.edit().putBoolean(KEY_NATURAL_SORT, value).apply()
 
+    var bottomBarScale: Float
+        get() = prefs.getFloat(KEY_BOTTOM_BAR_SCALE, 1.0f)
+        set(value) = prefs.edit().putFloat(KEY_BOTTOM_BAR_SCALE, value).apply()
+
     companion object {
         private const val PREFS_NAME = "xt_manager_settings"
         private const val KEY_SHOW_HIDDEN_FILES = "show_hidden_files"
         private const val KEY_FOLDER_ANIMATION_ENABLED = "folder_animation_enabled"
         private const val KEY_DENSITY_SCALE = "density_scale"
         private const val KEY_NATURAL_SORT = "natural_sort"
+        private const val KEY_BOTTOM_BAR_SCALE = "bottom_bar_scale"
     }
 }
