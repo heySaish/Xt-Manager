@@ -166,7 +166,7 @@ fun FilePane(
                         targetState = paneState.path,
                         transitionSpec = {
                             val isForward = targetState.startsWith(initialState) || targetState.length > initialState.length
-                            if (isForward) {
+                            val transform = if (isForward) {
                                 (slideInHorizontally(
                                     animationSpec = tween(200, easing = FastOutSlowInEasing),
                                     initialOffsetX = { fullWidth -> fullWidth / 3 }
@@ -185,7 +185,8 @@ fun FilePane(
                                     targetOffsetX = { fullWidth -> fullWidth / 3 }
                                 ) + fadeOut(animationSpec = tween(200)))
                             }
-                        }.using(SizeTransform(clip = false)),
+                            transform.using(SizeTransform(clip = false))
+                        },
                         label = "FolderNavigationTransition",
                         modifier = Modifier.fillMaxSize()
                     ) { targetPath ->
