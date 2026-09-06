@@ -3,7 +3,10 @@ package com.xtmanager.ui
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -91,28 +94,28 @@ fun FileRow(
             .fillMaxWidth()
             .background(backgroundColor)
             .pointerInput(Unit) {
-                detectHorizontalDragGestures(
-                    onDragStart = {
-                        totalDragAmount = 0f
-                        swipeTriggered = false
-                    },
-                    onHorizontalDrag = { change, dragAmount ->
-                        totalDragAmount += dragAmount
-                        if (!swipeTriggered && kotlin.math.abs(totalDragAmount) >= minSwipeThresholdPx) {
-                            swipeTriggered = true
-                            change.consume()
-                            onSwipe()
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    var totalX = 0f
+                    var totalY = 0f
+                    var swipeTriggered = false
+
+                    do {
+                        val event = awaitPointerEvent()
+                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                        if (change.pressed) {
+                            val dragAmount = change.positionChange()
+                            totalX += dragAmount.x
+                            totalY += dragAmount.y
+
+                            if (!swipeTriggered && kotlin.math.abs(totalX) >= minSwipeThresholdPx && kotlin.math.abs(totalX) > kotlin.math.abs(totalY) * 1.4f) {
+                                swipeTriggered = true
+                                change.consume()
+                                onSwipe()
+                            }
                         }
-                    },
-                    onDragEnd = {
-                        totalDragAmount = 0f
-                        swipeTriggered = false
-                    },
-                    onDragCancel = {
-                        totalDragAmount = 0f
-                        swipeTriggered = false
-                    }
-                )
+                    } while (event.changes.any { it.pressed })
+                }
             }
             .combinedClickable(
                 onClick = onClick,

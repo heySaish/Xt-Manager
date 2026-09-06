@@ -106,7 +106,7 @@ fun FilePane(
             .pointerInput(onPaneClick) {
                 awaitPointerEventScope {
                     while (true) {
-                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        val event = awaitPointerEvent(PointerEventPass.Main)
                         if (event.type == PointerEventType.Press) {
                             onPaneClick()
                         }
