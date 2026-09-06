@@ -38,6 +38,9 @@ class FileManagerViewModel(
     private val _densityScale = MutableStateFlow(1.0f)
     val densityScale: StateFlow<Float> = _densityScale.asStateFlow()
 
+    private val _folderAnimationEnabled = MutableStateFlow(true)
+    val folderAnimationEnabled: StateFlow<Boolean> = _folderAnimationEnabled.asStateFlow()
+
     init {
         // Initial load is deferred to MainActivity's onResume when permissions are active
     }
@@ -54,6 +57,10 @@ class FileManagerViewModel(
         _showHiddenFiles.value = !_showHiddenFiles.value
         refreshPane(PaneType.LEFT)
         refreshPane(PaneType.RIGHT)
+    }
+
+    fun toggleFolderAnimation() {
+        _folderAnimationEnabled.value = !_folderAnimationEnabled.value
     }
 
     private suspend fun loadAndEmitChunked(

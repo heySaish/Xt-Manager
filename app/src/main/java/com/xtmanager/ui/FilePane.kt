@@ -161,25 +161,29 @@ fun FilePane(
                 AnimatedContent(
                     targetState = paneState.path,
                     transitionSpec = {
-                        val isForward = targetState.startsWith(initialState) || targetState.length > initialState.length
-                        if (isForward) {
-                            (slideInHorizontally(
-                                animationSpec = tween(200, easing = FastOutSlowInEasing),
-                                initialOffsetX = { fullWidth -> fullWidth / 3 }
-                            ) + fadeIn(animationSpec = tween(200))) togetherWith
-                            (slideOutHorizontally(
-                                animationSpec = tween(200, easing = FastOutSlowInEasing),
-                                targetOffsetX = { fullWidth -> -fullWidth / 3 }
-                            ) + fadeOut(animationSpec = tween(200)))
+                        if (!isAnimationEnabled) {
+                            EnterTransition.None togetherWith ExitTransition.None
                         } else {
-                            (slideInHorizontally(
-                                animationSpec = tween(200, easing = FastOutSlowInEasing),
-                                initialOffsetX = { fullWidth -> -fullWidth / 3 }
-                            ) + fadeIn(animationSpec = tween(200))) togetherWith
-                            (slideOutHorizontally(
-                                animationSpec = tween(200, easing = FastOutSlowInEasing),
-                                targetOffsetX = { fullWidth -> fullWidth / 3 }
-                            ) + fadeOut(animationSpec = tween(200)))
+                            val isForward = targetState.startsWith(initialState) || targetState.length > initialState.length
+                            if (isForward) {
+                                (slideInHorizontally(
+                                    animationSpec = tween(200, easing = FastOutSlowInEasing),
+                                    initialOffsetX = { fullWidth -> fullWidth / 3 }
+                                ) + fadeIn(animationSpec = tween(200))) togetherWith
+                                (slideOutHorizontally(
+                                    animationSpec = tween(200, easing = FastOutSlowInEasing),
+                                    targetOffsetX = { fullWidth -> -fullWidth / 3 }
+                                ) + fadeOut(animationSpec = tween(200)))
+                            } else {
+                                (slideInHorizontally(
+                                    animationSpec = tween(200, easing = FastOutSlowInEasing),
+                                    initialOffsetX = { fullWidth -> -fullWidth / 3 }
+                                ) + fadeIn(animationSpec = tween(200))) togetherWith
+                                (slideOutHorizontally(
+                                    animationSpec = tween(200, easing = FastOutSlowInEasing),
+                                    targetOffsetX = { fullWidth -> fullWidth / 3 }
+                                ) + fadeOut(animationSpec = tween(200)))
+                            }
                         }.using(SizeTransform(clip = false))
                     },
                     label = "FolderNavigationTransition",

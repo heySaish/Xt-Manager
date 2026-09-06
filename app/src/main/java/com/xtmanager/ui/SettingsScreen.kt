@@ -85,6 +85,8 @@ import java.util.Locale
 fun SettingsScreen(
     showHiddenFiles: Boolean = false,
     onToggleShowHiddenFiles: () -> Unit = {},
+    folderAnimationEnabled: Boolean = true,
+    onToggleFolderAnimation: () -> Unit = {},
     densityScale: Float = 1.0f,
     onOpenDensityPreview: () -> Unit = {},
     onClose: () -> Unit,
@@ -208,6 +210,27 @@ fun SettingsScreen(
                         Switch(
                             checked = showHiddenFiles,
                             onCheckedChange = { onToggleShowHiddenFiles() },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                checkedBorderColor = Color.Transparent
+                            )
+                        )
+                    }
+                )
+
+                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                // Item 4: Folder Navigation Animation
+                SettingsRowItem(
+                    icon = Icons.Default.Visibility,
+                    iconBgColor = Color(0xFFEC4899),
+                    title = "Folder Navigation Animation",
+                    subtitle = "Slide & fade transitions when opening folders",
+                    trailingWidget = {
+                        Switch(
+                            checked = folderAnimationEnabled,
+                            onCheckedChange = { onToggleFolderAnimation() },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                                 checkedTrackColor = MaterialTheme.colorScheme.primary,
