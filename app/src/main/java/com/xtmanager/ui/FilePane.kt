@@ -210,11 +210,41 @@ private fun FilePaneListContent(
     onFileSwipe: (Int) -> Unit
 ) {
     val navTimestamp = remember(targetPath) { System.currentTimeMillis() }
-    val listState = rememberSaveable(targetPath, saver = LazyListState.Saver) { LazyListState() }
-    val isScrolling = listState.isScrollInProgress
+
+    // Cache scroll positions (index, scrollOffset) per path
+    val scrollPositions = remember { mutableMapOf<String, Pair<Int, Int>>() }
+
+    // Track previous path to detect navigation direction (forward into subfolder vs backward to parent)
+    val previousPathRef = remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(targetPath) {
-        listState.scrollToItem(0)
+        val prevPath = previousPathRef.value
+        if (prevPath != null && prevPath != targetPath) {
+            val formattedParent = if (targetPath.endsWith("/")) targetPath else "$targetPath/"
+            val isNavigatingUp = prevPath.startsWith(formattedParent)
+            if (!isNavigatingUp) {
+                // Forward navigation into a subfolder -> reset subfolder scroll position to top (0, 0)
+                scrollPositions[targetPath] = Pair(0, 0)
+            }
+        }
+        previousPathRef.value = targetPath
+    }
+
+    val (savedIndex, savedOffset) = scrollPositions[targetPath] ?: Pair(0, 0)
+    val listState = remember(targetPath) {
+        LazyListState(
+            firstVisibleItemIndex = savedIndex,
+            firstVisibleItemScrollOffset = savedOffset
+        )
+    }
+    val isScrolling = listState.isScrollInProgress
+
+    // Save scroll position for current targetPath as user scrolls
+    LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
+        scrollPositions[targetPath] = Pair(
+            listState.firstVisibleItemIndex,
+            listState.firstVisibleItemScrollOffset
+        )
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
