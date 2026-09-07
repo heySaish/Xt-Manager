@@ -411,6 +411,10 @@ class AlpineManager(private val context: Context) {
         val cmdInAlpine = mutableListOf("/bin/sh", "/files/xt-arc.sh", "compress", format, outputArchive)
         cmdInAlpine.addAll(sources)
 
+        val cmdString = cmdInAlpine.joinToString(" ")
+        com.xtmanager.core.logger.AppLogger.i("ALPINE_CLI", "🚀 Executing Alpine CLI Compress: $cmdString")
+        Log.d(TAG, "🚀 Executing Alpine CLI Compress: $cmdString")
+
         try {
             val pb = createAlpineProcessBuilder(cmdInAlpine)
             val proc = pb.start()
@@ -421,7 +425,9 @@ class AlpineManager(private val context: Context) {
             val jobStdout = kotlinx.coroutines.launch(kotlinx.coroutines.Dispatchers.IO) {
                 var line: String?
                 while (reader.readLine().also { line = it } != null) {
-                    com.xtmanager.core.logger.AppLogger.d("ALPINE_CLI", line ?: "")
+                    val l = line ?: ""
+                    com.xtmanager.core.logger.AppLogger.d("ALPINE_CLI", "[STDOUT] $l")
+                    Log.d("ALPINE_CLI", "[STDOUT] $l")
                 }
             }
 
@@ -429,19 +435,20 @@ class AlpineManager(private val context: Context) {
                 var line: String?
                 while (errReader.readLine().also { line = it } != null) {
                     val l = line ?: ""
-                    com.xtmanager.core.logger.AppLogger.i("ALPINE_CLI", l)
-                    Log.d("ALPINE_CLI", l)
+                    com.xtmanager.core.logger.AppLogger.i("ALPINE_CLI", "[STDERR] $l")
+                    Log.d("ALPINE_CLI", "[STDERR] $l")
                 }
             }
 
             jobStdout.join()
             jobStderr.join()
             val exitCode = proc.waitFor()
-            Log.d(TAG, "Alpine CLI Compress ($format) finished with exit code: $exitCode")
+            com.xtmanager.core.logger.AppLogger.i("ALPINE_CLI", "🏁 Alpine CLI Compress ($format) finished with exit code: $exitCode")
+            Log.d(TAG, "🏁 Alpine CLI Compress ($format) finished with exit code: $exitCode")
             exitCode
         } catch (e: Exception) {
-            Log.e(TAG, "Alpine CLI Compress error: ${e.message}")
-            com.xtmanager.core.logger.AppLogger.e("ALPINE_CLI", "Compress Error: ${e.message}")
+            Log.e(TAG, "❌ Alpine CLI Compress error: ${e.message}", e)
+            com.xtmanager.core.logger.AppLogger.e("ALPINE_CLI", "❌ Compress Error: ${e.message}")
             -1
         }
     }
@@ -454,6 +461,9 @@ class AlpineManager(private val context: Context) {
         try { copyAssetFile("alpine/xt-arc.sh", scriptPath); makeExecutable(scriptPath) } catch (_: Exception) {}
 
         val cmdInAlpine = listOf("/bin/sh", "/files/xt-arc.sh", "extract", archivePath, outputDir)
+        val cmdString = cmdInAlpine.joinToString(" ")
+        com.xtmanager.core.logger.AppLogger.i("ALPINE_CLI", "🚀 Executing Alpine CLI Extract: $cmdString")
+        Log.d(TAG, "🚀 Executing Alpine CLI Extract: $cmdString")
 
         try {
             val pb = createAlpineProcessBuilder(cmdInAlpine)
@@ -465,7 +475,9 @@ class AlpineManager(private val context: Context) {
             val jobStdout = kotlinx.coroutines.launch(kotlinx.coroutines.Dispatchers.IO) {
                 var line: String?
                 while (reader.readLine().also { line = it } != null) {
-                    com.xtmanager.core.logger.AppLogger.d("ALPINE_CLI", line ?: "")
+                    val l = line ?: ""
+                    com.xtmanager.core.logger.AppLogger.d("ALPINE_CLI", "[STDOUT] $l")
+                    Log.d("ALPINE_CLI", "[STDOUT] $l")
                 }
             }
 
@@ -473,19 +485,20 @@ class AlpineManager(private val context: Context) {
                 var line: String?
                 while (errReader.readLine().also { line = it } != null) {
                     val l = line ?: ""
-                    com.xtmanager.core.logger.AppLogger.i("ALPINE_CLI", l)
-                    Log.d("ALPINE_CLI", l)
+                    com.xtmanager.core.logger.AppLogger.i("ALPINE_CLI", "[STDERR] $l")
+                    Log.d("ALPINE_CLI", "[STDERR] $l")
                 }
             }
 
             jobStdout.join()
             jobStderr.join()
             val exitCode = proc.waitFor()
-            Log.d(TAG, "Alpine CLI Extract finished with exit code: $exitCode")
+            com.xtmanager.core.logger.AppLogger.i("ALPINE_CLI", "🏁 Alpine CLI Extract finished with exit code: $exitCode")
+            Log.d(TAG, "🏁 Alpine CLI Extract finished with exit code: $exitCode")
             exitCode
         } catch (e: Exception) {
-            Log.e(TAG, "Alpine CLI Extract error: ${e.message}")
-            com.xtmanager.core.logger.AppLogger.e("ALPINE_CLI", "Extract Error: ${e.message}")
+            Log.e(TAG, "❌ Alpine CLI Extract error: ${e.message}", e)
+            com.xtmanager.core.logger.AppLogger.e("ALPINE_CLI", "❌ Extract Error: ${e.message}")
             -1
         }
     }

@@ -74,17 +74,8 @@ class OperationManager(
                 if (alpineManager != null && alpineManager.isInstalled) {
                     android.util.Log.d("OperationManager", "⚡ Using Alpine CLI Archive Engine for EXTRACT: ${File(archivePath).name}")
                     resultCode = alpineManager.extractArchiveWithAlpine(archivePath, destinationDir)
-                }
-
-                if (resultCode != 0) {
-                    android.util.Log.d("OperationManager", "⚡ Falling back to Rust Native Archive Engine for EXTRACT: ${File(archivePath).name}")
-                    resultCode = LocalFileSystem.nativeExtractArchive(
-                        archivePath,
-                        destinationDir,
-                        overwritePolicy,
-                        tokenId,
-                        null
-                    )
+                } else {
+                    AppLogger.e("OPERATIONS", "❌ Alpine Manager is not initialized/installed")
                 }
 
                 if (resultCode == 0) {
@@ -145,18 +136,8 @@ class OperationManager(
                 if (alpineManager != null && alpineManager.isInstalled) {
                     android.util.Log.d("OperationManager", "⚡ Using Alpine CLI Archive Engine for COMPRESS ($format): ${File(destinationArchive).name}")
                     resultCode = alpineManager.compressArchiveWithAlpine(format, destinationArchive, sources)
-                }
-
-                if (resultCode != 0) {
-                    android.util.Log.d("OperationManager", "⚡ Falling back to Rust Native Archive Engine for COMPRESS ($format): ${File(destinationArchive).name}")
-                    resultCode = LocalFileSystem.nativeCompressArchive(
-                        sources.toTypedArray(),
-                        destinationArchive,
-                        format,
-                        compressionLevel,
-                        tokenId,
-                        null
-                    )
+                } else {
+                    AppLogger.e("OPERATIONS", "❌ Alpine Manager is not initialized/installed")
                 }
 
                 if (resultCode == 0) {
@@ -166,8 +147,8 @@ class OperationManager(
                     updateStatus(id, OperationStatus.CANCELLED)
                     AppLogger.i("OPERATIONS", "🛑 COMPRESS CANCELLED: ${File(destinationArchive).name}")
                 } else {
-                    updateError(id, "Compression failed")
-                    AppLogger.e("OPERATIONS", "❌ COMPRESS FAILED: ${File(destinationArchive).name}")
+                    updateError(id, "Alpine CLI Compression failed (exit code $resultCode)")
+                    AppLogger.e("OPERATIONS", "❌ COMPRESS FAILED: ${File(destinationArchive).name} (code $resultCode)")
                 }
             } catch (e: Exception) {
                 updateError(id, e.localizedMessage ?: "Unknown error")
