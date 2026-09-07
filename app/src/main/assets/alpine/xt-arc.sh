@@ -299,7 +299,26 @@ compress() {
 
     [ "$#" -gt 0 ] || die "No input files/directories specified"
 
+    case "$output" in
+        /*) ;;
+        *) output="$(pwd)/$output" ;;
+    esac
+
     mkdir -p "$(dirname "$output")"
+
+    first_item="$1"
+    parent_dir="$(dirname "$first_item")"
+    if [ -d "$parent_dir" ]; then
+        cd "$parent_dir"
+    fi
+
+    # Safely convert absolute paths to relative basenames (handles spaces & special chars)
+    count=$#
+    for arg in "$@"; do
+        base="$(basename "$arg")"
+        set -- "$@" "$base"
+        shift
+    done
 
     case "$format" in
 
