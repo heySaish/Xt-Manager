@@ -3,10 +3,10 @@ use jni::sys::{jint, jlong, jobjectArray};
 use jni::JNIEnv;
 use std::path::{Path, PathBuf};
 
-use xt_engine::archive::{
+use xt_preview::archive::{
     get_backend_for_format, get_backend_for_path, ArchiveError, CancelManager, OverwritePolicy,
 };
-use xt_engine::fs::{list_files, MetricsTracker};
+use xt_preview::fs::{list_files, MetricsTracker};
 
 #[no_mangle]
 pub extern "system" fn Java_com_xtmanager_core_filesystem_LocalFileSystem_nativeGetLastMetrics<'local>(

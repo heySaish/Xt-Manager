@@ -1,12 +1,12 @@
 [package]
-name = "xt-engine"
+name = "xt-preview"
 version = "0.1.0"
 edition = "2021"
 authors = ["Xt-Manager Contributors"]
-description = "High-performance standalone file system scanner and archive engine in Rust"
+description = "High-performance standalone file system scanner and archive content previewer in Rust"
 
 [lib]
-name = "xt_engine"
+name = "xt_preview"
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
