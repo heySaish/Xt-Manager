@@ -418,6 +418,11 @@ class AlpineManager(private val context: Context) {
         }
 
         val prootBin = prootBinInNative ?: prootBinInFiles ?: File(filesDir, "libproot-xed.so").absolutePath
+        val prootLoader = File(nativeDir, "libproot.so").takeIf { it.exists() }?.absolutePath
+            ?: File(filesDir, "libproot.so").absolutePath
+        val prootLoader32 = File(nativeDir, "libproot32.so").takeIf { it.exists() }?.absolutePath
+            ?: File(filesDir, "libproot32.so").absolutePath
+
         val linker = if (File("/system/bin/linker64").exists()) "/system/bin/linker64" else "/system/bin/linker"
 
         val prootExec = if (prootBin.startsWith("/data/app/")) {
@@ -426,18 +431,34 @@ class AlpineManager(private val context: Context) {
             listOf(linker, prootBin)
         }
 
+        val sysMounts = mutableListOf<String>()
+        val systemPaths = arrayOf(
+            "/apex", "/odm", "/product", "/system", "/system_ext", "/vendor",
+            "/proc", "/sys", "/dev", "/linkerconfig/ld.config.txt"
+        )
+        for (mnt in systemPaths) {
+            if (File(mnt).exists()) {
+                sysMounts.add("-b")
+                sysMounts.add(mnt)
+            }
+        }
+
         val cmd = mutableListOf<String>()
         cmd.addAll(prootExec)
         cmd.addAll(listOf(
             "--kill-on-exit",
             "-b", "/sdcard",
             "-b", "/storage",
-            "-b", "/dev",
             "-b", "/data",
             "-b", filesPath,
-            "-b", nativeDir,
+            "-b", nativeDir
+        ))
+        cmd.addAll(sysMounts)
+        cmd.addAll(listOf(
             "-r", "$filesPath/alpine",
             "-0",
+            "--link2symlink",
+            "--sysvipc",
             "-L"
         ))
 
@@ -450,6 +471,9 @@ class AlpineManager(private val context: Context) {
         env["HOME"] = "/root"
         env["TERM"] = "xterm-256color"
         env["PROOT_TMP_DIR"] = "$filesPath/tmp"
+        env["PROOT_LOADER"] = prootLoader
+        env["PROOT_LOADER32"] = prootLoader32
+        env["PROOT"] = prootBin
         env["LD_LIBRARY_PATH"] = "$filesPath:$nativeDir"
 
         return pb
