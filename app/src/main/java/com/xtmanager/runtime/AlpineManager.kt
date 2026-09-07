@@ -399,4 +399,52 @@ class AlpineManager(private val context: Context) {
 
         return pb
     }
+
+    fun compressArchiveWithAlpine(
+        format: String,
+        outputArchive: String,
+        sources: List<String>
+    ): Int {
+        val scriptPath = File(filesDir, "xt-arc.sh")
+        if (!scriptPath.exists()) {
+            try { copyAssetFile("alpine/xt-arc.sh", scriptPath); makeExecutable(scriptPath) } catch (_: Exception) {}
+        }
+
+        val cmdInAlpine = mutableListOf("/bin/sh", "/files/xt-arc.sh", "compress", format, outputArchive)
+        cmdInAlpine.addAll(sources)
+
+        return try {
+            val pb = createAlpineProcessBuilder(cmdInAlpine)
+            val proc = pb.start()
+            val exitCode = proc.waitFor()
+            Log.d(TAG, "Alpine CLI Compress ($format) finished with exit code: $exitCode")
+            exitCode
+        } catch (e: Exception) {
+            Log.e(TAG, "Alpine CLI Compress error: ${e.message}")
+            -1
+        }
+    }
+
+    fun extractArchiveWithAlpine(
+        archivePath: String,
+        outputDir: String
+    ): Int {
+        val scriptPath = File(filesDir, "xt-arc.sh")
+        if (!scriptPath.exists()) {
+            try { copyAssetFile("alpine/xt-arc.sh", scriptPath); makeExecutable(scriptPath) } catch (_: Exception) {}
+        }
+
+        val cmdInAlpine = listOf("/bin/sh", "/files/xt-arc.sh", "extract", archivePath, outputDir)
+
+        return try {
+            val pb = createAlpineProcessBuilder(cmdInAlpine)
+            val proc = pb.start()
+            val exitCode = proc.waitFor()
+            Log.d(TAG, "Alpine CLI Extract finished with exit code: $exitCode")
+            exitCode
+        } catch (e: Exception) {
+            Log.e(TAG, "Alpine CLI Extract error: ${e.message}")
+            -1
+        }
+    }
 }

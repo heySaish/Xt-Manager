@@ -62,7 +62,7 @@ class MainActivity : ComponentActivity() {
         val alpineManager = com.xtmanager.runtime.AlpineManager(this)
         val settingsManager = com.xtmanager.core.settings.SettingsManager(applicationContext)
         val fileSystem = LocalFileSystem(isRootEnabledProvider = { settingsManager.isRootEnabled })
-        val operationManager = OperationManager(fileSystem)
+        val operationManager = OperationManager(fileSystem, alpineManager)
 
         viewModel = FileManagerViewModel(
             fileSystem = fileSystem,

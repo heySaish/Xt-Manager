@@ -19,7 +19,8 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 class OperationManager(
-    private val fileSystem: FileSystem
+    private val fileSystem: FileSystem,
+    private val alpineManager: com.xtmanager.runtime.AlpineManager? = null
 ) {
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val _operations = MutableStateFlow<List<Operation>>(emptyList())
@@ -68,13 +69,28 @@ class OperationManager(
         val job = scope.launch {
             updateStatus(id, OperationStatus.RUNNING)
             try {
-                val resultCode = LocalFileSystem.nativeExtractArchive(
-                    archivePath,
-                    destinationDir,
-                    overwritePolicy,
-                    tokenId,
-                    null
-                )
+                var resultCode = -1
+
+                if (alpineManager != null && alpineManager.isInstalled) {
+                    val formatLower = File(archivePath).name.lowercase()
+                    if (formatLower.endsWith(".xz") || formatLower.endsWith(".txz") || formatLower.endsWith(".tar.xz") || formatLower.endsWith(".tar.zst") || formatLower.endsWith(".7z")) {
+                        android.util.Log.d("OperationManager", "⚡ Using Alpine CLI Archive Engine for EXTRACT: ${File(archivePath).name}")
+                        val alpineRes = alpineManager.extractArchiveWithAlpine(archivePath, destinationDir)
+                        if (alpineRes == 0) {
+                            resultCode = 0
+                        }
+                    }
+                }
+
+                if (resultCode != 0) {
+                    resultCode = LocalFileSystem.nativeExtractArchive(
+                        archivePath,
+                        destinationDir,
+                        overwritePolicy,
+                        tokenId,
+                        null
+                    )
+                }
 
                 if (resultCode == 0) {
                     updateStatus(id, OperationStatus.COMPLETED)
@@ -129,14 +145,29 @@ class OperationManager(
         val job = scope.launch {
             updateStatus(id, OperationStatus.RUNNING)
             try {
-                val resultCode = LocalFileSystem.nativeCompressArchive(
-                    sources.toTypedArray(),
-                    destinationArchive,
-                    format,
-                    compressionLevel,
-                    tokenId,
-                    null
-                )
+                var resultCode = -1
+
+                if (alpineManager != null && alpineManager.isInstalled) {
+                    val fmtLower = format.lowercase()
+                    if (fmtLower == "tar.xz" || fmtLower == "xz" || fmtLower == "tar.zst" || fmtLower == "7z") {
+                        android.util.Log.d("OperationManager", "⚡ Using Alpine CLI Archive Engine for COMPRESS ($format): ${File(destinationArchive).name}")
+                        val alpineRes = alpineManager.compressArchiveWithAlpine(format, destinationArchive, sources)
+                        if (alpineRes == 0) {
+                            resultCode = 0
+                        }
+                    }
+                }
+
+                if (resultCode != 0) {
+                    resultCode = LocalFileSystem.nativeCompressArchive(
+                        sources.toTypedArray(),
+                        destinationArchive,
+                        format,
+                        compressionLevel,
+                        tokenId,
+                        null
+                    )
+                }
 
                 if (resultCode == 0) {
                     updateStatus(id, OperationStatus.COMPLETED)
