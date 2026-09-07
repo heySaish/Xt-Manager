@@ -467,6 +467,7 @@ class AlpineManager(private val context: Context) {
 
         val pb = ProcessBuilder(cmd)
         val env = pb.environment()
+        env["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
         env["PREFIX"] = filesPath
         env["NATIVE_DIR"] = nativeDir
         env["HOME"] = "/root"
