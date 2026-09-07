@@ -113,6 +113,7 @@ fun FileManagerScreen(
     val showThumbnails by viewModel.showThumbnails.collectAsState()
     val fileNameMaxLines by viewModel.fileNameMaxLines.collectAsState()
     val activePaneHighlightEnabled by viewModel.activePaneHighlightEnabled.collectAsState()
+    val isRootEnabled by viewModel.isRootEnabled.collectAsState()
 
     val activeState = if (activePane == PaneType.LEFT) leftPaneState else rightPaneState
     val inactivePane = if (activePane == PaneType.LEFT) PaneType.RIGHT else PaneType.LEFT
@@ -574,6 +575,12 @@ fun FileManagerScreen(
                 bottomBarScale = bottomBarScale,
                 onOpenBottomBarSizePreview = { showBottomBarSizePreviewScreen = true },
                 onOpenDisplayThemeSettings = { showDisplayThemeSettingsScreen = true },
+                isRootEnabled = isRootEnabled,
+                onToggleRootAccess = { enable ->
+                    viewModel.toggleRootAccess(enable) { _, msg ->
+                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                    }
+                },
                 onClose = { showSettingsScreen = false },
                 modifier = Modifier.fillMaxSize()
             )

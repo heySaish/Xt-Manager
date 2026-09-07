@@ -39,6 +39,10 @@ class SettingsManager(context: Context) {
         get() = prefs.getBoolean(KEY_ACTIVE_PANE_HIGHLIGHT_ENABLED, true)
         set(value) = prefs.edit().putBoolean(KEY_ACTIVE_PANE_HIGHLIGHT_ENABLED, value).apply()
 
+    var isRootEnabled: Boolean
+        get() = prefs.getBoolean(KEY_IS_ROOT_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(KEY_IS_ROOT_ENABLED, value).apply()
+
     companion object {
         private const val PREFS_NAME = "xt_manager_settings"
         private const val KEY_SHOW_HIDDEN_FILES = "show_hidden_files"
@@ -49,5 +53,6 @@ class SettingsManager(context: Context) {
         private const val KEY_SHOW_THUMBNAILS = "show_thumbnails"
         private const val KEY_FILE_NAME_MAX_LINES = "file_name_max_lines"
         private const val KEY_ACTIVE_PANE_HIGHLIGHT_ENABLED = "active_pane_highlight_enabled"
+        private const val KEY_IS_ROOT_ENABLED = "is_root_enabled"
     }
 }

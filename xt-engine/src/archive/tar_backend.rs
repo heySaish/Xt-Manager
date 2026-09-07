@@ -203,34 +203,59 @@ impl ArchiveBackend for TarBackend {
         cancel_flag: &AtomicBool,
         progress_cb: &dyn Fn(ArchiveProgress),
     ) -> Result<(), ArchiveError> {
-        let writer = create_tar_writer(output_archive, compression_level)?;
-        let mut builder = Builder::new(writer);
+        let name_str = output_archive.to_string_lossy().to_lowercase();
+        let is_xz = name_str.ends_with(".xz") || name_str.ends_with(".txz");
 
-        let mut processed_bytes: u64 = 0;
-        let mut processed_entries: u64 = 0;
+        if is_xz {
+            let temp_tar = tempfile::NamedTempFile::new()
+                .map_err(|e| ArchiveError::Io(e))?;
+            let temp_path = temp_tar.path().to_path_buf();
 
-        for src in sources {
-            if cancel_flag.load(Ordering::SeqCst) {
-                let _ = std::fs::remove_file(output_archive);
-                return Err(ArchiveError::Cancelled);
-            }
+            {
+                let writer = File::create(&temp_path)?;
+                let mut builder = Builder::new(writer);
 
-            let base_name = src.file_name().unwrap_or_default().to_string_lossy();
+                let mut processed_bytes: u64 = 0;
+                let mut processed_entries: u64 = 0;
 
-            if src.is_dir() {
-                for entry_res in walkdir::WalkDir::new(src) {
+                for src in sources {
                     if cancel_flag.load(Ordering::SeqCst) {
-                        let _ = std::fs::remove_file(output_archive);
                         return Err(ArchiveError::Cancelled);
                     }
 
-                    let entry = entry_res.map_err(|e| ArchiveError::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
-                    let path = entry.path();
-                    let rel_path = path.strip_prefix(src.parent().unwrap_or(src)).unwrap_or(path);
+                    let base_name = src.file_name().unwrap_or_default().to_string_lossy();
 
-                    if path.is_file() {
-                        builder.append_path_with_name(path, rel_path)?;
-                        let len = std::fs::metadata(path).map(|m| m.len()).unwrap_or(0);
+                    if src.is_dir() {
+                        for entry_res in walkdir::WalkDir::new(src) {
+                            if cancel_flag.load(Ordering::SeqCst) {
+                                return Err(ArchiveError::Cancelled);
+                            }
+
+                            let entry = entry_res.map_err(|e| ArchiveError::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+                            let path = entry.path();
+                            let rel_path = path.strip_prefix(src.parent().unwrap_or(src)).unwrap_or(path);
+
+                            if path.is_file() {
+                                builder.append_path_with_name(path, rel_path)?;
+                                let len = std::fs::metadata(path).map(|m| m.len()).unwrap_or(0);
+                                processed_bytes += len;
+                                processed_entries += 1;
+
+                                progress_cb(ArchiveProgress {
+                                    processed_bytes,
+                                    total_bytes: 0,
+                                    processed_entries,
+                                    total_entries: 0,
+                                    current_entry: rel_path.to_string_lossy().to_string(),
+                                    cancellable: true,
+                                });
+                            } else if path.is_dir() {
+                                builder.append_dir(rel_path, path)?;
+                            }
+                        }
+                    } else if src.is_file() {
+                        builder.append_path_with_name(src, Path::new(base_name.as_ref()))?;
+                        let len = std::fs::metadata(src).map(|m| m.len()).unwrap_or(0);
                         processed_bytes += len;
                         processed_entries += 1;
 
@@ -239,31 +264,90 @@ impl ArchiveBackend for TarBackend {
                             total_bytes: 0,
                             processed_entries,
                             total_entries: 0,
-                            current_entry: rel_path.to_string_lossy().to_string(),
+                            current_entry: base_name.to_string(),
                             cancellable: true,
                         });
-                    } else if path.is_dir() {
-                        builder.append_dir(rel_path, path)?;
                     }
                 }
-            } else if src.is_file() {
-                builder.append_path_with_name(src, Path::new(base_name.as_ref()))?;
-                let len = std::fs::metadata(src).map(|m| m.len()).unwrap_or(0);
-                processed_bytes += len;
-                processed_entries += 1;
 
-                progress_cb(ArchiveProgress {
-                    processed_bytes,
-                    total_bytes: 0,
-                    processed_entries,
-                    total_entries: 0,
-                    current_entry: base_name.to_string(),
-                    cancellable: true,
-                });
+                builder.finish()?;
             }
-        }
 
-        builder.finish()?;
-        Ok(())
+            if cancel_flag.load(Ordering::SeqCst) {
+                let _ = std::fs::remove_file(output_archive);
+                return Err(ArchiveError::Cancelled);
+            }
+
+            let mut input_file = std::io::BufReader::new(File::open(&temp_path)?);
+            let mut output_file = std::io::BufWriter::new(File::create(output_archive)?);
+
+            lzma_rs::xz_compress(&mut input_file, &mut output_file)
+                .map_err(|e| ArchiveError::FormatError(e.to_string()))?;
+
+            Ok(())
+        } else {
+            let writer = create_tar_writer(output_archive, compression_level)?;
+            let mut builder = Builder::new(writer);
+
+            let mut processed_bytes: u64 = 0;
+            let mut processed_entries: u64 = 0;
+
+            for src in sources {
+                if cancel_flag.load(Ordering::SeqCst) {
+                    let _ = std::fs::remove_file(output_archive);
+                    return Err(ArchiveError::Cancelled);
+                }
+
+                let base_name = src.file_name().unwrap_or_default().to_string_lossy();
+
+                if src.is_dir() {
+                    for entry_res in walkdir::WalkDir::new(src) {
+                        if cancel_flag.load(Ordering::SeqCst) {
+                            let _ = std::fs::remove_file(output_archive);
+                            return Err(ArchiveError::Cancelled);
+                        }
+
+                        let entry = entry_res.map_err(|e| ArchiveError::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+                        let path = entry.path();
+                        let rel_path = path.strip_prefix(src.parent().unwrap_or(src)).unwrap_or(path);
+
+                        if path.is_file() {
+                            builder.append_path_with_name(path, rel_path)?;
+                            let len = std::fs::metadata(path).map(|m| m.len()).unwrap_or(0);
+                            processed_bytes += len;
+                            processed_entries += 1;
+
+                            progress_cb(ArchiveProgress {
+                                processed_bytes,
+                                total_bytes: 0,
+                                processed_entries,
+                                total_entries: 0,
+                                current_entry: rel_path.to_string_lossy().to_string(),
+                                cancellable: true,
+                            });
+                        } else if path.is_dir() {
+                            builder.append_dir(rel_path, path)?;
+                        }
+                    }
+                } else if src.is_file() {
+                    builder.append_path_with_name(src, Path::new(base_name.as_ref()))?;
+                    let len = std::fs::metadata(src).map(|m| m.len()).unwrap_or(0);
+                    processed_bytes += len;
+                    processed_entries += 1;
+
+                    progress_cb(ArchiveProgress {
+                        processed_bytes,
+                        total_bytes: 0,
+                        processed_entries,
+                        total_entries: 0,
+                        current_entry: base_name.to_string(),
+                        cancellable: true,
+                    });
+                }
+            }
+
+            builder.finish()?;
+            Ok(())
+        }
     }
 }

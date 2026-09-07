@@ -12,7 +12,10 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 
-class LocalFileSystem : FileSystem {
+class LocalFileSystem(
+    private val rootShellManager: com.xtmanager.core.root.RootShellManager = com.xtmanager.core.root.RootShellManager(),
+    private val isRootEnabledProvider: () -> Boolean = { false }
+) : FileSystem {
 
     private val inFlightScans = ConcurrentHashMap<String, CompletableDeferred<List<FileEntry>>>()
 
@@ -123,9 +126,6 @@ class LocalFileSystem : FileSystem {
         }
 
         val directory = File(path)
-        if (!directory.exists() || !directory.isDirectory) {
-            return@withContext emptyList()
-        }
 
         val canonicalPath = try { directory.canonicalPath } catch (_: Exception) { directory.absolutePath }
 
@@ -157,8 +157,16 @@ class LocalFileSystem : FileSystem {
         }
     }
 
-    private fun performScan(directory: File): List<FileEntry> {
+    private suspend fun performScan(directory: File): List<FileEntry> {
         val startTime = System.nanoTime()
+        val path = directory.absolutePath
+
+        if (isRootEnabledProvider()) {
+            val rootEntries = rootShellManager.listDirectory(path)
+            if (rootEntries.isNotEmpty()) {
+                return rootEntries
+            }
+        }
 
         if (isNativeLoaded) {
             try {

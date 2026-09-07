@@ -60,6 +60,34 @@ class FileManagerViewModel(
     private val _activePaneHighlightEnabled = MutableStateFlow(settingsManager.activePaneHighlightEnabled)
     val activePaneHighlightEnabled: StateFlow<Boolean> = _activePaneHighlightEnabled.asStateFlow()
 
+    private val rootShellManager = com.xtmanager.core.root.RootShellManager()
+
+    private val _isRootEnabled = MutableStateFlow(settingsManager.isRootEnabled)
+    val isRootEnabled: StateFlow<Boolean> = _isRootEnabled.asStateFlow()
+
+    fun toggleRootAccess(enable: Boolean, onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            if (enable) {
+                val available = rootShellManager.checkRootAvailability()
+                if (available) {
+                    settingsManager.isRootEnabled = true
+                    _isRootEnabled.value = true
+                    onResult(true, "Root Access Granted")
+                    refreshBothPanes()
+                } else {
+                    settingsManager.isRootEnabled = false
+                    _isRootEnabled.value = false
+                    onResult(false, "Root permission denied or device not rooted")
+                }
+            } else {
+                settingsManager.isRootEnabled = false
+                _isRootEnabled.value = false
+                onResult(true, "Root Access Disabled")
+                refreshBothPanes()
+            }
+        }
+    }
+
     init {
         // Automatically refresh file panes when background operations (Compress, Extract, Copy, Move, Delete) complete
         viewModelScope.launch {

@@ -97,6 +97,8 @@ fun SettingsScreen(
     bottomBarScale: Float = 1.0f,
     onOpenBottomBarSizePreview: () -> Unit = {},
     onOpenDisplayThemeSettings: () -> Unit = {},
+    isRootEnabled: Boolean = false,
+    onToggleRootAccess: (Boolean) -> Unit = {},
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -203,7 +205,48 @@ fun SettingsScreen(
                 )
             }
 
-            // Group 2: Terminal & Environment
+            // Group 2: Privileged Access
+            SettingsGroupCard(title = "Privileged Access") {
+                // Item 1: Root Access (SU)
+                SettingsRowItem(
+                    icon = Icons.Default.Security,
+                    iconBgColor = Color(0xFFEF4444),
+                    title = "Root Access (SU)",
+                    subtitle = if (isRootEnabled) "Access /data/data, /system & protected paths" else "Grant SU permission for system directories",
+                    trailingWidget = {
+                        Switch(
+                            checked = isRootEnabled,
+                            onCheckedChange = { onToggleRootAccess(it) }
+                        )
+                    }
+                )
+
+                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                // Item 2: Shizuku Access (ADB)
+                SettingsRowItem(
+                    icon = Icons.Default.VpnKey,
+                    iconBgColor = Color(0xFF3B82F6),
+                    title = "Shizuku Access (ADB)",
+                    subtitle = "ADB access for non-rooted users",
+                    trailingWidget = {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Text(
+                                text = "Coming Soon",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                )
+            }
+
+            // Group 3: Terminal & Environment
             SettingsGroupCard(title = "Terminal & Shell") {
                 SettingsRowItem(
                     icon = Icons.Default.Terminal,
