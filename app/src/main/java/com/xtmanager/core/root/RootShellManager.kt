@@ -36,27 +36,66 @@ class RootShellManager {
 
     suspend fun executeCommand(command: String): CommandResult = withContext(Dispatchers.IO) {
         try {
-            val process = Runtime.getRuntime().exec("su")
-            val os = DataOutputStream(process.outputStream)
+            // Try su -M (Mount Master) first to bypass Android Zygote mount namespace isolation
+            val useMountMaster = true
+            val cmdArray = if (useMountMaster) {
+                arrayOf("su", "-M", "-c", command)
+            } else {
+                arrayOf("su", "-c", command)
+            }
+
+            var process = try {
+                Runtime.getRuntime().exec(cmdArray)
+            } catch (_: Exception) {
+                Runtime.getRuntime().exec(arrayOf("su", "-c", command))
+            }
+
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             val errReader = BufferedReader(InputStreamReader(process.errorStream))
 
-            os.writeBytes("$command\n")
-            os.writeBytes("exit\n")
-            os.flush()
-
             val stdoutBuilder = StringBuilder()
-            var line: String?
-            while (reader.readLine().also { line = it } != null) {
-                stdoutBuilder.append(line).append("\n")
-            }
-
             val stderrBuilder = StringBuilder()
-            while (errReader.readLine().also { line = it } != null) {
-                stderrBuilder.append(line).append("\n")
+
+            val jobStdout = kotlinx.coroutines.launch(Dispatchers.IO) {
+                var line: String?
+                while (reader.readLine().also { line = it } != null) {
+                    stdoutBuilder.append(line).append("\n")
+                }
             }
 
+            val jobStderr = kotlinx.coroutines.launch(Dispatchers.IO) {
+                var line: String?
+                while (errReader.readLine().also { line = it } != null) {
+                    stderrBuilder.append(line).append("\n")
+                }
+            }
+
+            jobStdout.join()
+            jobStderr.join()
             val exitCode = process.waitFor()
+
+            // If su -M failed or unsupported, fallback to simple su -c
+            if (exitCode != 0 && cmdArray.size > 2 && cmdArray[1] == "-M") {
+                val fallbackProc = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
+                val fbReader = BufferedReader(InputStreamReader(fallbackProc.inputStream))
+                val fbErrReader = BufferedReader(InputStreamReader(fallbackProc.errorStream))
+                val fbStdout = StringBuilder()
+                val fbStderr = StringBuilder()
+
+                val j1 = kotlinx.coroutines.launch(Dispatchers.IO) {
+                    var l: String?
+                    while (fbReader.readLine().also { l = it } != null) fbStdout.append(l).append("\n")
+                }
+                val j2 = kotlinx.coroutines.launch(Dispatchers.IO) {
+                    var l: String?
+                    while (fbErrReader.readLine().also { l = it } != null) fbStderr.append(l).append("\n")
+                }
+                j1.join()
+                j2.join()
+                val fbExitCode = fallbackProc.waitFor()
+                return@withContext CommandResult(fbExitCode, fbStdout.toString().trim(), fbStderr.toString().trim())
+            }
+
             CommandResult(exitCode, stdoutBuilder.toString().trim(), stderrBuilder.toString().trim())
         } catch (e: Exception) {
             Log.e(TAG, "Error executing root command: $command", e)
