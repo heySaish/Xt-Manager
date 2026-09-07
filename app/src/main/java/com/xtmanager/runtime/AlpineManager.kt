@@ -451,6 +451,7 @@ class AlpineManager(private val context: Context) {
             "-b", "/storage",
             "-b", "/data",
             "-b", filesPath,
+            "-b", "$filesPath:/files",
             "-b", nativeDir
         ))
         cmd.addAll(sysMounts)
