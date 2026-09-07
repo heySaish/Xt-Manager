@@ -26,19 +26,49 @@ android {
 
     signingConfigs {
         create("fixedRelease") {
-            val ksFile = file("release.keystore")
-            if (ksFile.exists()) {
-                storeFile = ksFile
+            val localProps = java.util.Properties()
+            val localPropsFile = rootProject.file("local.properties")
+            if (localPropsFile.exists()) {
+                localPropsFile.inputStream().use { localProps.load(it) }
             }
-            storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: "xtmanager_secure_password_2026"
-            keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: "xtmanagerkey"
-            keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: "xtmanager_secure_password_2026"
+
+            val customPath = System.getenv("RELEASE_KEYSTORE_PATH")
+                ?: localProps.getProperty("RELEASE_KEYSTORE_PATH")
+
+            val candidateFiles = mutableListOf<java.io.File>()
+            if (!customPath.isNullOrBlank()) {
+                candidateFiles.add(file(customPath))
+            }
+            candidateFiles.add(file("release.keystore"))
+            candidateFiles.add(rootProject.file("release.keystore"))
+            candidateFiles.add(file("/sdcard/Xt-Manager-Keystore/release.keystore"))
+            candidateFiles.add(file("/storage/emulated/0/Xt-Manager-Keystore/release.keystore"))
+
+            val targetKs = candidateFiles.firstOrNull { it.exists() }
+            if (targetKs != null) {
+                storeFile = targetKs
+            }
+
+            storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                ?: localProps.getProperty("RELEASE_KEYSTORE_PASSWORD")
+                ?: ""
+
+            keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                ?: localProps.getProperty("RELEASE_KEY_ALIAS")
+                ?: ""
+
+            keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+                ?: localProps.getProperty("RELEASE_KEY_PASSWORD")
+                ?: ""
         }
     }
 
     buildTypes {
         debug {
-            signingConfig = signingConfigs.getByName("fixedRelease")
+            val config = signingConfigs.getByName("fixedRelease")
+            if (config.storeFile?.exists() == true && config.storePassword.isNotEmpty()) {
+                signingConfig = config
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -47,7 +77,10 @@ android {
             )
         }
         release {
-            signingConfig = signingConfigs.getByName("fixedRelease")
+            val config = signingConfigs.getByName("fixedRelease")
+            if (config.storeFile?.exists() == true && config.storePassword.isNotEmpty()) {
+                signingConfig = config
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

@@ -1,0 +1,11 @@
+# Local Configuration & Keystore Credentials (DO NOT COMMIT SENSITIVE VALUES TO GIT)
+# Copy this file to local.properties and fill in your values if building locally.
+
+# Android SDK Path (if applicable)
+# sdk.dir=/path/to/android/sdk
+
+# Optional Release Keystore Configuration
+# RELEASE_KEYSTORE_PATH=/sdcard/Xt-Manager-Keystore/release.keystore
+# RELEASE_KEYSTORE_PASSWORD=your_keystore_password
+# RELEASE_KEY_ALIAS=your_key_alias
+# RELEASE_KEY_PASSWORD=your_key_password
