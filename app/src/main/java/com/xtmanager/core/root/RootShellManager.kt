@@ -77,23 +77,36 @@ class RootShellManager {
             val trimmed = line.trim()
             if (trimmed.isEmpty() || trimmed.startsWith("total")) continue
 
-            val parts = trimmed.split(Regex("\\s+"))
-            if (parts.size < 8) continue
+            val permissions: String
+            val name: String
+            val size: Long
 
-            val permissions = parts[0]
+            if (trimmed.contains(" -> ")) {
+                val arrowSplit = trimmed.split(" -> ", limit = 2)
+                val leftParts = arrowSplit[0].trim().split(Regex("\\s+"))
+                if (leftParts.size < 8) continue
+                permissions = leftParts[0]
+                size = leftParts[4].toLongOrNull() ?: 0L
+                name = leftParts.subList(7, leftParts.size).joinToString(" ")
+            } else {
+                val parts = trimmed.split(Regex("\\s+"))
+                if (parts.size < 8) continue
+                permissions = parts[0]
+                size = parts[4].toLongOrNull() ?: 0L
+                name = parts.subList(7, parts.size).joinToString(" ")
+            }
+
+            val cleanName = name.trim()
+            if (cleanName.isEmpty() || cleanName == "." || cleanName == "..") continue
+
             val isDir = permissions.startsWith("d") || permissions.startsWith("l")
-            val name = parts.subList(8, parts.size).joinToString(" ")
-
-            if (name == "." || name == "..") continue
-
-            val size = parts[4].toLongOrNull() ?: 0L
-            val fullPath = if (path.endsWith("/")) "$path$name" else "$path/$name"
+            val fullPath = if (path.endsWith("/")) "$path$cleanName" else "$path/$cleanName"
 
             val archiveExtensions = listOf(
                 ".zip", ".apk", ".7z", ".tar", ".gz", ".bz2", ".xz", ".zst", ".lz4",
                 ".tar.gz", ".tgz", ".tar.bz2", ".tbz2", ".tar.xz", ".txz", ".tar.zst", ".tzst", ".tar.lz4"
             )
-            val isArchive = !isDir && archiveExtensions.any { name.lowercase().endsWith(it) }
+            val isArchive = !isDir && archiveExtensions.any { cleanName.lowercase().endsWith(it) }
 
             val type = when {
                 isDir -> FileType.DIRECTORY
@@ -103,7 +116,7 @@ class RootShellManager {
 
             entries.add(
                 FileEntry(
-                    name = name,
+                    name = cleanName,
                     path = fullPath,
                     isDirectory = isDir,
                     size = if (isDir) 0L else size,
