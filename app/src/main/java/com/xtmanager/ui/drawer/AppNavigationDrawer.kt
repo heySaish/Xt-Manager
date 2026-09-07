@@ -48,7 +48,10 @@ fun getStorageVolumesList(context: Context): List<StorageVolumeInfo> {
     val list = mutableListOf<StorageVolumeInfo>()
 
     // Internal Storage
-    list.add(StorageVolumeInfo("Internal Storage", "/storage/emulated/0", isRemovable = false))
+    val primaryPath = Environment.getExternalStorageDirectory()?.absolutePath ?: "/storage/emulated/0"
+    val normalizedPrimary = primaryPath.trimEnd('/')
+
+    list.add(StorageVolumeInfo("Internal Storage", normalizedPrimary, isRemovable = false))
 
     try {
         val sm = context.getSystemService(Context.STORAGE_SERVICE) as? StorageManager
@@ -65,10 +68,13 @@ fun getStorageVolumesList(context: Context): List<StorageVolumeInfo> {
                         } catch (_: Exception) { null }
                     }
 
-                    if (dir != null && dir != "/storage/emulated/0" && dir != "/storage/self/primary") {
-                        val name = vol.getDescription(context) ?: if (vol.isRemovable) "External SD / USB" else "Storage"
-                        if (list.none { it.path == dir }) {
-                            list.add(StorageVolumeInfo(name, dir, isRemovable = vol.isRemovable))
+                    if (dir != null) {
+                        val normDir = dir.trimEnd('/')
+                        if (normDir != normalizedPrimary && normDir != "/storage/emulated/0" && normDir != "/storage/self/primary") {
+                            val name = vol.getDescription(context) ?: if (vol.isRemovable) "External SD / USB" else "Storage"
+                            if (list.none { it.path.trimEnd('/') == normDir }) {
+                                list.add(StorageVolumeInfo(name, normDir, isRemovable = vol.isRemovable))
+                            }
                         }
                     }
                 }
@@ -84,10 +90,11 @@ fun getStorageVolumesList(context: Context): List<StorageVolumeInfo> {
             if (children != null) {
                 for (file in children) {
                     val name = file.name
+                    val normPath = file.absolutePath.trimEnd('/')
                     if (name != "emulated" && name != "self" && file.isDirectory && file.canRead()) {
-                        if (list.none { it.path == file.absolutePath }) {
+                        if (list.none { it.path.trimEnd('/') == normPath }) {
                             val displayName = if (name.matches(Regex("[0-9A-FA-f]{4}-[0-9A-FA-f]{4}"))) "SD Card ($name)" else "Storage ($name)"
-                            list.add(StorageVolumeInfo(displayName, file.absolutePath, isRemovable = true))
+                            list.add(StorageVolumeInfo(displayName, normPath, isRemovable = true))
                         }
                     }
                 }
@@ -95,7 +102,7 @@ fun getStorageVolumesList(context: Context): List<StorageVolumeInfo> {
         }
     } catch (_: Exception) {}
 
-    return list
+    return list.distinctBy { it.path.trimEnd('/') }
 }
 
 @Composable

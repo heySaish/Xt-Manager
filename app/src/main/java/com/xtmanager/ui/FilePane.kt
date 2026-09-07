@@ -322,7 +322,7 @@ private fun FilePaneListContent(
             } else {
                 itemsIndexed(
                     items = paneState.files,
-                    key = { _, file -> file.path },
+                    key = { index, file -> "${file.path}_$index" },
                     contentType = { _, file -> if (file.isDirectory) 1 else 0 }
                 ) { index, file ->
                     CascadeAnimatedFileRow(

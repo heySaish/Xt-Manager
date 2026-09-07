@@ -113,7 +113,7 @@ class RootShellManager {
             )
         }
 
-        entries.sortedWith(compareBy<FileEntry> { !it.isDirectory }.thenBy { it.name.lowercase() })
+        entries.distinctBy { it.path }.sortedWith(compareBy<FileEntry> { !it.isDirectory }.thenBy { it.name.lowercase() })
     }
 
     suspend fun mkdir(path: String): Boolean = withContext(Dispatchers.IO) {

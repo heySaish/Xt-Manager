@@ -251,7 +251,7 @@ class LocalFileSystem(
                 lastModified = file.lastModified(),
                 type = type
             )
-        }.sortedWith(compareBy<FileEntry> { !it.isDirectory }.thenComparator { a, b -> naturalCompare(a.name, b.name) })
+        }.distinctBy { it.path }.sortedWith(compareBy<FileEntry> { !it.isDirectory }.thenComparator { a, b -> naturalCompare(a.name, b.name) })
     }
 
     override suspend fun copy(
