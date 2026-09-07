@@ -278,12 +278,18 @@ impl ArchiveBackend for TarBackend {
                 return Err(ArchiveError::Cancelled);
             }
 
-            let mut input_file = std::io::BufReader::new(File::open(&temp_path)?);
-            let mut output_file = std::io::BufWriter::new(File::create(output_archive)?);
+            let comp_res = (|| -> Result<(), ArchiveError> {
+                let mut input_file = std::io::BufReader::with_capacity(1024 * 1024, File::open(&temp_path)?);
+                let mut output_file = std::io::BufWriter::with_capacity(1024 * 1024, File::create(output_archive)?);
 
-            lzma_rs::xz_compress(&mut input_file, &mut output_file)
-                .map_err(|e| ArchiveError::FormatError(e.to_string()))?;
+                lzma_rs::xz_compress(&mut input_file, &mut output_file)
+                    .map_err(|e| ArchiveError::FormatError(e.to_string()))?;
+                output_file.flush()?;
+                Ok(())
+            })();
 
+            let _ = std::fs::remove_file(&temp_path);
+            comp_res?;
             Ok(())
         } else {
             let writer = create_tar_writer(output_archive, compression_level)?;
