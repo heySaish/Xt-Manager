@@ -85,6 +85,8 @@ class AlpineManager(private val context: Context) {
                 Log.w(TAG, "Optional rm-wrapper setup skipped: ${e.message}")
             }
 
+            fixAlpinePermissionsAndLinks()
+
             return true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to setup Alpine environment", e)
@@ -92,6 +94,55 @@ class AlpineManager(private val context: Context) {
             return false
         }
     }
+
+    fun fixAlpinePermissionsAndLinks() {
+        try {
+            val targetDirs = listOf(
+                File(alpineDir, "bin"),
+                File(alpineDir, "sbin"),
+                File(alpineDir, "lib"),
+                File(alpineDir, "lib64"),
+                File(alpineDir, "usr/bin"),
+                File(alpineDir, "usr/sbin"),
+                File(alpineDir, "usr/lib"),
+                File(alpineDir, "libexec")
+            )
+
+            for (dir in targetDirs) {
+                if (dir.exists()) {
+                    dir.walkTopDown().forEach { file ->
+                        try {
+                            file.setReadable(true, false)
+                            file.setExecutable(true, false)
+                        } catch (_: Exception) {}
+                    }
+                }
+            }
+
+            // Ensure loader symlink /lib/ld-musl-aarch64.so.1 exists and points to musl libc
+            val libDir = File(alpineDir, "lib")
+            if (libDir.exists()) {
+                val muslLib = libDir.listFiles()?.find { it.name.startsWith("libc.musl-") || it.name.startsWith("libc.so") }
+                val ldMusl = File(libDir, "ld-musl-aarch64.so.1")
+                if (muslLib != null && (!ldMusl.exists() || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && Files.isSymbolicLink(ldMusl.toPath())))) {
+                    try {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            Files.deleteIfExists(ldMusl.toPath())
+                            Files.createSymbolicLink(ldMusl.toPath(), Paths.get(muslLib.name))
+                        } else {
+                            muslLib.copyTo(ldMusl, overwrite = true)
+                        }
+                        makeExecutable(ldMusl)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Fix ld-musl symlink failed: ${e.message}")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "fixAlpinePermissionsAndLinks error: ${e.message}")
+        }
+    }
+
 
     private fun copyNativeBinaries(arch: String) {
         val nativeDir = context.applicationInfo.nativeLibraryDir
@@ -350,6 +401,7 @@ class AlpineManager(private val context: Context) {
     }
 
     fun createAlpineProcessBuilder(commandInAlpine: List<String>): ProcessBuilder {
+        fixAlpinePermissionsAndLinks()
         val nativeDir = context.applicationInfo.nativeLibraryDir
         val filesPath = filesDir.absolutePath
 
