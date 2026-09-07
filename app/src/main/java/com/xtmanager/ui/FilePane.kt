@@ -51,11 +51,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -241,14 +244,14 @@ private fun FilePaneListContent(
             firstVisibleItemScrollOffset = savedOffset
         )
     }
-    val isScrolling = listState.isScrollInProgress
 
-    // Save scroll position for current targetPath as user scrolls
-    LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
-        scrollPositions[targetPath] = Pair(
-            listState.firstVisibleItemIndex,
-            listState.firstVisibleItemScrollOffset
-        )
+    // Save scroll position for current targetPath as user scrolls without triggering recompositions
+    LaunchedEffect(targetPath, listState) {
+        snapshotFlow { Pair(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) }
+            .distinctUntilChanged()
+            .collect { (idx, offset) ->
+                scrollPositions[targetPath] = Pair(idx, offset)
+            }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -327,14 +330,14 @@ private fun FilePaneListContent(
                         index = index,
                         navTimestamp = navTimestamp,
                         targetPath = targetPath,
-                        isScrolling = isScrolling,
                         isAnimationEnabled = isAnimationEnabled,
                         isSelected = paneState.selected.contains(file.path),
                         onClick = { onFileClick(file) },
                         onLongClick = { onFileLongClick(file) },
                         onSwipe = { onFileSwipe(index) },
                         densityScale = densityScale,
-                        showThumbnails = showThumbnails
+                        showThumbnails = showThumbnails,
+                        fileNameMaxLines = fileNameMaxLines
                     )
                     Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
                 }
@@ -353,8 +356,7 @@ private fun FastScrollbar(
     listState: LazyListState,
     modifier: Modifier = Modifier
 ) {
-    val layoutInfo = listState.layoutInfo
-    val totalItems = layoutInfo.totalItemsCount
+    val totalItems by remember { derivedStateOf { listState.layoutInfo.totalItemsCount } }
 
     // Requirement: Show fast scrollbar ONLY if files/folders count >= 90
     if (totalItems < 90) return
@@ -365,18 +367,19 @@ private fun FastScrollbar(
     var isDragging by remember { mutableStateOf(false) }
     var isVisible by remember { mutableStateOf(false) }
 
-    val isScrollInProgress = listState.isScrollInProgress
-
-    // Requirement: Auto-hide after 2 seconds (2000ms) of inactivity
-    LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset, isScrollInProgress, isDragging) {
-        if (isScrollInProgress || isDragging) {
-            isVisible = true
-        } else {
-            delay(2000L)
-            if (!listState.isScrollInProgress && !isDragging) {
-                isVisible = false
+    // Auto-hide after 2 seconds (2000ms) of inactivity, using snapshotFlow to avoid keying on offset changes
+    LaunchedEffect(listState, isDragging) {
+        snapshotFlow { listState.isScrollInProgress || isDragging }
+            .collect { active ->
+                if (active) {
+                    isVisible = true
+                } else {
+                    delay(2000L)
+                    if (!listState.isScrollInProgress && !isDragging) {
+                        isVisible = false
+                    }
+                }
             }
-        }
     }
 
     val alpha by animateFloatAsState(
@@ -400,7 +403,7 @@ private fun FastScrollbar(
         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
     }
 
-    val firstVisibleIndex = listState.firstVisibleItemIndex
+    val firstVisibleIndex by remember { derivedStateOf { listState.firstVisibleItemIndex } }
     val scrollFraction = (firstVisibleIndex.toFloat() / (totalItems - 1).coerceAtLeast(1)).coerceIn(0f, 1f)
 
     BoxWithConstraints(
@@ -459,7 +462,6 @@ private fun CascadeAnimatedFileRow(
     index: Int,
     navTimestamp: Long,
     targetPath: String,
-    isScrolling: Boolean,
     isAnimationEnabled: Boolean,
     isSelected: Boolean,
     onClick: () -> Unit,
@@ -469,7 +471,7 @@ private fun CascadeAnimatedFileRow(
     showThumbnails: Boolean = true,
     fileNameMaxLines: Int = 2
 ) {
-    if (!isAnimationEnabled) {
+    if (!isAnimationEnabled || System.currentTimeMillis() - navTimestamp > 200L) {
         FileRow(
             fileEntry = fileEntry,
             isSelected = isSelected,
@@ -485,11 +487,8 @@ private fun CascadeAnimatedFileRow(
 
     val animatable = remember(targetPath) { Animatable(0f) }
 
-    LaunchedEffect(targetPath, fileEntry.path, isScrolling) {
-        val elapsed = System.currentTimeMillis() - navTimestamp
-        if (elapsed > 200L || isScrolling) {
-            animatable.snapTo(1f)
-        } else {
+    LaunchedEffect(targetPath, fileEntry.path) {
+        if (animatable.value < 1f) {
             val delayMs = (index * 20).coerceAtMost(180)
             if (delayMs > 0) {
                 kotlinx.coroutines.delay(delayMs.toLong())

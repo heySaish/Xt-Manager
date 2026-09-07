@@ -151,8 +151,11 @@ fun FileRow(
                             val absX = kotlin.math.abs(totalX)
                             val absY = kotlin.math.abs(totalY)
 
-                            if (!isHorizontalGesture && absX > 8f) {
-                                if (absX > absY * 1.3f) {
+                            if (!isHorizontalGesture) {
+                                if (absY > 16f && absY > absX * 1.3f) {
+                                    break // Vertical list scroll detected: release gesture immediately
+                                }
+                                if (absX > 12f && absX > absY * 1.5f) {
                                     isHorizontalGesture = true
                                 }
                             }

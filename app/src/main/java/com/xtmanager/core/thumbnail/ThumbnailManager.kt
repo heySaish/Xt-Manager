@@ -45,8 +45,7 @@ object ThumbnailManager {
     }
 
     fun buildCacheKey(path: String, lastModified: Long, fileSize: Long, targetPx: Int = 120): String {
-        val raw = "$path:$lastModified:$fileSize:$targetPx"
-        return md5(raw)
+        return "${path.hashCode()}_${lastModified}_${fileSize}_$targetPx"
     }
 
     suspend fun getThumbnail(
