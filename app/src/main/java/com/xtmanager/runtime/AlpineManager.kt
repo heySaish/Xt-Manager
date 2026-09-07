@@ -3,6 +3,9 @@ package com.xtmanager.runtime
 import android.content.Context
 import android.os.Build
 import android.util.Log
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -404,7 +407,7 @@ class AlpineManager(private val context: Context) {
         format: String,
         outputArchive: String,
         sources: List<String>
-    ): Int = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+    ): Int = withContext(Dispatchers.IO) {
         val scriptPath = File(filesDir, "xt-arc.sh")
         try { copyAssetFile("alpine/xt-arc.sh", scriptPath); makeExecutable(scriptPath) } catch (_: Exception) {}
 
@@ -422,7 +425,7 @@ class AlpineManager(private val context: Context) {
             val reader = proc.inputStream.bufferedReader()
             val errReader = proc.errorStream.bufferedReader()
 
-            val jobStdout = kotlinx.coroutines.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val jobStdout = launch(Dispatchers.IO) {
                 var line: String?
                 while (reader.readLine().also { line = it } != null) {
                     val l = line ?: ""
@@ -431,7 +434,7 @@ class AlpineManager(private val context: Context) {
                 }
             }
 
-            val jobStderr = kotlinx.coroutines.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val jobStderr = launch(Dispatchers.IO) {
                 var line: String?
                 while (errReader.readLine().also { line = it } != null) {
                     val l = line ?: ""
@@ -456,7 +459,7 @@ class AlpineManager(private val context: Context) {
     suspend fun extractArchiveWithAlpine(
         archivePath: String,
         outputDir: String
-    ): Int = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+    ): Int = withContext(Dispatchers.IO) {
         val scriptPath = File(filesDir, "xt-arc.sh")
         try { copyAssetFile("alpine/xt-arc.sh", scriptPath); makeExecutable(scriptPath) } catch (_: Exception) {}
 
@@ -472,7 +475,7 @@ class AlpineManager(private val context: Context) {
             val reader = proc.inputStream.bufferedReader()
             val errReader = proc.errorStream.bufferedReader()
 
-            val jobStdout = kotlinx.coroutines.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val jobStdout = launch(Dispatchers.IO) {
                 var line: String?
                 while (reader.readLine().also { line = it } != null) {
                     val l = line ?: ""
@@ -481,7 +484,7 @@ class AlpineManager(private val context: Context) {
                 }
             }
 
-            val jobStderr = kotlinx.coroutines.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val jobStderr = launch(Dispatchers.IO) {
                 var line: String?
                 while (errReader.readLine().also { line = it } != null) {
                     val l = line ?: ""
