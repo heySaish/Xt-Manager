@@ -73,7 +73,9 @@ class OperationManager(
 
                 if (alpineManager != null && alpineManager.isInstalled) {
                     android.util.Log.d("OperationManager", "⚡ Using Alpine CLI Archive Engine for EXTRACT: ${File(archivePath).name}")
-                    resultCode = alpineManager.extractArchiveWithAlpine(archivePath, destinationDir)
+                    resultCode = alpineManager.extractArchiveWithAlpine(archivePath, destinationDir) { processed, total ->
+                        updateProgress(id, processed, total, File(archivePath).name)
+                    }
                 } else {
                     AppLogger.e("OPERATIONS", "❌ Alpine Manager is not initialized/installed")
                 }
@@ -135,7 +137,9 @@ class OperationManager(
 
                 if (alpineManager != null && alpineManager.isInstalled) {
                     android.util.Log.d("OperationManager", "⚡ Using Alpine CLI Archive Engine for COMPRESS ($format): ${File(destinationArchive).name}")
-                    resultCode = alpineManager.compressArchiveWithAlpine(format, destinationArchive, sources)
+                    resultCode = alpineManager.compressArchiveWithAlpine(format, destinationArchive, sources) { processed, total ->
+                        updateProgress(id, processed, total, File(destinationArchive).name)
+                    }
                 } else {
                     AppLogger.e("OPERATIONS", "❌ Alpine Manager is not initialized/installed")
                 }

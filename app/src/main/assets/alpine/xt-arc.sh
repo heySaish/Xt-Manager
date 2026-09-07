@@ -31,9 +31,9 @@ need() {
 }
 
 progress_pipe() {
-    # pv output ko stderr par rakho, taaki Kotlin directly parse kar sake.
+    # pv output numeric (0..100) ko stderr par rakho, taaki Kotlin directly progress update kar sake.
     if command -v pv >/dev/null 2>&1; then
-        pv -p -t -e -r -b
+        pv -n
     else
         cat
     fi
@@ -139,7 +139,7 @@ extract() {
             log "SIZE=$size"
 
             if command -v pv >/dev/null 2>&1; then
-                pv -p -t -e -r -b "$archive" > "$output/.xt-archive.tmp.zip"
+                pv -n "$archive" > "$output/.xt-archive.tmp.zip"
                 unzip -o "$output/.xt-archive.tmp.zip" -d "$output"
                 rm -f "$output/.xt-archive.tmp.zip"
             else
@@ -166,7 +166,7 @@ extract() {
             log "ENGINE=tar"
 
             if command -v pv >/dev/null 2>&1; then
-                pv "$archive" | tar --no-same-owner -xf - -C "$output"
+                pv -n "$archive" | tar --no-same-owner -xf - -C "$output"
             else
                 tar --no-same-owner -xf "$archive" -C "$output"
             fi
@@ -179,7 +179,7 @@ extract() {
             log "ENGINE=tar+gzip"
 
             if command -v pv >/dev/null 2>&1; then
-                pv "$archive" | gzip -dc | tar --no-same-owner -xf - -C "$output"
+                pv -n "$archive" | gzip -dc | tar --no-same-owner -xf - -C "$output"
             else
                 tar --no-same-owner -xzf "$archive" -C "$output"
             fi
@@ -192,7 +192,7 @@ extract() {
             log "ENGINE=tar+bzip2"
 
             if command -v pv >/dev/null 2>&1; then
-                pv "$archive" | bzip2 -dc | tar --no-same-owner -xf - -C "$output"
+                pv -n "$archive" | bzip2 -dc | tar --no-same-owner -xf - -C "$output"
             else
                 tar --no-same-owner -xjf "$archive" -C "$output"
             fi
@@ -205,7 +205,7 @@ extract() {
             log "ENGINE=tar+xz"
 
             if command -v pv >/dev/null 2>&1; then
-                pv "$archive" | xz -dc -T0 | tar --no-same-owner -xf - -C "$output"
+                pv -n "$archive" | xz -dc -T0 | tar --no-same-owner -xf - -C "$output"
             else
                 tar --no-same-owner -xJf "$archive" -C "$output"
             fi
@@ -218,7 +218,7 @@ extract() {
             log "ENGINE=tar+zstd"
 
             if command -v pv >/dev/null 2>&1; then
-                pv "$archive" | zstd -dc -T0 | tar --no-same-owner -xf - -C "$output"
+                pv -n "$archive" | zstd -dc -T0 | tar --no-same-owner -xf - -C "$output"
             else
                 zstd -dc -T0 "$archive" | tar --no-same-owner -xf - -C "$output"
             fi
@@ -233,7 +233,7 @@ extract() {
             log "OUTPUT_FILE=$output_file"
 
             if command -v pv >/dev/null 2>&1; then
-                pv "$archive" | gzip -dc > "$output_file"
+                pv -n "$archive" | gzip -dc > "$output_file"
             else
                 gzip -dc "$archive" > "$output_file"
             fi
@@ -248,7 +248,7 @@ extract() {
             log "OUTPUT_FILE=$output_file"
 
             if command -v pv >/dev/null 2>&1; then
-                pv "$archive" | bzip2 -dc > "$output_file"
+                pv -n "$archive" | bzip2 -dc > "$output_file"
             else
                 bzip2 -dc "$archive" > "$output_file"
             fi
@@ -263,7 +263,7 @@ extract() {
             log "OUTPUT_FILE=$output_file"
 
             if command -v pv >/dev/null 2>&1; then
-                pv "$archive" | xz -dc -T0 > "$output_file"
+                pv -n "$archive" | xz -dc -T0 > "$output_file"
             else
                 xz -dc -T0 "$archive" > "$output_file"
             fi
@@ -278,7 +278,7 @@ extract() {
             log "OUTPUT_FILE=$output_file"
 
             if command -v pv >/dev/null 2>&1; then
-                pv "$archive" | zstd -dc -T0 > "$output_file"
+                pv -n "$archive" | zstd -dc -T0 > "$output_file"
             else
                 zstd -dc -T0 "$archive" > "$output_file"
             fi

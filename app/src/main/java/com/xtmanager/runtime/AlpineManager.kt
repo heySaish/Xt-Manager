@@ -484,8 +484,15 @@ class AlpineManager(private val context: Context) {
     suspend fun compressArchiveWithAlpine(
         format: String,
         outputArchive: String,
-        sources: List<String>
+        sources: List<String>,
+        onProgress: (processedBytes: Long, totalBytes: Long) -> Unit = { _, _ -> }
     ): Int = withContext(Dispatchers.IO) {
+        val totalBytes = sources.sumOf { path ->
+            val f = File(path)
+            if (f.isDirectory) f.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+            else f.length()
+        }.coerceAtLeast(1L)
+
         val scriptPath = File(filesDir, "xt-arc.sh")
         try { copyAssetFile("alpine/xt-arc.sh", scriptPath); makeExecutable(scriptPath) } catch (_: Exception) {}
 
@@ -516,14 +523,24 @@ class AlpineManager(private val context: Context) {
                 var line: String?
                 while (errReader.readLine().also { line = it } != null) {
                     val l = line ?: ""
-                    com.xtmanager.core.logger.AppLogger.i("ALPINE_CLI", "[STDERR] $l")
-                    Log.d("ALPINE_CLI", "[STDERR] $l")
+                    val trimmed = l.trim()
+                    val pct = trimmed.toLongOrNull()
+                    if (pct != null && pct in 0..100) {
+                        val processed = (totalBytes * pct) / 100
+                        onProgress(processed, totalBytes)
+                    } else {
+                        com.xtmanager.core.logger.AppLogger.i("ALPINE_CLI", "[STDERR] $l")
+                        Log.d("ALPINE_CLI", "[STDERR] $l")
+                    }
                 }
             }
 
             jobStdout.join()
             jobStderr.join()
             val exitCode = proc.waitFor()
+            if (exitCode == 0) {
+                onProgress(totalBytes, totalBytes)
+            }
             com.xtmanager.core.logger.AppLogger.i("ALPINE_CLI", "🏁 Alpine CLI Compress ($format) finished with exit code: $exitCode")
             Log.d(TAG, "🏁 Alpine CLI Compress ($format) finished with exit code: $exitCode")
             exitCode
@@ -536,8 +553,10 @@ class AlpineManager(private val context: Context) {
 
     suspend fun extractArchiveWithAlpine(
         archivePath: String,
-        outputDir: String
+        outputDir: String,
+        onProgress: (processedBytes: Long, totalBytes: Long) -> Unit = { _, _ -> }
     ): Int = withContext(Dispatchers.IO) {
+        val totalBytes = File(archivePath).length().coerceAtLeast(1L)
         val scriptPath = File(filesDir, "xt-arc.sh")
         try { copyAssetFile("alpine/xt-arc.sh", scriptPath); makeExecutable(scriptPath) } catch (_: Exception) {}
 
@@ -566,14 +585,24 @@ class AlpineManager(private val context: Context) {
                 var line: String?
                 while (errReader.readLine().also { line = it } != null) {
                     val l = line ?: ""
-                    com.xtmanager.core.logger.AppLogger.i("ALPINE_CLI", "[STDERR] $l")
-                    Log.d("ALPINE_CLI", "[STDERR] $l")
+                    val trimmed = l.trim()
+                    val pct = trimmed.toLongOrNull()
+                    if (pct != null && pct in 0..100) {
+                        val processed = (totalBytes * pct) / 100
+                        onProgress(processed, totalBytes)
+                    } else {
+                        com.xtmanager.core.logger.AppLogger.i("ALPINE_CLI", "[STDERR] $l")
+                        Log.d("ALPINE_CLI", "[STDERR] $l")
+                    }
                 }
             }
 
             jobStdout.join()
             jobStderr.join()
             val exitCode = proc.waitFor()
+            if (exitCode == 0) {
+                onProgress(totalBytes, totalBytes)
+            }
             com.xtmanager.core.logger.AppLogger.i("ALPINE_CLI", "🏁 Alpine CLI Extract finished with exit code: $exitCode")
             Log.d(TAG, "🏁 Alpine CLI Extract finished with exit code: $exitCode")
             exitCode
