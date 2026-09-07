@@ -196,41 +196,31 @@ class LocalFileSystem : FileSystem {
         }
 
         var filesList: Array<File>? = directory.listFiles()
-        if (filesList == null) {
-            val shellFiles = mutableListOf<File>()
+        if (filesList == null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             try {
-                val process = Runtime.getRuntime().exec(arrayOf("ls", "-1a", directory.absolutePath))
-                val reader = process.inputStream.bufferedReader()
-                var line: String?
-                while (reader.readLine().also { line = it } != null) {
-                    val name = line!!.trim()
-                    if (name.isNotEmpty() && name != "." && name != "..") {
-                        val child = File(directory, name)
-                        if (child.exists()) {
-                            shellFiles.add(child)
-                        }
-                    }
+                val stream = java.nio.file.Files.newDirectoryStream(directory.toPath())
+                val nioFiles = stream.map { it.toFile() }.toTypedArray()
+                stream.close()
+                if (nioFiles.isNotEmpty()) {
+                    filesList = nioFiles
                 }
-                process.waitFor()
-            } catch (_: Exception) {}
+            } catch (_: Throwable) {}
+        }
 
-            if (shellFiles.isNotEmpty()) {
-                filesList = shellFiles.toTypedArray()
-            } else {
-                val knownNames = when (directory.absolutePath) {
-                    "/" -> listOf(
-                        "apex", "bin", "bugreports", "config", "data", "dev", "etc",
-                        "init", "linkerconfig", "mnt", "odm", "oem", "proc", "product",
-                        "res", "sdcard", "storage", "sys", "system", "vendor"
-                    )
-                    "/storage" -> listOf("emulated", "self", "sdcard0", "0")
-                    "/storage/emulated" -> listOf("0")
-                    else -> emptyList()
-                }
-                val fallbackFiles = knownNames.map { File(directory, it) }.filter { it.exists() }
-                if (fallbackFiles.isNotEmpty()) {
-                    filesList = fallbackFiles.toTypedArray()
-                }
+        if (filesList == null) {
+            val knownNames = when (directory.absolutePath) {
+                "/" -> listOf(
+                    "apex", "bin", "bugreports", "config", "data", "dev", "etc",
+                    "init", "linkerconfig", "mnt", "odm", "oem", "proc", "product",
+                    "res", "sdcard", "storage", "sys", "system", "vendor"
+                )
+                "/storage" -> listOf("emulated", "self", "sdcard0", "0")
+                "/storage/emulated" -> listOf("0")
+                else -> emptyList()
+            }
+            val fallbackFiles = knownNames.map { File(directory, it) }.filter { it.exists() }
+            if (fallbackFiles.isNotEmpty()) {
+                filesList = fallbackFiles.toTypedArray()
             }
         }
 

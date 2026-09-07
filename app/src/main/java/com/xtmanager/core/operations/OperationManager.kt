@@ -262,33 +262,44 @@ class OperationManager(
         }
     }
 
+    private val lastProgressUpdateMap = ConcurrentHashMap<String, Long>()
+
     private fun addOperation(operation: Operation) {
         _operations.value = _operations.value + operation
     }
 
     private fun updateStatus(id: String, status: OperationStatus) {
+        lastProgressUpdateMap.remove(id)
         _operations.value = _operations.value.map {
             if (it.id == id) it.copy(status = status) else it
         }
     }
 
     private fun updateProgress(id: String, processed: Long, total: Long, currentFile: String) {
-        _operations.value = _operations.value.map {
-            if (it.id == id) {
-                val progress = if (total > 0) processed.toFloat() / total else 0f
-                it.copy(
-                    processedBytes = processed,
-                    totalBytes = total,
-                    progress = progress.coerceIn(0f, 1f),
-                    currentFileName = currentFile
-                )
-            } else {
-                it
+        val now = System.currentTimeMillis()
+        val lastUpdate = lastProgressUpdateMap[id] ?: 0L
+        val isFinal = processed >= total && total > 0L
+
+        if (isFinal || now - lastUpdate >= 100L) {
+            lastProgressUpdateMap[id] = now
+            _operations.value = _operations.value.map {
+                if (it.id == id) {
+                    val progress = if (total > 0) processed.toFloat() / total else 0f
+                    it.copy(
+                        processedBytes = processed,
+                        totalBytes = total,
+                        progress = progress.coerceIn(0f, 1f),
+                        currentFileName = currentFile
+                    )
+                } else {
+                    it
+                }
             }
         }
     }
 
     private fun updateError(id: String, error: String) {
+        lastProgressUpdateMap.remove(id)
         _operations.value = _operations.value.map {
             if (it.id == id) it.copy(status = OperationStatus.FAILED, error = error) else it
         }
