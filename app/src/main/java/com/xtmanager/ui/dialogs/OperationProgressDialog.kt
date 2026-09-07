@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -155,7 +156,7 @@ fun OperationProgressDialog(
                     }
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(operations) { op ->
+                        itemsIndexed(operations, key = { index, op -> "${op.id}_$index" }) { index, op ->
                             Column(modifier = Modifier.padding(vertical = 8.dp)) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
