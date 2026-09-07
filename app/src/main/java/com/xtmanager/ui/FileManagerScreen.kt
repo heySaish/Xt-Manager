@@ -81,6 +81,7 @@ import com.xtmanager.ui.dialogs.ConfirmDialog
 import com.xtmanager.ui.dialogs.CreateDialog
 import com.xtmanager.ui.dialogs.ExtractDialog
 import com.xtmanager.ui.dialogs.FileContextMenuDialog
+import com.xtmanager.ui.dialogs.LogViewerDialog
 import com.xtmanager.ui.dialogs.OperationProgressCard
 import com.xtmanager.ui.dialogs.OperationProgressDialog
 import com.xtmanager.ui.dialogs.RenameDialog
@@ -138,6 +139,7 @@ fun FileManagerScreen(
     var showCompressDialogSources by remember { mutableStateOf<List<String>?>(null) }
     var showExtractDialogPath by remember { mutableStateOf<String?>(null) }
     var showApkInstallDialog by remember { mutableStateOf<FileEntry?>(null) }
+    var showLogsDialog by remember { mutableStateOf(false) }
 
     var topMenuExpanded by remember { mutableStateOf(false) }
     var lastBackPressTime by remember { mutableStateOf(0L) }
@@ -295,6 +297,19 @@ fun FileManagerScreen(
                                     },
                                     onClick = {
                                         showOperationsDialog = true
+                                        topMenuExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(20.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text("View Telemetry Logs")
+                                        }
+                                    },
+                                    onClick = {
+                                        showLogsDialog = true
                                         topMenuExpanded = false
                                     }
                                 )
@@ -482,7 +497,15 @@ fun FileManagerScreen(
                 operations = operations,
                 onDismiss = { showOperationsDialog = false },
                 onCancelOperation = { id -> viewModel.cancelOperation(id) },
-                onClearCompleted = { viewModel.clearCompletedOperations() }
+                onClearCompleted = { viewModel.clearCompletedOperations() },
+                onViewLogs = { showLogsDialog = true }
+            )
+        }
+
+        // Live Log Viewer Dialog
+        if (showLogsDialog) {
+            LogViewerDialog(
+                onDismissRequest = { showLogsDialog = false }
             )
         }
 

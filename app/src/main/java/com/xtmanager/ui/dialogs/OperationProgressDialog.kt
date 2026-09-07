@@ -127,7 +127,8 @@ fun OperationProgressDialog(
     operations: List<Operation>,
     onDismiss: () -> Unit,
     onCancelOperation: (String) -> Unit,
-    onClearCompleted: () -> Unit
+    onClearCompleted: () -> Unit,
+    onViewLogs: () -> Unit = {}
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -137,7 +138,7 @@ fun OperationProgressDialog(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Background Tasks")
+                Text("Background Operations")
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Default.Close, contentDescription = "Close")
                 }
@@ -230,10 +231,16 @@ fun OperationProgressDialog(
             }
         },
         confirmButton = {
-            TextButton(
-                onClick = onClearCompleted
+            Row(
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Clear Completed")
+                TextButton(onClick = onViewLogs) {
+                    Text("📋 Logs")
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                TextButton(onClick = onClearCompleted) {
+                    Text("Clear Completed")
+                }
             }
         }
     )
