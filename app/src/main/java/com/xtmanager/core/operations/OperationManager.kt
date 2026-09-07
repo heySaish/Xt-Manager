@@ -72,14 +72,12 @@ class OperationManager(
                 var resultCode = -1
 
                 if (alpineManager != null && alpineManager.isInstalled) {
-                    val formatLower = File(archivePath).name.lowercase()
-                    if (formatLower.endsWith(".xz") || formatLower.endsWith(".txz") || formatLower.endsWith(".tar.xz") || formatLower.endsWith(".tar.zst") || formatLower.endsWith(".7z")) {
-                        android.util.Log.d("OperationManager", "⚡ Using Alpine CLI Archive Engine for EXTRACT: ${File(archivePath).name}")
-                        resultCode = alpineManager.extractArchiveWithAlpine(archivePath, destinationDir)
-                    }
+                    android.util.Log.d("OperationManager", "⚡ Using Alpine CLI Archive Engine for EXTRACT: ${File(archivePath).name}")
+                    resultCode = alpineManager.extractArchiveWithAlpine(archivePath, destinationDir)
                 }
 
-                if (resultCode != 0 && (alpineManager == null || !alpineManager.isInstalled)) {
+                if (resultCode != 0) {
+                    android.util.Log.d("OperationManager", "⚡ Falling back to Rust Native Archive Engine for EXTRACT: ${File(archivePath).name}")
                     resultCode = LocalFileSystem.nativeExtractArchive(
                         archivePath,
                         destinationDir,
@@ -145,14 +143,12 @@ class OperationManager(
                 var resultCode = -1
 
                 if (alpineManager != null && alpineManager.isInstalled) {
-                    val fmtLower = format.lowercase()
-                    if (fmtLower == "tar.xz" || fmtLower == "xz" || fmtLower == "tar.zst" || fmtLower == "7z") {
-                        android.util.Log.d("OperationManager", "⚡ Using Alpine CLI Archive Engine for COMPRESS ($format): ${File(destinationArchive).name}")
-                        resultCode = alpineManager.compressArchiveWithAlpine(format, destinationArchive, sources)
-                    }
+                    android.util.Log.d("OperationManager", "⚡ Using Alpine CLI Archive Engine for COMPRESS ($format): ${File(destinationArchive).name}")
+                    resultCode = alpineManager.compressArchiveWithAlpine(format, destinationArchive, sources)
                 }
 
-                if (resultCode != 0 && (alpineManager == null || !alpineManager.isInstalled)) {
+                if (resultCode != 0) {
+                    android.util.Log.d("OperationManager", "⚡ Falling back to Rust Native Archive Engine for COMPRESS ($format): ${File(destinationArchive).name}")
                     resultCode = LocalFileSystem.nativeCompressArchive(
                         sources.toTypedArray(),
                         destinationArchive,
