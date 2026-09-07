@@ -60,7 +60,22 @@ class FileManagerViewModel(
     val activePaneHighlightEnabled: StateFlow<Boolean> = _activePaneHighlightEnabled.asStateFlow()
 
     init {
-        // Initial load is deferred to MainActivity's onResume when permissions are active
+        // Automatically refresh file panes when background operations (Compress, Extract, Copy, Move, Delete) complete
+        viewModelScope.launch {
+            var prevCompletedIds = emptySet<String>()
+            operationManager.operations.collect { opList ->
+                val currentCompletedIds = opList
+                    .filter { it.status == OperationStatus.COMPLETED || it.status == OperationStatus.FAILED }
+                    .map { it.id }
+                    .toSet()
+
+                val newlyFinished = currentCompletedIds - prevCompletedIds
+                if (newlyFinished.isNotEmpty()) {
+                    refreshBothPanes()
+                }
+                prevCompletedIds = currentCompletedIds
+            }
+        }
     }
 
     fun setActivePane(paneType: PaneType) {
