@@ -166,13 +166,12 @@ fun FileManagerScreen(
     var lastBackPressTime by remember { mutableStateOf(0L) }
 
     // Intercept Back button:
-    // 1. Density Preview Screen open -> close density preview screen
-    // 2. Settings Screen open -> close settings screen
+    // 1. Preview or Settings Screens open -> close overlay screen
+    // 2. Dialog open -> close dialog
     // 3. Selection mode active -> cancel selection
     // 4. Drawer open -> close drawer
-    // 5. Can go back in history -> go back in history
-    // 6. Has parent folder -> navigate to parent directory
-    // 7. At Root directory level -> double back press confirmation to exit app
+    // 5. In subfolder -> navigate directly to parent directory
+    // 6. At Root directory level (/) -> require double back press confirmation to exit app
     BackHandler(enabled = true) {
         when {
             showBottomBarSizePreviewScreen -> {
@@ -187,14 +186,14 @@ fun FileManagerScreen(
             showSettingsScreen -> {
                 showSettingsScreen = false
             }
+            showJumpToPathDialog -> {
+                showJumpToPathDialog = false
+            }
             activeState.isSelectionMode -> {
                 viewModel.clearSelection(activePane)
             }
             drawerState.isOpen -> {
                 scope.launch { drawerState.close() }
-            }
-            activeState.canGoBack -> {
-                viewModel.goBack(activePane)
             }
             File(activeState.path).parentFile != null && activeState.path != "/" -> {
                 val parentPath = File(activeState.path).parentFile?.absolutePath ?: "/"
