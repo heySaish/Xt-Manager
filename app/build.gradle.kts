@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -26,10 +29,10 @@ android {
 
     signingConfigs {
         create("fixedRelease") {
-            val localProps = java.util.Properties()
+            val localProps = Properties()
             val localPropsFile = rootProject.file("local.properties")
             if (localPropsFile.exists()) {
-                localPropsFile.inputStream().use { localProps.load(it) }
+                FileInputStream(localPropsFile).use { localProps.load(it) }
             }
 
             val customPath = System.getenv("RELEASE_KEYSTORE_PATH")
@@ -66,7 +69,7 @@ android {
     buildTypes {
         debug {
             val config = signingConfigs.getByName("fixedRelease")
-            if (config.storeFile?.exists() == true && config.storePassword.isNotEmpty()) {
+            if (config.storeFile?.exists() == true && !config.storePassword.isNullOrEmpty()) {
                 signingConfig = config
             }
             isMinifyEnabled = true
@@ -78,7 +81,7 @@ android {
         }
         release {
             val config = signingConfigs.getByName("fixedRelease")
-            if (config.storeFile?.exists() == true && config.storePassword.isNotEmpty()) {
+            if (config.storeFile?.exists() == true && !config.storePassword.isNullOrEmpty()) {
                 signingConfig = config
             }
             isMinifyEnabled = true
