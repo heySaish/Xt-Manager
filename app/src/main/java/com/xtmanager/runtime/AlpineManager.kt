@@ -406,9 +406,7 @@ class AlpineManager(private val context: Context) {
         sources: List<String>
     ): Int {
         val scriptPath = File(filesDir, "xt-arc.sh")
-        if (!scriptPath.exists()) {
-            try { copyAssetFile("alpine/xt-arc.sh", scriptPath); makeExecutable(scriptPath) } catch (_: Exception) {}
-        }
+        try { copyAssetFile("alpine/xt-arc.sh", scriptPath); makeExecutable(scriptPath) } catch (_: Exception) {}
 
         val cmdInAlpine = mutableListOf("/bin/sh", "/files/xt-arc.sh", "compress", format, outputArchive)
         cmdInAlpine.addAll(sources)
@@ -430,9 +428,7 @@ class AlpineManager(private val context: Context) {
         outputDir: String
     ): Int {
         val scriptPath = File(filesDir, "xt-arc.sh")
-        if (!scriptPath.exists()) {
-            try { copyAssetFile("alpine/xt-arc.sh", scriptPath); makeExecutable(scriptPath) } catch (_: Exception) {}
-        }
+        try { copyAssetFile("alpine/xt-arc.sh", scriptPath); makeExecutable(scriptPath) } catch (_: Exception) {}
 
         val cmdInAlpine = listOf("/bin/sh", "/files/xt-arc.sh", "extract", archivePath, outputDir)
 
