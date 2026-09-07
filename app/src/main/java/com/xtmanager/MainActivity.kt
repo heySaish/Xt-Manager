@@ -58,6 +58,7 @@ class MainActivity : ComponentActivity() {
         }
 
         // Initialize dependencies
+        LocalFileSystem.appContext = applicationContext
         val alpineManager = com.xtmanager.runtime.AlpineManager(this)
         val fileSystem = LocalFileSystem()
         val operationManager = OperationManager(fileSystem)

@@ -32,6 +32,9 @@ class LocalFileSystem : FileSystem {
     )
 
     companion object {
+        @JvmStatic
+        var appContext: android.content.Context? = null
+
         private const val TAG = "XtFsMetrics"
         private var isNativeLoaded = false
         val isNativeEngineActive: Boolean
@@ -301,11 +304,15 @@ class LocalFileSystem : FileSystem {
                 throw IOException("File or folder already exists: $path")
             }
             if (!directory.mkdirs() && !directory.mkdir()) {
-                try {
-                    val proc = Runtime.getRuntime().exec(arrayOf("mkdir", "-p", directory.absolutePath))
-                    proc.waitFor()
-                } catch (_: Exception) {
-                    throw IOException("Failed to create directory: $path")
+                val ctx = appContext
+                val safOk = ctx != null && SafStorageManager.mkdir(ctx, path)
+                if (!safOk) {
+                    try {
+                        val proc = Runtime.getRuntime().exec(arrayOf("mkdir", "-p", directory.absolutePath))
+                        proc.waitFor()
+                    } catch (_: Exception) {
+                        throw IOException("Failed to create directory: $path")
+                    }
                 }
             }
         }
@@ -322,11 +329,23 @@ class LocalFileSystem : FileSystem {
                 parent.mkdirs()
             }
             if (!file.createNewFile()) {
+                var created = false
                 try {
                     FileOutputStream(file).use { }
+                    created = true
                 } catch (_: Exception) {
-                    val proc = Runtime.getRuntime().exec(arrayOf("touch", file.absolutePath))
-                    proc.waitFor()
+                    val ctx = appContext
+                    if (ctx != null && SafStorageManager.createFile(ctx, path)) {
+                        created = true
+                    }
+                }
+                if (!created) {
+                    try {
+                        val proc = Runtime.getRuntime().exec(arrayOf("touch", file.absolutePath))
+                        proc.waitFor()
+                    } catch (_: Exception) {
+                        throw IOException("Failed to create file: $path")
+                    }
                 }
             }
         }
@@ -340,7 +359,11 @@ class LocalFileSystem : FileSystem {
                 throw IOException("Destination file already exists: $destination")
             }
             if (!srcFile.renameTo(destFile)) {
-                throw IOException("Failed to rename $source to $destination")
+                val ctx = appContext
+                val safOk = ctx != null && SafStorageManager.rename(ctx, source, destFile.name)
+                if (!safOk) {
+                    throw IOException("Failed to rename $source to $destination")
+                }
             }
         }
     }
@@ -421,33 +444,49 @@ class LocalFileSystem : FileSystem {
     ) {
         if (src.isDirectory) {
             if (!dest.exists()) {
-                dest.mkdirs()
+                if (!dest.mkdirs()) {
+                    appContext?.let { SafStorageManager.mkdir(it, dest.absolutePath) }
+                }
             }
             val children = src.listFiles() ?: return
             for (child in children) {
                 copyRecursive(child, File(dest, child.name), totalBytes, onProgressUpdate)
             }
         } else {
-            // Copy file content with buffer and progress callbacks
             val parent = dest.parentFile
             if (parent != null && !parent.exists()) {
-                parent.mkdirs()
+                if (!parent.mkdirs()) {
+                    appContext?.let { SafStorageManager.mkdir(it, parent.absolutePath) }
+                }
             }
 
-            FileInputStream(src).use { input ->
-                FileOutputStream(dest).use { output ->
+            val input = try {
+                FileInputStream(src)
+            } catch (e: Exception) {
+                appContext?.let { SafStorageManager.openInputStream(it, src.absolutePath) }
+                    ?: throw e
+            }
+
+            val output = try {
+                FileOutputStream(dest)
+            } catch (e: Exception) {
+                appContext?.let { SafStorageManager.openOutputStream(it, dest.absolutePath) }
+                    ?: throw e
+            }
+
+            input.use { inStream ->
+                output.use { outStream ->
                     val buffer = ByteArray(64 * 1024)
                     var bytesRead: Int
                     var lastUpdate = 0L
-                    while (input.read(buffer).also { bytesRead = it } != -1) {
-                        output.write(buffer, 0, bytesRead)
+                    while (inStream.read(buffer).also { bytesRead = it } != -1) {
+                        outStream.write(buffer, 0, bytesRead)
                         val now = System.currentTimeMillis()
                         if (now - lastUpdate >= 50) {
                             onProgressUpdate(bytesRead.toLong(), src.name)
                             lastUpdate = now
                         }
                     }
-                    // Final update for this file
                     onProgressUpdate(0L, src.name)
                 }
             }
@@ -465,7 +504,11 @@ class LocalFileSystem : FileSystem {
         }
         val name = file.name
         if (file.exists() && !file.delete()) {
-            throw IOException("Failed to delete: ${file.absolutePath}")
+            val ctx = appContext
+            val safOk = ctx != null && SafStorageManager.delete(ctx, file.absolutePath)
+            if (!safOk) {
+                throw IOException("Failed to delete: ${file.absolutePath}")
+            }
         }
         onDeletedItem(name)
     }
