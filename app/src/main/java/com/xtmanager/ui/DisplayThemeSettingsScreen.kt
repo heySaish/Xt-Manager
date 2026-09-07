@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.FolderSpecial
+import androidx.compose.material.icons.filled.Highlight
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material.icons.filled.ViewStream
@@ -54,6 +55,8 @@ fun DisplayThemeSettingsScreen(
     onToggleShowThumbnails: () -> Unit = {},
     fileNameMaxLines: Int = 2,
     onSetFileNameMaxLines: (Int) -> Unit = {},
+    activePaneHighlightEnabled: Boolean = true,
+    onToggleActivePaneHighlight: () -> Unit = {},
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -209,6 +212,22 @@ fun DisplayThemeSettingsScreen(
                             selected = fileNameMaxLines > 1,
                             onClick = { onSetFileNameMaxLines(if (fileNameMaxLines > 1) 1 else 2) },
                             label = { Text(if (fileNameMaxLines > 1) "2 Lines" else "1 Line") }
+                        )
+                    }
+                )
+
+                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                // Item 8: Active Pane Highlighting
+                SettingsRowItem(
+                    icon = Icons.Default.Highlight,
+                    iconBgColor = Color(0xFF6366F1),
+                    title = "Active Pane Highlighting",
+                    subtitle = "Highlight the active file pane with a colored border & elevation",
+                    trailingWidget = {
+                        Switch(
+                            checked = activePaneHighlightEnabled,
+                            onCheckedChange = { onToggleActivePaneHighlight() }
                         )
                     }
                 )

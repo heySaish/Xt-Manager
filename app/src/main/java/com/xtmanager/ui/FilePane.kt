@@ -97,9 +97,10 @@ fun FilePane(
     isAnimationEnabled: Boolean = true,
     showThumbnails: Boolean = true,
     fileNameMaxLines: Int = 2,
+    activePaneHighlightEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    val borderColor = if (isActive) {
+    val borderColor = if (isActive && activePaneHighlightEnabled) {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
@@ -131,8 +132,8 @@ fun FilePane(
                 }
             },
         shape = RoundedCornerShape(8.dp),
-        color = if (isActive) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-        tonalElevation = if (isActive) 1.dp else 0.dp
+        color = if (isActive && activePaneHighlightEnabled) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        tonalElevation = if (isActive && activePaneHighlightEnabled) 1.dp else 0.dp
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(

@@ -56,6 +56,9 @@ class FileManagerViewModel(
     private val _fileNameMaxLines = MutableStateFlow(settingsManager.fileNameMaxLines)
     val fileNameMaxLines: StateFlow<Int> = _fileNameMaxLines.asStateFlow()
 
+    private val _activePaneHighlightEnabled = MutableStateFlow(settingsManager.activePaneHighlightEnabled)
+    val activePaneHighlightEnabled: StateFlow<Boolean> = _activePaneHighlightEnabled.asStateFlow()
+
     init {
         // Initial load is deferred to MainActivity's onResume when permissions are active
     }
@@ -80,6 +83,12 @@ class FileManagerViewModel(
         val newValue = !_showThumbnails.value
         _showThumbnails.value = newValue
         settingsManager.showThumbnails = newValue
+    }
+
+    fun toggleActivePaneHighlight() {
+        val newValue = !_activePaneHighlightEnabled.value
+        _activePaneHighlightEnabled.value = newValue
+        settingsManager.activePaneHighlightEnabled = newValue
     }
 
     fun setFileNameMaxLines(lines: Int) {

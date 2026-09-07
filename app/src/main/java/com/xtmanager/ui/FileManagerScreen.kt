@@ -137,6 +137,7 @@ fun FileManagerScreen(
     val naturalSort by viewModel.naturalSort.collectAsState()
     val showThumbnails by viewModel.showThumbnails.collectAsState()
     val fileNameMaxLines by viewModel.fileNameMaxLines.collectAsState()
+    val activePaneHighlightEnabled by viewModel.activePaneHighlightEnabled.collectAsState()
 
     val activeState = if (activePane == PaneType.LEFT) leftPaneState else rightPaneState
     val inactivePane = if (activePane == PaneType.LEFT) PaneType.RIGHT else PaneType.LEFT
@@ -539,6 +540,7 @@ fun FileManagerScreen(
                         isAnimationEnabled = folderAnimationEnabled,
                         showThumbnails = showThumbnails,
                         fileNameMaxLines = fileNameMaxLines,
+                        activePaneHighlightEnabled = activePaneHighlightEnabled,
                         onFileClick = { file ->
                             viewModel.setActivePane(PaneType.LEFT)
                             if (leftPaneState.isSelectionMode) {
@@ -587,6 +589,7 @@ fun FileManagerScreen(
                         isAnimationEnabled = folderAnimationEnabled,
                         showThumbnails = showThumbnails,
                         fileNameMaxLines = fileNameMaxLines,
+                        activePaneHighlightEnabled = activePaneHighlightEnabled,
                         onFileClick = { file ->
                             viewModel.setActivePane(PaneType.RIGHT)
                             if (rightPaneState.isSelectionMode) {
@@ -993,6 +996,8 @@ fun FileManagerScreen(
             onToggleShowThumbnails = { viewModel.toggleShowThumbnails() },
             fileNameMaxLines = fileNameMaxLines,
             onSetFileNameMaxLines = { lines -> viewModel.setFileNameMaxLines(lines) },
+            activePaneHighlightEnabled = activePaneHighlightEnabled,
+            onToggleActivePaneHighlight = { viewModel.toggleActivePaneHighlight() },
             onClose = { showDisplayThemeSettingsScreen = false },
             modifier = Modifier.fillMaxSize()
         )
