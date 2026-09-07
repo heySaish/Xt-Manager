@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xtmanager.core.filesystem.FileSystem
 import com.xtmanager.core.model.FileEntry
+import com.xtmanager.core.model.OperationStatus
 import com.xtmanager.core.model.PaneState
 import com.xtmanager.core.model.PaneType
 import com.xtmanager.core.operations.OperationManager
