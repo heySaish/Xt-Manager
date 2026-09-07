@@ -75,14 +75,11 @@ class OperationManager(
                     val formatLower = File(archivePath).name.lowercase()
                     if (formatLower.endsWith(".xz") || formatLower.endsWith(".txz") || formatLower.endsWith(".tar.xz") || formatLower.endsWith(".tar.zst") || formatLower.endsWith(".7z")) {
                         android.util.Log.d("OperationManager", "⚡ Using Alpine CLI Archive Engine for EXTRACT: ${File(archivePath).name}")
-                        val alpineRes = alpineManager.extractArchiveWithAlpine(archivePath, destinationDir)
-                        if (alpineRes == 0) {
-                            resultCode = 0
-                        }
+                        resultCode = alpineManager.extractArchiveWithAlpine(archivePath, destinationDir)
                     }
                 }
 
-                if (resultCode != 0) {
+                if (resultCode != 0 && (alpineManager == null || !alpineManager.isInstalled)) {
                     resultCode = LocalFileSystem.nativeExtractArchive(
                         archivePath,
                         destinationDir,
@@ -99,8 +96,8 @@ class OperationManager(
                     updateStatus(id, OperationStatus.CANCELLED)
                     AppLogger.i("OPERATIONS", "🛑 EXTRACT CANCELLED: ${File(archivePath).name}")
                 } else {
-                    updateError(id, "Extraction failed or security violation")
-                    AppLogger.e("OPERATIONS", "❌ EXTRACT FAILED: ${File(archivePath).name}")
+                    updateError(id, "Alpine CLI Extraction failed (exit code $resultCode)")
+                    AppLogger.e("OPERATIONS", "❌ EXTRACT FAILED: ${File(archivePath).name} (code $resultCode)")
                 }
             } catch (e: Exception) {
                 updateError(id, e.localizedMessage ?: "Unknown error")
@@ -151,14 +148,11 @@ class OperationManager(
                     val fmtLower = format.lowercase()
                     if (fmtLower == "tar.xz" || fmtLower == "xz" || fmtLower == "tar.zst" || fmtLower == "7z") {
                         android.util.Log.d("OperationManager", "⚡ Using Alpine CLI Archive Engine for COMPRESS ($format): ${File(destinationArchive).name}")
-                        val alpineRes = alpineManager.compressArchiveWithAlpine(format, destinationArchive, sources)
-                        if (alpineRes == 0) {
-                            resultCode = 0
-                        }
+                        resultCode = alpineManager.compressArchiveWithAlpine(format, destinationArchive, sources)
                     }
                 }
 
-                if (resultCode != 0) {
+                if (resultCode != 0 && (alpineManager == null || !alpineManager.isInstalled)) {
                     resultCode = LocalFileSystem.nativeCompressArchive(
                         sources.toTypedArray(),
                         destinationArchive,
