@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/badge/Platform-Android%208.0%2B-brightgreen.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Language-Kotlin%20%7C%20Rust-blue.svg" alt="Language">
   <img src="https://img.shields.io/badge/UI-Jetpack%20Compose-purple.svg" alt="UI Framework">
-  <img src="https://img.shields.io/badge/License-MIT-orange.svg" alt="License">
+  <img src="https://img.shields.io/badge/License-GPL--3.0-red.svg" alt="License">
 </p>
 
 ---
@@ -123,4 +123,4 @@ Automatic backup resolution checks `/sdcard/Xt-Manager-Keystore/release.keystore
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [GNU General Public License v3.0 (GPLv3)](LICENSE).
