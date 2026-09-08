@@ -473,7 +473,7 @@ private fun CascadeAnimatedFileRow(
     showThumbnails: Boolean = true,
     fileNameMaxLines: Int = 2
 ) {
-    if (!isAnimationEnabled || System.currentTimeMillis() - navTimestamp > 200L) {
+    if (!isAnimationEnabled) {
         FileRow(
             fileEntry = fileEntry,
             isSelected = isSelected,
