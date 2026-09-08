@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -57,20 +58,23 @@ fun BottomBar(
     Surface(
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 6.dp,
-        modifier = modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
+        modifier = modifier.fillMaxWidth()
     ) {
-        BottomAppBar(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            tonalElevation = 6.dp,
-            contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = verticalPadding),
-            windowInsets = WindowInsets(0, 0, 0, 0),
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(containerHeight)
+                .navigationBarsPadding()
         ) {
+            BottomAppBar(
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                tonalElevation = 0.dp,
+                contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = verticalPadding),
+                windowInsets = WindowInsets(0, 0, 0, 0),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(containerHeight)
+            ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth(),
