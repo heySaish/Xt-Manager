@@ -378,7 +378,7 @@ class AlpineManager(private val context: Context) {
             "TERM=xterm-256color",
             "PROOT=$prootBin",
             "LD_LIBRARY_PATH=$filesPath:$nativeDir",
-            "INITIAL_CWD=${workingDir.absolutePath}"
+            "INITIAL_CWD=${normalizePathForAlpine(workingDir.absolutePath)}"
         )
 
         val shellPath = "/system/bin/sh"
@@ -507,6 +507,14 @@ class AlpineManager(private val context: Context) {
         return pb
     }
 
+    fun normalizePathForAlpine(path: String): String {
+        return if (path.startsWith("/storage/emulated/0")) {
+            path.replace("/storage/emulated/0", "/sdcard")
+        } else {
+            path
+        }
+    }
+
     suspend fun compressArchiveWithAlpine(
         format: String,
         outputArchive: String,
@@ -522,8 +530,10 @@ class AlpineManager(private val context: Context) {
         val scriptPath = File(filesDir, "xt-arc.sh")
         try { copyAssetFile("alpine/xt-arc.sh", scriptPath); makeExecutable(scriptPath) } catch (_: Exception) {}
 
-        val canonicalOutput = try { File(outputArchive).canonicalPath } catch (_: Exception) { outputArchive }
-        val canonicalSources = sources.map { s -> try { File(s).canonicalPath } catch (_: Exception) { s } }
+        val canonicalOutput = normalizePathForAlpine(try { File(outputArchive).canonicalPath } catch (_: Exception) { outputArchive })
+        val canonicalSources = sources.map { s ->
+            normalizePathForAlpine(try { File(s).canonicalPath } catch (_: Exception) { s })
+        }
 
         val cmdInAlpine = mutableListOf("/bin/sh", "/files/xt-arc.sh", "compress", format, canonicalOutput)
         cmdInAlpine.addAll(canonicalSources)
@@ -585,8 +595,8 @@ class AlpineManager(private val context: Context) {
         outputDir: String,
         onProgress: (processedBytes: Long, totalBytes: Long) -> Unit = { _, _ -> }
     ): Int = withContext(Dispatchers.IO) {
-        val canonicalArchive = try { File(archivePath).canonicalPath } catch (_: Exception) { archivePath }
-        val canonicalOutput = try { File(outputDir).canonicalPath } catch (_: Exception) { outputDir }
+        val canonicalArchive = normalizePathForAlpine(try { File(archivePath).canonicalPath } catch (_: Exception) { archivePath })
+        val canonicalOutput = normalizePathForAlpine(try { File(outputDir).canonicalPath } catch (_: Exception) { outputDir })
 
         val totalBytes = File(canonicalArchive).length().coerceAtLeast(1L)
         val scriptPath = File(filesDir, "xt-arc.sh")
