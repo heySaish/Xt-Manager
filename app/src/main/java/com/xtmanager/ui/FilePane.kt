@@ -328,10 +328,10 @@ private fun FilePaneListContent(
                     CascadeAnimatedFileRow(
                         fileEntry = file,
                         index = index,
-                        firstVisibleIndex = listState.firstVisibleItemIndex,
                         navTimestamp = navTimestamp,
                         targetPath = targetPath,
                         isAnimationEnabled = isAnimationEnabled,
+                        isScrollInProgress = listState.isScrollInProgress,
                         isSelected = paneState.selected.contains(file.path),
                         onClick = { onFileClick(file) },
                         onLongClick = { onFileLongClick(file) },
@@ -461,10 +461,10 @@ private fun FastScrollbar(
 private fun CascadeAnimatedFileRow(
     fileEntry: FileEntry,
     index: Int,
-    firstVisibleIndex: Int = 0,
     navTimestamp: Long,
     targetPath: String,
     isAnimationEnabled: Boolean,
+    isScrollInProgress: Boolean = false,
     isSelected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -491,8 +491,12 @@ private fun CascadeAnimatedFileRow(
 
     LaunchedEffect(targetPath, fileEntry.path) {
         if (animatable.value < 1f) {
-            val relativeIndex = (index - firstVisibleIndex).coerceAtLeast(0)
-            val delayMs = relativeIndex * 15L
+            val isInitialNav = System.currentTimeMillis() - navTimestamp < 300L
+            val delayMs = when {
+                isScrollInProgress -> 0L
+                isInitialNav -> (index * 15L).coerceAtMost(180L)
+                else -> 0L
+            }
             if (delayMs > 0) {
                 kotlinx.coroutines.delay(delayMs)
             }
