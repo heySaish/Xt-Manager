@@ -491,22 +491,22 @@ private fun CascadeAnimatedFileRow(
 
     LaunchedEffect(targetPath, fileEntry.path) {
         if (animatable.value < 1f) {
-            val isInitialNav = System.currentTimeMillis() - navTimestamp < 300L
-            val delayMs = when {
-                isScrollInProgress -> 0L
-                isInitialNav -> (index * 15L).coerceAtMost(180L)
-                else -> 0L
-            }
-            if (delayMs > 0) {
-                kotlinx.coroutines.delay(delayMs)
-            }
-            animatable.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(
-                    durationMillis = 150,
-                    easing = FastOutSlowInEasing
+            val isInitialNav = System.currentTimeMillis() - navTimestamp < 250L
+            if (isScrollInProgress || !isInitialNav) {
+                animatable.snapTo(1f)
+            } else {
+                val delayMs = (index * 15L).coerceAtMost(180L)
+                if (delayMs > 0) {
+                    kotlinx.coroutines.delay(delayMs)
+                }
+                animatable.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(
+                        durationMillis = 150,
+                        easing = FastOutSlowInEasing
+                    )
                 )
-            )
+            }
         }
     }
 
