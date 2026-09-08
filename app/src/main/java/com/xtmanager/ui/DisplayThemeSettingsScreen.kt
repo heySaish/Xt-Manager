@@ -38,6 +38,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.util.Locale
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DisplayThemeSettingsScreen(
@@ -45,6 +57,8 @@ fun DisplayThemeSettingsScreen(
     onToggleShowHiddenFiles: () -> Unit = {},
     folderAnimationEnabled: Boolean = true,
     onToggleFolderAnimation: () -> Unit = {},
+    folderAnimationStyle: String = "slide",
+    onSetFolderAnimationStyle: (String) -> Unit = {},
     naturalSort: Boolean = true,
     onToggleNaturalSort: () -> Unit = {},
     densityScale: Float = 1.0f,
@@ -60,6 +74,8 @@ fun DisplayThemeSettingsScreen(
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showAnimationStyleDialog by remember { mutableStateOf(false) }
+
     BackHandler {
         onClose()
     }
@@ -142,7 +158,7 @@ fun DisplayThemeSettingsScreen(
                     icon = Icons.Default.Animation,
                     iconBgColor = Color(0xFF6366F1),
                     title = "Folder Navigation Animation",
-                    subtitle = "Cascade list entrance animation when navigating folders",
+                    subtitle = "Toggle entrance animation when navigating folders",
                     trailingWidget = {
                         Switch(
                             checked = folderAnimationEnabled,
@@ -150,6 +166,32 @@ fun DisplayThemeSettingsScreen(
                         )
                     }
                 )
+
+                if (folderAnimationEnabled) {
+                    Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                    // Item 3b: Animation Style Choice
+                    val styleLabel = when (folderAnimationStyle.lowercase()) {
+                        "cascade" -> "Cascade (Staggered Entrance)"
+                        "fade" -> "Fade (Smooth Fade In)"
+                        "none" -> "None (Instant)"
+                        else -> "Slide (Clean Horizontal Slide)"
+                    }
+                    SettingsRowItem(
+                        icon = Icons.Default.FolderSpecial,
+                        iconBgColor = Color(0xFF8B5CF6),
+                        title = "Animation Style",
+                        subtitle = styleLabel,
+                        onClick = { showAnimationStyleDialog = true },
+                        trailingWidget = {
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    )
+                }
 
                 Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
@@ -233,5 +275,52 @@ fun DisplayThemeSettingsScreen(
                 )
             }
         }
+    }
+
+    if (showAnimationStyleDialog) {
+        val styles = listOf(
+            "slide" to "Slide (Clean Horizontal Slide)",
+            "cascade" to "Cascade (Staggered Entrance)",
+            "fade" to "Fade (Smooth Fade In)",
+            "none" to "None (Instant)"
+        )
+        AlertDialog(
+            onDismissRequest = { showAnimationStyleDialog = false },
+            title = { Text("Select Animation Style", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    styles.forEach { (key, label) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onSetFolderAnimationStyle(key)
+                                    showAnimationStyleDialog = false
+                                }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = folderAnimationStyle.equals(key, ignoreCase = true),
+                                onClick = {
+                                    onSetFolderAnimationStyle(key)
+                                    showAnimationStyleDialog = false
+                                }
+                            )
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(start = 12.dp)
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAnimationStyleDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

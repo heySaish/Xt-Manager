@@ -98,6 +98,7 @@ fun FilePane(
     onFileSwipe: (Int) -> Unit = {},
     densityScale: Float = 1.0f,
     isAnimationEnabled: Boolean = true,
+    folderAnimationStyle: String = "slide",
     showThumbnails: Boolean = true,
     fileNameMaxLines: Int = 2,
     activePaneHighlightEnabled: Boolean = true,
@@ -183,19 +184,50 @@ fun FilePane(
                     }
                 }
 
-                FilePaneListContent(
-                    targetPath = paneState.path,
-                    paneState = paneState,
-                    verticalOffset = state.verticalOffset,
-                    densityScale = densityScale,
-                    isAnimationEnabled = isAnimationEnabled,
-                    showThumbnails = showThumbnails,
-                    fileNameMaxLines = fileNameMaxLines,
-                    onPathClick = onPathClick,
-                    onFileClick = onFileClick,
-                    onFileLongClick = onFileLongClick,
-                    onFileSwipe = onFileSwipe
-                )
+                val activeStyle = if (isAnimationEnabled) folderAnimationStyle else "none"
+
+                if (activeStyle == "slide" || activeStyle == "fade") {
+                    AnimatedContent(
+                        targetState = paneState.path,
+                        transitionSpec = {
+                            if (activeStyle == "slide") {
+                                (slideInHorizontally(animationSpec = tween(180, easing = FastOutSlowInEasing)) + fadeIn(animationSpec = tween(180)))
+                                    .togetherWith(slideOutHorizontally(animationSpec = tween(180, easing = FastOutSlowInEasing)) + fadeOut(animationSpec = tween(180)))
+                            } else {
+                                fadeIn(animationSpec = tween(180)).togetherWith(fadeOut(animationSpec = tween(180)))
+                            }
+                        },
+                        label = "PaneFolderTransition"
+                    ) { targetPath ->
+                        FilePaneListContent(
+                            targetPath = targetPath,
+                            paneState = paneState,
+                            verticalOffset = state.verticalOffset,
+                            densityScale = densityScale,
+                            isAnimationEnabled = false,
+                            showThumbnails = showThumbnails,
+                            fileNameMaxLines = fileNameMaxLines,
+                            onPathClick = onPathClick,
+                            onFileClick = onFileClick,
+                            onFileLongClick = onFileLongClick,
+                            onFileSwipe = onFileSwipe
+                        )
+                    }
+                } else {
+                    FilePaneListContent(
+                        targetPath = paneState.path,
+                        paneState = paneState,
+                        verticalOffset = state.verticalOffset,
+                        densityScale = densityScale,
+                        isAnimationEnabled = activeStyle == "cascade",
+                        showThumbnails = showThumbnails,
+                        fileNameMaxLines = fileNameMaxLines,
+                        onPathClick = onPathClick,
+                        onFileClick = onFileClick,
+                        onFileLongClick = onFileLongClick,
+                        onFileSwipe = onFileSwipe
+                    )
+                }
             }
         }
     }

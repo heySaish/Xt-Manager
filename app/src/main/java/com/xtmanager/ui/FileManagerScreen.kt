@@ -110,6 +110,7 @@ fun FileManagerScreen(
     val densityScale by viewModel.densityScale.collectAsState()
     val bottomBarScale by viewModel.bottomBarScale.collectAsState()
     val folderAnimationEnabled by viewModel.folderAnimationEnabled.collectAsState()
+    val folderAnimationStyle by viewModel.folderAnimationStyle.collectAsState()
     val naturalSort by viewModel.naturalSort.collectAsState()
     val showThumbnails by viewModel.showThumbnails.collectAsState()
     val fileNameMaxLines by viewModel.fileNameMaxLines.collectAsState()
@@ -391,6 +392,7 @@ fun FileManagerScreen(
                             activePane = activePane,
                             densityScale = densityScale,
                             folderAnimationEnabled = folderAnimationEnabled,
+                            folderAnimationStyle = folderAnimationStyle,
                             showThumbnails = showThumbnails,
                             fileNameMaxLines = fileNameMaxLines,
                             activePaneHighlightEnabled = activePaneHighlightEnabled,
@@ -626,6 +628,8 @@ fun FileManagerScreen(
                 onToggleShowHiddenFiles = { viewModel.toggleShowHiddenFiles() },
                 folderAnimationEnabled = folderAnimationEnabled,
                 onToggleFolderAnimation = { viewModel.toggleFolderAnimation() },
+                folderAnimationStyle = folderAnimationStyle,
+                onSetFolderAnimationStyle = { style -> viewModel.setFolderAnimationStyle(style) },
                 naturalSort = naturalSort,
                 onToggleNaturalSort = { viewModel.toggleNaturalSort() },
                 densityScale = densityScale,

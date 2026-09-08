@@ -43,10 +43,15 @@ class SettingsManager(context: Context) {
         get() = prefs.getBoolean(KEY_IS_ROOT_ENABLED, false)
         set(value) = prefs.edit().putBoolean(KEY_IS_ROOT_ENABLED, value).apply()
 
+    var folderAnimationStyle: String
+        get() = prefs.getString(KEY_FOLDER_ANIMATION_STYLE, "slide") ?: "slide"
+        set(value) = prefs.edit().putString(KEY_FOLDER_ANIMATION_STYLE, value).apply()
+
     companion object {
         private const val PREFS_NAME = "xt_manager_settings"
         private const val KEY_SHOW_HIDDEN_FILES = "show_hidden_files"
         private const val KEY_FOLDER_ANIMATION_ENABLED = "folder_animation_enabled"
+        private const val KEY_FOLDER_ANIMATION_STYLE = "folder_animation_style"
         private const val KEY_DENSITY_SCALE = "density_scale"
         private const val KEY_NATURAL_SORT = "natural_sort"
         private const val KEY_BOTTOM_BAR_SCALE = "bottom_bar_scale"

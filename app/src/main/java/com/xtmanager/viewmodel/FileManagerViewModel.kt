@@ -60,10 +60,16 @@ class FileManagerViewModel(
     private val _activePaneHighlightEnabled = MutableStateFlow(settingsManager.activePaneHighlightEnabled)
     val activePaneHighlightEnabled: StateFlow<Boolean> = _activePaneHighlightEnabled.asStateFlow()
 
-    private val rootShellManager = com.xtmanager.core.root.RootShellManager()
-
     private val _isRootEnabled = MutableStateFlow(settingsManager.isRootEnabled)
     val isRootEnabled: StateFlow<Boolean> = _isRootEnabled.asStateFlow()
+
+    private val _folderAnimationStyle = MutableStateFlow(settingsManager.folderAnimationStyle)
+    val folderAnimationStyle: StateFlow<String> = _folderAnimationStyle.asStateFlow()
+
+    fun setFolderAnimationStyle(style: String) {
+        _folderAnimationStyle.value = style
+        settingsManager.folderAnimationStyle = style
+    }
 
     fun toggleRootAccess(enable: Boolean, onResult: (Boolean, String) -> Unit) {
         viewModelScope.launch {
