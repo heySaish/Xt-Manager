@@ -118,7 +118,7 @@ extract() {
     archive="$1"
     output="$2"
 
-    [ -f "$archive" ] || die "Archive does not exist: $archive"
+    [ -e "$archive" ] || die "Archive does not exist: $archive"
 
     mkdir -p "$output"
 

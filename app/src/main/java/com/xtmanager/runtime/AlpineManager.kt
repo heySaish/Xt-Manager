@@ -449,6 +449,7 @@ class AlpineManager(private val context: Context) {
             "--kill-on-exit",
             "-b", "/sdcard",
             "-b", "/storage",
+            "-b", "/mnt",
             "-b", "/data",
             "-b", filesPath,
             "-b", "$filesPath:/files",
@@ -496,8 +497,11 @@ class AlpineManager(private val context: Context) {
         val scriptPath = File(filesDir, "xt-arc.sh")
         try { copyAssetFile("alpine/xt-arc.sh", scriptPath); makeExecutable(scriptPath) } catch (_: Exception) {}
 
-        val cmdInAlpine = mutableListOf("/bin/sh", "/files/xt-arc.sh", "compress", format, outputArchive)
-        cmdInAlpine.addAll(sources)
+        val canonicalOutput = try { File(outputArchive).canonicalPath } catch (_: Exception) { outputArchive }
+        val canonicalSources = sources.map { s -> try { File(s).canonicalPath } catch (_: Exception) { s } }
+
+        val cmdInAlpine = mutableListOf("/bin/sh", "/files/xt-arc.sh", "compress", format, canonicalOutput)
+        cmdInAlpine.addAll(canonicalSources)
 
         val cmdString = cmdInAlpine.joinToString(" ")
         com.xtmanager.core.logger.AppLogger.i("ALPINE_CLI", "🚀 Executing Alpine CLI Compress: $cmdString")
@@ -556,11 +560,14 @@ class AlpineManager(private val context: Context) {
         outputDir: String,
         onProgress: (processedBytes: Long, totalBytes: Long) -> Unit = { _, _ -> }
     ): Int = withContext(Dispatchers.IO) {
-        val totalBytes = File(archivePath).length().coerceAtLeast(1L)
+        val canonicalArchive = try { File(archivePath).canonicalPath } catch (_: Exception) { archivePath }
+        val canonicalOutput = try { File(outputDir).canonicalPath } catch (_: Exception) { outputDir }
+
+        val totalBytes = File(canonicalArchive).length().coerceAtLeast(1L)
         val scriptPath = File(filesDir, "xt-arc.sh")
         try { copyAssetFile("alpine/xt-arc.sh", scriptPath); makeExecutable(scriptPath) } catch (_: Exception) {}
 
-        val cmdInAlpine = listOf("/bin/sh", "/files/xt-arc.sh", "extract", archivePath, outputDir)
+        val cmdInAlpine = listOf("/bin/sh", "/files/xt-arc.sh", "extract", canonicalArchive, canonicalOutput)
         val cmdString = cmdInAlpine.joinToString(" ")
         com.xtmanager.core.logger.AppLogger.i("ALPINE_CLI", "🚀 Executing Alpine CLI Extract: $cmdString")
         Log.d(TAG, "🚀 Executing Alpine CLI Extract: $cmdString")
