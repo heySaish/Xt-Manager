@@ -86,6 +86,7 @@ class AlpineManager(private val context: Context) {
             }
 
             fixAlpinePermissionsAndLinks()
+            ensureMountPointsExist()
 
             return true
         } catch (e: Exception) {
@@ -400,6 +401,25 @@ class AlpineManager(private val context: Context) {
         return alpineUsrBin.exists() || alpineBin.exists()
     }
 
+    fun ensureMountPointsExist(sysMounts: List<String> = emptyList()) {
+        val baseMounts = listOf("sdcard", "storage", "mnt", "data", "files", "tmp", "dev", "proc", "sys")
+        for (m in baseMounts) {
+            val d = File(alpineDir, m)
+            if (!d.exists()) {
+                try { d.mkdirs() } catch (_: Exception) {}
+            }
+        }
+        for (m in sysMounts) {
+            if (m.startsWith("/")) {
+                val rel = m.removePrefix("/")
+                val d = File(alpineDir, rel)
+                if (!d.exists()) {
+                    try { d.mkdirs() } catch (_: Exception) {}
+                }
+            }
+        }
+    }
+
     fun createAlpineProcessBuilder(commandInAlpine: List<String>): ProcessBuilder {
         fixAlpinePermissionsAndLinks()
         val nativeDir = context.applicationInfo.nativeLibraryDir
@@ -431,17 +451,22 @@ class AlpineManager(private val context: Context) {
             listOf(linker, prootBin)
         }
 
-        val sysMounts = mutableListOf<String>()
+        val rawSysMounts = mutableListOf<String>()
+        val sysMountArgs = mutableListOf<String>()
         val systemPaths = arrayOf(
             "/apex", "/odm", "/product", "/system", "/system_ext", "/vendor",
             "/proc", "/sys", "/dev", "/linkerconfig/ld.config.txt"
         )
         for (mnt in systemPaths) {
             if (File(mnt).exists()) {
-                sysMounts.add("-b")
-                sysMounts.add(mnt)
+                rawSysMounts.add(mnt)
+                sysMountArgs.add("-b")
+                sysMountArgs.add(mnt)
             }
         }
+
+        // CRITICAL FIX: Ensure guest mount point directories exist inside alpineDir before starting PRoot!
+        ensureMountPointsExist(rawSysMounts)
 
         val cmd = mutableListOf<String>()
         cmd.addAll(prootExec)
@@ -455,7 +480,7 @@ class AlpineManager(private val context: Context) {
             "-b", "$filesPath:/files",
             "-b", nativeDir
         ))
-        cmd.addAll(sysMounts)
+        cmd.addAll(sysMountArgs)
         cmd.addAll(listOf(
             "-r", "$filesPath/alpine",
             "-0",
