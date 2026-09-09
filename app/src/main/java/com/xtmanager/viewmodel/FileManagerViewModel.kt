@@ -327,6 +327,30 @@ class FileManagerViewModel(
         updatePane(paneType, state.copy(selected = allPaths, anchorIndex = 0))
     }
 
+    fun invertSelection(paneType: PaneType) {
+        val state = if (paneType == PaneType.LEFT) _leftPaneState.value else _rightPaneState.value
+        val allPaths = state.files.map { it.path }.toSet()
+        val inverted = allPaths - state.selected
+        updatePane(paneType, state.copy(selected = inverted))
+    }
+
+    fun selectByPattern(paneType: PaneType, pattern: String) {
+        if (pattern.isBlank()) return
+        val state = if (paneType == PaneType.LEFT) _leftPaneState.value else _rightPaneState.value
+        val regex = patternToRegex(pattern)
+        val matchedPaths = state.files.filter { file ->
+            regex.matches(file.name)
+        }.map { it.path }.toSet()
+        updatePane(paneType, state.copy(selected = state.selected + matchedPaths))
+    }
+
+    private fun patternToRegex(pattern: String): Regex {
+        val escaped = Regex.escape(pattern)
+            .replace("\\*", ".*")
+            .replace("\\?", ".")
+        return Regex("^$escaped$", RegexOption.IGNORE_CASE)
+    }
+
     fun clearSelection(paneType: PaneType) {
         val state = if (paneType == PaneType.LEFT) _leftPaneState.value else _rightPaneState.value
         updatePane(paneType, state.copy(selected = emptySet(), anchorIndex = null))
