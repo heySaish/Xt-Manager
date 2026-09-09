@@ -249,73 +249,6 @@ fun FileManagerScreen(
                             }
                         },
                         actions = {
-                            if (activeState.isSelectionMode || activeState.selected.isNotEmpty()) {
-                                // 1. Select All
-                                IconButton(onClick = { viewModel.selectAll(activePane) }) {
-                                    Icon(
-                                        imageVector = Icons.Default.SelectAll,
-                                        contentDescription = "Select All",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-
-                                // 2. Invert Select
-                                IconButton(onClick = { viewModel.invertSelection(activePane) }) {
-                                    Icon(
-                                        imageVector = Icons.Default.FlipToBack,
-                                        contentDescription = "Invert Select",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-
-                                // 3. Cancel
-                                IconButton(onClick = { viewModel.clearSelection(activePane) }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Cancel Selection",
-                                        tint = MaterialTheme.colorScheme.error
-                                    )
-                                }
-
-                                // 4. Pattern Selection (Smart extension extraction or dialog fallback)
-                                IconButton(onClick = {
-                                    if (activeState.selected.isNotEmpty()) {
-                                        val selectedFile = activeState.files.firstOrNull { activeState.selected.contains(it.path) }
-                                        if (selectedFile != null) {
-                                            val ext = selectedFile.name.substringAfterLast('.', "")
-                                            if (ext.isNotEmpty() && ext != selectedFile.name) {
-                                                val pattern = "*.$ext"
-                                                viewModel.selectByPattern(activePane, pattern)
-                                                Toast.makeText(context, "Auto-selected matching $pattern", Toast.LENGTH_SHORT).show()
-                                            } else {
-                                                showPatternSelectionDialog = true
-                                            }
-                                        } else {
-                                            showPatternSelectionDialog = true
-                                        }
-                                    } else {
-                                        showPatternSelectionDialog = true
-                                    }
-                                }) {
-                                    Icon(
-                                        imageVector = Icons.Default.FilterList,
-                                        contentDescription = "Pattern Selection",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-
-                                // 5. Placeholder (Reserved for future smart filters like date/size)
-                                IconButton(onClick = {
-                                    Toast.makeText(context, "Placeholder button (Reserved for future smart filters)", Toast.LENGTH_SHORT).show()
-                                }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Extension,
-                                        contentDescription = "Placeholder",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                    )
-                                }
-                            }
-
                             val activeOpsCount = operations.count { it.status == OperationStatus.RUNNING }
                             if (activeOpsCount > 0) {
                                 IconButton(onClick = { showOperationsDialog = true }) {
@@ -346,74 +279,6 @@ fun FileManagerScreen(
                                 expanded = topMenuExpanded,
                                 onDismissRequest = { topMenuExpanded = false }
                             ) {
-                                if (activeState.isSelectionMode || activeState.selected.isNotEmpty()) {
-                                    DropdownMenuItem(
-                                        text = {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.SelectAll, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text("1. Select All")
-                                            }
-                                        },
-                                        onClick = {
-                                            viewModel.selectAll(activePane)
-                                            topMenuExpanded = false
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.FlipToBack, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text("2. Invert Select")
-                                            }
-                                        },
-                                        onClick = {
-                                            viewModel.invertSelection(activePane)
-                                            topMenuExpanded = false
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.error)
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text("3. Cancel Selection")
-                                            }
-                                        },
-                                        onClick = {
-                                            viewModel.clearSelection(activePane)
-                                            topMenuExpanded = false
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.FilterList, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text("4. Pattern Selection")
-                                            }
-                                        },
-                                        onClick = {
-                                            showPatternSelectionDialog = true
-                                            topMenuExpanded = false
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.Extension, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text("5. Placeholder Action")
-                                            }
-                                        },
-                                        onClick = {
-                                            Toast.makeText(context, "Placeholder button (Reserved for future smart filters)", Toast.LENGTH_SHORT).show()
-                                            topMenuExpanded = false
-                                        }
-                                    )
-                                    androidx.compose.material3.Divider()
-                                }
                                 DropdownMenuItem(
                                     text = { 
                                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -480,7 +345,7 @@ fun FileManagerScreen(
                 },
                 bottomBar = {
                     BottomBar(
-                        hasSelection = activeState.selected.isNotEmpty(),
+                        hasSelection = activeState.selected.isNotEmpty() || activeState.isSelectionMode,
                         canGoBack = activeState.canGoBack,
                         canGoForward = activeState.canGoForward,
                         onGoBack = { viewModel.goBack(activePane) },
@@ -509,6 +374,31 @@ fun FileManagerScreen(
                             }
                         },
                         onDelete = { showDeleteConfirmDialog = true },
+                        onSelectAll = { viewModel.selectAll(activePane) },
+                        onInvertSelect = { viewModel.invertSelection(activePane) },
+                        onCancelSelection = { viewModel.clearSelection(activePane) },
+                        onPatternSelect = {
+                            if (activeState.selected.isNotEmpty()) {
+                                val selectedFile = activeState.files.firstOrNull { activeState.selected.contains(it.path) }
+                                if (selectedFile != null) {
+                                    val ext = selectedFile.name.substringAfterLast('.', "")
+                                    if (ext.isNotEmpty() && ext != selectedFile.name) {
+                                        val pattern = "*.$ext"
+                                        viewModel.selectByPattern(activePane, pattern)
+                                        Toast.makeText(context, "Auto-selected matching $pattern", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        showPatternSelectionDialog = true
+                                    }
+                                } else {
+                                    showPatternSelectionDialog = true
+                                }
+                            } else {
+                                showPatternSelectionDialog = true
+                            }
+                        },
+                        onPlaceholderClick = {
+                            Toast.makeText(context, "Placeholder button (Reserved for future smart filters)", Toast.LENGTH_SHORT).show()
+                        },
                         onMenuClick = { scope.launch { drawerState.open() } },
                         scale = bottomBarScale
                     )
