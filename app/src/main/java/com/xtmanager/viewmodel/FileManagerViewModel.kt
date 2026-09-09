@@ -71,6 +71,8 @@ class FileManagerViewModel(
         settingsManager.folderAnimationStyle = style
     }
 
+    private val rootShellManager = com.xtmanager.core.root.RootShellManager()
+
     fun toggleRootAccess(enable: Boolean, onResult: (Boolean, String) -> Unit) {
         viewModelScope.launch {
             if (enable) {
