@@ -97,6 +97,23 @@ class FileManagerViewModel(
     }
 
     init {
+        // Pre-fill StateFlows with binary snapshot for Instant UI Frame 1 (< 2ms)
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val leftPath = _leftPaneState.value.path
+            val leftSnap = SnapshotCacheManager.readSnapshot(LocalFileSystem.appContext, leftPath)
+            if (leftSnap != null && leftSnap.files.isNotEmpty()) {
+                val cleanedLeft = leftSnap.files.filter { File(it.path).exists() }
+                _leftPaneState.value = _leftPaneState.value.copy(files = cleanedLeft)
+            }
+
+            val rightPath = _rightPaneState.value.path
+            val rightSnap = SnapshotCacheManager.readSnapshot(LocalFileSystem.appContext, rightPath)
+            if (rightSnap != null && rightSnap.files.isNotEmpty()) {
+                val cleanedRight = rightSnap.files.filter { File(it.path).exists() }
+                _rightPaneState.value = _rightPaneState.value.copy(files = cleanedRight)
+            }
+        }
+
         // Automatically refresh file panes when background operations (Compress, Extract, Copy, Move, Delete) complete
         viewModelScope.launch {
             var prevCompletedIds = emptySet<String>()
