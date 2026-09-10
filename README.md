@@ -105,20 +105,6 @@ The compiled APK will be generated at `app/build/outputs/apk/debug/app-debug.apk
 
 ---
 
-## 🔑 Security & Keystore Configuration
-
-To sign release builds safely, XT Manager loads credentials from environment variables or a local untracked `local.properties` file:
-
-```properties
-# local.properties (ignored by Git)
-RELEASE_KEYSTORE_PATH=/sdcard/Xt-Manager-Keystore/release.keystore
-RELEASE_KEYSTORE_PASSWORD=your_keystore_password
-RELEASE_KEY_ALIAS=your_key_alias
-RELEASE_KEY_PASSWORD=your_key_password
-```
-
-Automatic backup resolution checks `/sdcard/Xt-Manager-Keystore/release.keystore` to preserve signing keys across app reinstalls.
-
 ---
 
 ## 📄 License
