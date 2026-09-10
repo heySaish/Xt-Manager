@@ -15,6 +15,8 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 import com.xtmanager.core.filesystem.FileSystemCache
+import com.xtmanager.core.filesystem.LocalFileSystem
+import com.xtmanager.core.filesystem.SnapshotCacheManager
 import kotlinx.coroutines.delay
 
 import com.xtmanager.core.settings.SettingsManager
