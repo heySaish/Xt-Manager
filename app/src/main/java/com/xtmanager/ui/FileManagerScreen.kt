@@ -432,8 +432,13 @@ fun FileManagerScreen(
                             showThumbnails = showThumbnails,
                             fileNameMaxLines = fileNameMaxLines,
                             activePaneHighlightEnabled = activePaneHighlightEnabled,
-                            onFileClick = { pane, file ->
+                             onFileClick = { pane, file ->
                                 viewModel.setActivePane(pane)
+                                if (!File(file.path).exists() && file.type != FileType.ARCHIVE && !file.path.contains(".zip/") && !file.path.contains(".7z/")) {
+                                    Toast.makeText(context, "File or folder no longer exists", Toast.LENGTH_SHORT).show()
+                                    viewModel.refreshPane(pane, force = true)
+                                    return@DualPaneView
+                                }
                                 val state = if (pane == PaneType.LEFT) leftPaneState else rightPaneState
                                 if (state.isSelectionMode) {
                                     viewModel.toggleFileSelection(pane, file.path)

@@ -132,6 +132,19 @@ class LocalFileSystem(
             return@withContext cached
         }
 
+        // Try reading binary disk snapshot for SWR Instant UI
+        val snapshotRes = SnapshotCacheManager.readSnapshot(appContext, canonicalPath)
+        if (snapshotRes != null) {
+            val dirModOnDisk = if (directory.exists()) directory.lastModified() else 0L
+            val cleanedSnapFiles = snapshotRes.files.filter { File(it.path).exists() }
+            FileSystemCache.put(canonicalPath, cleanedSnapFiles)
+
+            if (dirModOnDisk > 0L && dirModOnDisk == snapshotRes.dirLastModified) {
+                Log.d(TAG, "⚡ Snapshot Timestamp MATCH for $canonicalPath -> Skip Rust Rescan!")
+                return@withContext cleanedSnapFiles
+            }
+        }
+
         // SingleFlight Request Collapsing: If a scan for canonicalPath is already in-flight, await its result
         val myDeferred = CompletableDeferred<List<FileEntry>>()
         val existingDeferred = inFlightScans.putIfAbsent(canonicalPath, myDeferred)
@@ -144,6 +157,8 @@ class LocalFileSystem(
         try {
             val result = performScan(directory)
             FileSystemCache.put(canonicalPath, result)
+            val dirModOnDisk = if (directory.exists()) directory.lastModified() else 0L
+            SnapshotCacheManager.writeSnapshot(appContext, canonicalPath, result, dirModOnDisk)
             myDeferred.complete(result)
             return@withContext result
         } catch (e: Throwable) {
