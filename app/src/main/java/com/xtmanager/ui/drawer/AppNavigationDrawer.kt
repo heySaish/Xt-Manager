@@ -29,13 +29,17 @@ import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 data class StorageVolumeInfo(
@@ -171,7 +175,9 @@ fun AppNavigationDrawer(
                         )
                     )
                     
-                    val storageVolumes = remember(context) { getStorageVolumesList(context) }
+                    val storageVolumes by produceState<List<StorageVolumeInfo>>(initialValue = emptyList(), context) {
+                        value = withContext(Dispatchers.IO) { getStorageVolumesList(context) }
+                    }
                     for (vol in storageVolumes) {
                         NavigationDrawerItem(
                             icon = {
