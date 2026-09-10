@@ -185,18 +185,25 @@ class FileManagerViewModel(
         updatePane(paneType, stateBuilder(filteredFiles))
     }
 
-    fun refreshPane(paneType: PaneType) {
-        refreshBothPanes()
+    fun refreshPane(paneType: PaneType, force: Boolean = true) {
+        refreshSinglePane(paneType, forceInvalidate = force)
     }
 
-    fun refreshBothPanes() {
-        refreshSinglePane(PaneType.LEFT)
-        refreshSinglePane(PaneType.RIGHT)
+    fun refreshBothPanes(force: Boolean = true) {
+        refreshSinglePane(PaneType.LEFT, forceInvalidate = force)
+        refreshSinglePane(PaneType.RIGHT, forceInvalidate = force)
     }
 
-    private fun refreshSinglePane(paneType: PaneType) {
+    fun refreshBothIfNeeded() {
+        refreshSinglePane(PaneType.LEFT, forceInvalidate = false)
+        refreshSinglePane(PaneType.RIGHT, forceInvalidate = false)
+    }
+
+    private fun refreshSinglePane(paneType: PaneType, forceInvalidate: Boolean = true) {
         val state = if (paneType == PaneType.LEFT) _leftPaneState.value else _rightPaneState.value
-        FileSystemCache.invalidate(state.path)
+        if (forceInvalidate) {
+            FileSystemCache.invalidate(state.path)
+        }
         viewModelScope.launch {
             try {
                 loadAndEmitChunked(paneType, state.path) { files ->

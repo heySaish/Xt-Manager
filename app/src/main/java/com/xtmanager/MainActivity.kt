@@ -39,8 +39,7 @@ class MainActivity : ComponentActivity() {
         val granted = permissions.entries.all { it.value }
         isPermissionGranted = granted
         if (granted) {
-            viewModel.refreshPane(com.xtmanager.core.model.PaneType.LEFT)
-            viewModel.refreshPane(com.xtmanager.core.model.PaneType.RIGHT)
+            viewModel.refreshBothPanes()
         } else {
             Toast.makeText(this, "Storage permission is required to list files", Toast.LENGTH_LONG).show()
         }
@@ -152,8 +151,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         isPermissionGranted = hasStoragePermission()
         if (isPermissionGranted && ::viewModel.isInitialized) {
-            viewModel.refreshPane(com.xtmanager.core.model.PaneType.LEFT)
-            viewModel.refreshPane(com.xtmanager.core.model.PaneType.RIGHT)
+            viewModel.refreshBothIfNeeded()
         }
     }
 }
