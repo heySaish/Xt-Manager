@@ -43,6 +43,8 @@ class LocalFileSystem(
         val isNativeEngineActive: Boolean
             get() = isNativeLoaded
         init {
+            val t0 = System.currentTimeMillis()
+            android.util.Log.d("XT_STARTUP", "⚡ JNI loadLibrary START")
             try {
                 System.loadLibrary("xt_fs")
                 isNativeLoaded = true
@@ -54,6 +56,7 @@ class LocalFileSystem(
                     isNativeLoaded = false
                 }
             }
+            android.util.Log.d("XT_STARTUP", "⚡ JNI loadLibrary END (${System.currentTimeMillis() - t0}ms)")
         }
 
         @JvmStatic

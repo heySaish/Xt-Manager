@@ -46,6 +46,9 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val t0 = System.currentTimeMillis()
+        android.util.Log.d("XT_STARTUP", "🚀 MainActivity.onCreate START")
+
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT)
@@ -63,11 +66,18 @@ class MainActivity : ComponentActivity() {
             window.isNavigationBarContrastEnforced = false
         }
 
+        val t1 = System.currentTimeMillis()
+        android.util.Log.d("XT_STARTUP", "⏱️ Window config done (${t1 - t0}ms)")
+
         // Initialize dependencies
         LocalFileSystem.appContext = applicationContext
         val alpineManager = com.xtmanager.runtime.AlpineManager(this)
         val settingsManager = com.xtmanager.core.settings.SettingsManager(applicationContext)
         val fileSystem = LocalFileSystem(isRootEnabledProvider = { settingsManager.isRootEnabled })
+
+        val t2 = System.currentTimeMillis()
+        android.util.Log.d("XT_STARTUP", "⏱️ LocalFileSystem & Settings created (${t2 - t1}ms)")
+
         val operationManager = OperationManager(fileSystem, alpineManager)
 
         viewModel = FileManagerViewModel(
@@ -75,6 +85,9 @@ class MainActivity : ComponentActivity() {
             operationManager = operationManager,
             settingsManager = settingsManager
         )
+
+        val t3 = System.currentTimeMillis()
+        android.util.Log.d("XT_STARTUP", "⏱️ ViewModel created (${t3 - t2}ms)")
 
         isPermissionGranted = hasStoragePermission()
 
@@ -105,6 +118,9 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+
+        val t4 = System.currentTimeMillis()
+        android.util.Log.d("XT_STARTUP", "🏁 setContent finished (${t4 - t3}ms | Total onCreate: ${t4 - t0}ms)")
     }
 
     private fun hasStoragePermission(): Boolean {
@@ -149,9 +165,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        val t0 = System.currentTimeMillis()
+        android.util.Log.d("XT_STARTUP", "🔄 onResume START")
         isPermissionGranted = hasStoragePermission()
         if (isPermissionGranted && ::viewModel.isInitialized) {
             viewModel.refreshBothIfNeeded()
         }
+        android.util.Log.d("XT_STARTUP", "🔄 onResume END (${System.currentTimeMillis() - t0}ms)")
     }
 }
