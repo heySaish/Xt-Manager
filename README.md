@@ -42,7 +42,7 @@
 - **Fallback Operations**: Automatic fallback to SAF URIs if POSIX permissions are restricted.
 
 ### 💻 Embedded Terminal Emulator
-- Integrated Termux terminal window allowing shell script execution and CLI operations directly inside the application.
+- Integrated terminal window allowing shell script execution and CLI operations directly inside the application.
 
 ---
 
